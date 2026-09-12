@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "frs-coach-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-11",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "ALLOWED_ORIGIN": "http://localhost:5173",
+    "PUBLIC_SITE_URL": "http://localhost:5173",
+    "RESEND_FROM_EMAIL": "FRS Coach <onboarding@resend.dev>",
+    "SESSION_TTL_SECONDS": "43200",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "frs-coach",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations-d1",
+    },
+  ],
+}

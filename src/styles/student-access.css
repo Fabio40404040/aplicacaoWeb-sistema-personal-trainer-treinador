@@ -1,0 +1,119 @@
+.student-access[hidden] {
+  display: none;
+}
+.password-control {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+.password-control input {
+  width: 100%;
+  padding-right: 52px;
+}
+.password-toggle {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #355374;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.password-toggle svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.password-eye-slash {
+  display: none;
+}
+.password-toggle[aria-pressed='true'] .password-eye-slash {
+  display: block;
+}
+.password-toggle:focus-visible {
+  outline: 2px solid #3d8bfd;
+}
+.student-access {
+  min-height: 100vh;
+  background: #18212d;
+  color: #f5f7fb;
+  padding: 28px clamp(16px, 5vw, 70px);
+}
+.student-access > .brand {
+  color: #f5f7fb;
+  text-decoration: none;
+}
+.student-access-card {
+  display: grid;
+  gap: 20px;
+  width: min(100%, 510px);
+  margin: 42px auto;
+  padding: clamp(22px, 5vw, 42px);
+  background: #243244;
+  border: 1px solid #40546e;
+  border-radius: 20px;
+}
+.student-access-card h1,
+.student-access-card h2,
+.student-access-card p {
+  margin: 0;
+  color: inherit;
+}
+.student-access-card h1 {
+  font-size: clamp(1.8rem, 5vw, 2.5rem);
+}
+.student-access-card p {
+  color: #c1cee0;
+}
+.student-access-card .password-requirements {
+  margin-top: -10px;
+  padding: 12px 14px;
+  border-left: 3px solid #5aa7ff;
+  border-radius: 8px;
+  background: rgba(91, 168, 255, 0.09);
+  color: #d9e8fb;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+.student-access-card a {
+  color: #91c5ff;
+}
+.student-access-card .field > span {
+  color: #eef4ff;
+}
+.student-access-card [role='status']:empty {
+  display: none;
+}
+.student-access-card--panel {
+  width: min(100%, 900px);
+}
+.student-access-features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.student-access-features article {
+  padding: 20px;
+  border: 1px solid #40546e;
+  border-radius: 12px;
+}
+.student-access-features h2 {
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+.student-card--login > a:last-child {
+  margin-top: 18px;
+}
+@media (max-width: 600px) {
+  .student-access-features {
+    grid-template-columns: 1fr;
+  }
+}

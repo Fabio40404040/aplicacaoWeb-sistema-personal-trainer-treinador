@@ -1,0 +1,2 @@
+SESSION_SECRET=troque-por-uma-chave-longa-e-aleatoria
+RESEND_API_KEY=re_sua_chave_aqui

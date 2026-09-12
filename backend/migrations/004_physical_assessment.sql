@@ -1,0 +1,16 @@
+ALTER TABLE assessments ADD COLUMN protocol VARCHAR(30) NOT NULL DEFAULT 'Inicial';
+ALTER TABLE assessments ADD COLUMN height_cm NUMERIC(5,2);
+ALTER TABLE assessments ADD COLUMN bmi NUMERIC(4,1);
+ALTER TABLE assessments ADD COLUMN hip_cm NUMERIC(5,2);
+ALTER TABLE assessments ADD COLUMN whr NUMERIC(4,2);
+ALTER TABLE assessments ADD COLUMN chest_cm NUMERIC(5,2);
+ALTER TABLE assessments ADD COLUMN arm_cm NUMERIC(5,2);
+ALTER TABLE assessments ADD COLUMN thigh_cm NUMERIC(5,2);
+ALTER TABLE assessments ADD COLUMN calf_cm NUMERIC(5,2);
+ALTER TABLE assessments ADD COLUMN blood_pressure VARCHAR(30);
+ALTER TABLE assessments ADD COLUMN resting_hr SMALLINT;
+ALTER TABLE assessments ADD COLUMN restriction TEXT;
+ALTER TABLE assessments ADD COLUMN parq VARCHAR(10);
+ALTER TABLE assessments ADD COLUMN push_ups SMALLINT;
+ALTER TABLE assessments ADD COLUMN plank_seconds SMALLINT;
+ALTER TABLE assessments ADD COLUMN sit_and_reach_cm NUMERIC(5,2);

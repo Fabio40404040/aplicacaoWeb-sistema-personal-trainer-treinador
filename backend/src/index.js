@@ -1,0 +1,85 @@
+import { withDb } from './lib/db.js'
+import { corsHeaders, json, readJson } from './lib/http.js'
+import { readSession } from './lib/session.js'
+import { login } from './routes/auth.js'
+import { studentAuth } from './routes/student-auth.js'
+import { studentRecovery } from './routes/student-recovery.js'
+import { dashboard } from './routes/dashboard.js'
+import { createResource, deleteResource, listResource, updateResource } from './routes/resources.js'
+
+async function handle(request, env) {
+  const url = new URL(request.url)
+  const segments = url.pathname
+    .replace(/^\/api\/?/u, '')
+    .split('/')
+    .filter(Boolean)
+  if (
+    request.method === 'POST' &&
+    ['student/auth/forgot', 'student/auth/reset'].includes(segments.join('/'))
+  ) {
+    return withDb(env, (db) => studentRecovery(request, env, db, segments[2]))
+  }
+  if (request.method === 'POST' && segments.join('/') === 'auth/login') {
+    return withDb(env, async (db) => login(request, env, db))
+  }
+  if (
+    request.method === 'POST' &&
+    ['student/auth/login', 'student/auth/register'].includes(segments.join('/'))
+  ) {
+    return withDb(env, (db) => studentAuth(request, env, db, segments[2]))
+  }
+
+  const session = await readSession(request, env)
+  if (!session) return { error: 'Sessão inválida ou expirada.', status: 401 }
+  if (segments[0] === 'student') {
+    if (session.role !== 'student') return { error: 'Use sua conta de aluno.', status: 403 }
+    if (request.method !== 'GET' || segments.join('/') !== 'student/me')
+      return { error: 'Rota não encontrada.', status: 404 }
+    return withDb(env, async (db) => {
+      const result = await db.query(
+        'SELECT id, name, email FROM student_accounts WHERE id = $1 AND auth_version = $2',
+        [session.sub, session.version || 0],
+      )
+      return result.rows[0]
+        ? { data: result.rows[0] }
+        : { error: 'Conta não encontrada.', status: 401 }
+    })
+  }
+  if (session.role !== 'coach')
+    return { error: 'Acesso exclusivo do personal trainer.', status: 403 }
+
+  return withDb(env, async (db) => {
+    if (request.method === 'GET' && segments[0] === 'dashboard')
+      return { data: await dashboard(db, session.sub) }
+    const [resource, id] = segments
+    if (request.method === 'GET' && !id)
+      return { data: await listResource(db, resource, session.sub) }
+    if (request.method === 'POST' && !id)
+      return {
+        data: await createResource(db, resource, session.sub, await readJson(request)),
+        status: 201,
+      }
+    if (request.method === 'PUT' && id)
+      return { data: await updateResource(db, resource, session.sub, id, await readJson(request)) }
+    if (request.method === 'DELETE' && id) {
+      await deleteResource(db, resource, session.sub, id)
+      return { data: null, status: 204 }
+    }
+    return { error: 'Rota não encontrada.', status: 404 }
+  })
+}
+
+export default {
+  async fetch(request, env) {
+    const cors = corsHeaders(request, env)
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
+    try {
+      const result = await handle(request, env)
+      if (result?.error) return json({ error: result.error }, result.status || 400, cors)
+      return json(result?.data ?? null, result?.status || 200, cors)
+    } catch (error) {
+      console.error(error)
+      return json({ error: 'Não foi possível concluir a solicitação.' }, 500, cors)
+    }
+  },
+}
