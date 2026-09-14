@@ -379,27 +379,24 @@
   width: 46px;
   height: 46px;
   padding: 0;
-  border: 1px solid rgba(218, 226, 237, 0.28);
-  border-radius: 12px;
-  color: #cbd4df;
-  background: rgba(255, 255, 255, 0.07);
+  border: 0;
+  background: transparent;
+  overflow: hidden;
   cursor: pointer;
 }
 .public-install-button[hidden] {
   display: none;
 }
-.public-install-button svg {
-  width: 24px;
-  height: 24px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.public-install-button img {
+  width: 80px;
+  height: 80px;
+  max-width: none;
+  flex: none;
+  object-fit: contain;
+  opacity: 0.88;
 }
-.public-install-button:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.12);
+.public-install-button:hover img {
+  opacity: 1;
 }
 .public-install-button:focus-visible {
   outline: 2px solid #cbd4df;
