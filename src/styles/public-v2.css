@@ -373,24 +373,37 @@
   box-shadow: 0 20px 42px rgba(24, 99, 215, 0.4);
 }
 .public-install-button {
-  display: block;
-  margin: 14px auto 0;
-  padding: 9px 13px;
-  border: 0;
-  color: #dcecff;
-  background: transparent;
-  font: inherit;
-  font-size: 0.83rem;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid rgba(218, 226, 237, 0.28);
+  border-radius: 12px;
+  color: #cbd4df;
+  background: rgba(255, 255, 255, 0.07);
   cursor: pointer;
 }
 .public-install-button[hidden] {
   display: none;
 }
+.public-install-button svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .public-install-button:hover {
   color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+.public-install-button:focus-visible {
+  outline: 2px solid #cbd4df;
+  outline-offset: 3px;
 }
 .install-dialog {
   width: min(92vw, 440px);
@@ -971,26 +984,10 @@
     box-shadow: none;
   }
   .public-install-button {
+    display: inline-flex;
     position: absolute;
     top: 2px;
     right: 0;
-    width: 124px;
-    min-height: 52px;
-    margin: 0;
-    padding: 9px 10px;
-    border: 1px solid rgba(189, 211, 240, 0.34);
-    border-radius: 11px;
-    color: #e2edfc;
-    background: rgba(24, 33, 45, 0.48);
-    backdrop-filter: blur(8px);
-    font-size: 0.76rem;
-    line-height: 1.25;
-    text-align: center;
-    text-decoration: none;
-  }
-  .public-install-button:hover {
-    color: #fff;
-    background: rgba(61, 139, 253, 0.16);
   }
   .hero-proof-grid {
     position: relative;
@@ -1060,11 +1057,5 @@
   }
   .public-footer p {
     order: 3;
-  }
-}
-
-@media (max-width: 430px) {
-  .public-hero-copy {
-    padding-top: 82px;
   }
 }
