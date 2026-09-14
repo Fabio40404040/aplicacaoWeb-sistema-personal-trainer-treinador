@@ -939,6 +939,14 @@
     justify-content: center;
     padding: 0;
   }
+  .public-menu-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .public-install-button {
+    display: inline-flex;
+  }
   .public-menu {
     position: fixed;
     top: 76px;
@@ -979,12 +987,6 @@
     border-radius: 0;
     background: transparent;
     box-shadow: none;
-  }
-  .public-install-button {
-    display: inline-flex;
-    position: absolute;
-    top: 2px;
-    right: 0;
   }
   .hero-proof-grid {
     position: relative;
