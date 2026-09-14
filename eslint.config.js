@@ -17,6 +17,11 @@ export default defineConfig([
     languageOptions: { globals: globals.serviceworker },
   },
   {
+    files: ['public/sw.js'],
+    extends: [js.configs.recommended],
+    languageOptions: { globals: globals.serviceworker },
+  },
+  {
     files: ['backend/scripts/**/*.mjs', 'vite.config.js'],
     extends: [js.configs.recommended],
     languageOptions: { globals: globals.node },

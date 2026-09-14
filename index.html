@@ -11,6 +11,18 @@
       content="#18212d"
     />
     <meta
+      name="apple-mobile-web-app-capable"
+      content="yes"
+    />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta
+      name="apple-mobile-web-app-title"
+      content="FRS Coach"
+    />
+    <meta
       name="description"
       content="FRS Coach — musculação, avaliação física e acompanhamento personalizado."
     />
@@ -18,6 +30,14 @@
       rel="icon"
       type="image/svg+xml"
       href="/favicon.svg"
+    />
+    <link
+      rel="manifest"
+      href="/app.webmanifest"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="/icons/apple-touch-icon.png"
     />
     <link
       rel="stylesheet"
@@ -326,6 +346,14 @@
               href="#planos"
               >Começar agora <svg><use href="#icon-arrow"></use></svg
             ></a>
+            <button
+              class="public-install-button"
+              type="button"
+              data-install-app
+              hidden
+            >
+              Adicionar à tela inicial
+            </button>
           </div>
           <div
             class="hero-proof-grid"
@@ -2248,6 +2276,19 @@
     >
       <svg><use href="#icon-check"></use></svg><span></span>
     </div>
+    <dialog
+      class="install-dialog"
+      data-install-dialog
+    >
+      <h2>Adicionar FRS Coach à tela inicial</h2>
+      <p data-install-instructions></p>
+      <button
+        type="button"
+        data-close-install
+      >
+        Entendi
+      </button>
+    </dialog>
     <script
       type="module"
       src="/src/main.js"

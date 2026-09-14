@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { createServer } from 'node:net'
 import { fileURLToPath } from 'node:url'
 
 const projectDirectory = fileURLToPath(new URL('..', import.meta.url))
@@ -27,6 +28,22 @@ function waitFor(child) {
   })
 }
 
+function ensurePortAvailable(port, service) {
+  return new Promise((resolve, reject) => {
+    const server = createServer()
+    server.once('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        reject(
+          new Error(
+            `A porta ${port} (${service}) já está em uso. Encerre a execução anterior do projeto antes de usar npm run dev novamente.`,
+          ),
+        )
+      } else reject(error)
+    })
+    server.listen(port, '127.0.0.1', () => server.close(resolve))
+  })
+}
+
 function stop(exitCode = 0) {
   if (stopping) return
   stopping = true
@@ -45,6 +62,8 @@ process.on('SIGINT', () => stop())
 process.on('SIGTERM', () => stop())
 
 try {
+  await ensurePortAvailable(5173, 'site')
+  await ensurePortAvailable(8787, 'API')
   console.log('\nPreparando o banco de dados local...\n')
   await waitFor(run(['run', 'db:migrate:local']))
 
