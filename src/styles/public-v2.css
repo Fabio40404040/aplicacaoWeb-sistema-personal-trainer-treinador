@@ -388,15 +388,15 @@
   display: none;
 }
 .public-install-button img {
-  width: 80px;
-  height: 80px;
+  width: 68px;
+  height: 68px;
   max-width: none;
   flex: none;
   object-fit: contain;
-  opacity: 0.88;
+  opacity: 0.62;
 }
 .public-install-button:hover img {
-  opacity: 1;
+  opacity: 0.82;
 }
 .public-install-button:focus-visible {
   outline: 2px solid #cbd4df;
