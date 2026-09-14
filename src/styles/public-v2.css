@@ -974,15 +974,15 @@
     position: absolute;
     top: 2px;
     right: 0;
-    width: 128px;
-    min-height: 58px;
+    width: 124px;
+    min-height: 52px;
     margin: 0;
     padding: 9px 10px;
-    border: 1px solid #68aaff;
+    border: 1px solid rgba(189, 211, 240, 0.34);
     border-radius: 11px;
-    color: #fff;
-    background: linear-gradient(135deg, #1c67db, #3d8bfd);
-    box-shadow: 0 12px 28px rgba(24, 99, 215, 0.3);
+    color: #e2edfc;
+    background: rgba(24, 33, 45, 0.48);
+    backdrop-filter: blur(8px);
     font-size: 0.76rem;
     line-height: 1.25;
     text-align: center;
@@ -990,7 +990,7 @@
   }
   .public-install-button:hover {
     color: #fff;
-    filter: brightness(1.08);
+    background: rgba(61, 139, 253, 0.16);
   }
   .hero-proof-grid {
     position: relative;
