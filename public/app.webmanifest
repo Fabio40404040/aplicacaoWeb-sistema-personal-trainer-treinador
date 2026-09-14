@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "FRS Coach",
-  "short_name": "FRS Coach",
+  "name": "FRS Personal Trainer",
+  "short_name": "FRS Personal",
   "description": "Treinos de musculação, avaliação física e acompanhamento.",
   "lang": "pt-BR",
   "start_url": "/#inicio",

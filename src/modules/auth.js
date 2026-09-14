@@ -13,7 +13,7 @@ function showLogin() {
   document.querySelector('[data-public-screen]').hidden = true
   document.querySelector('[data-login-screen]').hidden = false
   document.querySelector('[data-app-shell]').hidden = true
-  document.title = 'Acesso do Personal · FRS Coach'
+  document.title = 'FRS Personal Trainer'
   location.hash = '#login'
 }
 
@@ -21,7 +21,7 @@ function showPublic() {
   document.querySelector('[data-public-screen]').hidden = false
   document.querySelector('[data-login-screen]').hidden = true
   document.querySelector('[data-app-shell]').hidden = true
-  document.title = 'FRS Coach · Consultoria Online Personalizada'
+  document.title = 'FRS Personal Trainer'
 }
 
 function handleLocation() {
@@ -39,7 +39,7 @@ function handleLocation() {
     document.querySelector('[data-login-screen]').hidden = true
     document.querySelector('[data-app-shell]').hidden = true
     document.querySelector(`[data-student-screen="${studentRoute}"]`).hidden = false
-    document.title = 'Área do Aluno · FRS Coach'
+    document.title = 'FRS Personal Trainer'
     return
   }
   if (!route || ['inicio', 'consultoria', 'planos', 'aluno', 'faq', 'contato'].includes(route)) {
@@ -58,7 +58,7 @@ export function initAuth() {
   const form = document.querySelector('[data-login-form]')
   const demoButton = document.querySelector('[data-demo-login]')
   let pendingLogin = null
-  const status = form.querySelector('[data-coach-login-status]')
+  const status = form.querySelector('[data-personal-login-status]')
   const button = form.querySelector('[type="submit"]')
 
   function enterLocalDemo() {
@@ -106,10 +106,6 @@ export function initAuth() {
       showApp()
     } catch (error) {
       if (controller.signal.aborted) return
-      if (import.meta.env.DEV && error.message === 'E-mail ou senha incorretos.') {
-        enterLocalDemo()
-        return
-      }
       sessionStorage.removeItem(SESSION_KEY)
       clearApiSession()
       status.textContent = error.message

@@ -45,7 +45,7 @@ await withDb({ DB: binding }, async (db) => {
   const trainer = (
     await db.query(
       'INSERT INTO trainers (name,email,password_hash) VALUES ($1,$2,$3) RETURNING id',
-      ['Coach', 'coach@example.invalid', 'hash'],
+      ['Personal', 'coach@example.invalid', 'hash'],
     )
   ).rows[0]
   const other = (
@@ -153,7 +153,7 @@ await withDb({ DB: binding }, async (db) => {
       {
         PUBLIC_SITE_URL: 'https://example.invalid',
         RESEND_API_KEY: 're_test',
-        RESEND_FROM_EMAIL: 'FRS Coach <coach@example.invalid>',
+        RESEND_FROM_EMAIL: 'FRS Personal <coach@example.invalid>',
       },
       db,
       'forgot',

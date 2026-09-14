@@ -1,4 +1,4 @@
-# FRS Coach — Cloudflare Workers + D1
+# FRS Personal — Cloudflare Workers + D1
 
 O backend usa Cloudflare D1 (SQLite), sem PostgreSQL ou Hyperdrive. HTML, CSS e JavaScript continuam separados no frontend.
 
@@ -38,7 +38,7 @@ O registro do aluno é separado da conta do personal. Tokens de aluno não acess
 
 ## Recuperação de senha
 
-O envio usa a API HTTPS do Resend. No ambiente local, adicione `RESEND_API_KEY=re_...` ao arquivo `.dev.vars`. O remetente padrão de teste é `FRS Coach <onboarding@resend.dev>`; esse domínio de teste só envia para o endereço associado à conta Resend.
+O envio usa a API HTTPS do Resend. No ambiente local, adicione `RESEND_API_KEY=re_...` ao arquivo `.dev.vars`. O remetente padrão de teste é `FRS Personal <onboarding@resend.dev>`; esse domínio de teste só envia para o endereço associado à conta Resend.
 
 Para produção, valide seu domínio no Resend, altere `RESEND_FROM_EMAIL` para um endereço desse domínio, ajuste `PUBLIC_SITE_URL` para a URL pública do site e cadastre a chave com `npx wrangler secret put RESEND_API_KEY`. Opcionalmente, configure `RESEND_REPLY_TO`.
 

@@ -22,7 +22,7 @@ async function sendRecoveryEmail(env, message, idempotencyKey) {
         'User-Agent': 'frs-coach/1.0',
       },
       body: JSON.stringify({
-        from: env.RESEND_FROM_EMAIL || 'FRS Coach <onboarding@resend.dev>',
+        from: env.RESEND_FROM_EMAIL || 'FRS Personal <onboarding@resend.dev>',
         to: [message.to],
         subject: message.subject,
         text: message.text,
@@ -113,11 +113,11 @@ export async function studentRecovery(request, env, db, action) {
       env,
       {
         to: account.email,
-        subject: `NOVO LINK · Redefinição de senha FRS Coach · ${token.slice(0, 6).toUpperCase()}`,
+        subject: `NOVO LINK · Redefinição de senha FRS Personal · ${token.slice(0, 6).toUpperCase()}`,
         text: `Acesse ${link.href} para redefinir sua senha. O link vale por 30 minutos. Se você não solicitou, ignore esta mensagem.`,
         html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:32px;color:#18212d">
           <h1 style="font-size:24px">Redefina sua senha</h1>
-          <p>Recebemos uma solicitação para alterar a senha da sua conta no FRS Coach.</p>
+          <p>Recebemos uma solicitação para alterar a senha da sua conta no FRS Personal.</p>
           <p style="margin:28px 0"><a href="${link.href}" style="display:inline-block;padding:14px 22px;border-radius:8px;background:#1764ff;color:#fff;text-decoration:none;font-weight:700">Criar nova senha</a></p>
           <p style="font-size:13px;color:#526075">Este link vale por 30 minutos. Se o botão não abrir, copie e cole este endereço no navegador do computador:</p>
           <p style="font-size:12px;word-break:break-all;color:#1764ff">${link.href}</p>

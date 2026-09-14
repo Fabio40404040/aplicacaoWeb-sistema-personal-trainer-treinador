@@ -7,7 +7,7 @@ export function initWebTools() {
   void context.registerTool({
     name: 'list_students',
     title: 'Listar alunos',
-    description: 'Lista os alunos visíveis no painel FRS Coach.',
+    description: 'Lista os alunos visíveis no painel FRS Personal.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: true, untrustedContentHint: false },
     execute: () => ({
@@ -23,7 +23,7 @@ export function initWebTools() {
   void context.registerTool({
     name: 'create_student',
     title: 'Cadastrar aluno',
-    description: 'Cadastra um novo aluno no painel FRS Coach e atualiza a interface.',
+    description: 'Cadastra um novo aluno no painel FRS Personal e atualiza a interface.',
     inputSchema: {
       type: 'object',
       properties: {

@@ -20,7 +20,7 @@ function renderRoute() {
     if (active) link.setAttribute('aria-current', 'page')
     else link.removeAttribute('aria-current')
   })
-  document.title = `${document.querySelector(`[data-route="${route}"] h1`).textContent} · FRS Coach`
+  document.title = 'FRS Personal Trainer'
   window.scrollTo({ top: 0, behavior: 'smooth' })
   closeMenu()
 }
