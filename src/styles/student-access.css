@@ -61,6 +61,17 @@
   border: 1px solid #40546e;
   border-radius: 20px;
 }
+.student-access-card fieldset {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.student-access-card fieldset:disabled {
+  opacity: 0.58;
+}
 .student-access-card h1,
 .student-access-card h2,
 .student-access-card p {

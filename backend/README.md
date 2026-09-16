@@ -18,7 +18,7 @@ O banco local é persistido pelo Wrangler em .wrangler/state. Não é o banco de
 2. Crie o banco com npx wrangler d1 create frs-coach.
 3. Em wrangler.jsonc, substitua database_id pelo ID retornado. O binding deve continuar DB.
 4. Execute npm run db:migrate:remote.
-5. Cadastre a chave de produção com npx wrangler secret put SESSION_SECRET.
+5. Cadastre as chaves de produção com `npx wrangler secret put SESSION_SECRET` e `npx wrangler secret put BREVO_API_KEY`.
 6. Ajuste ALLOWED_ORIGIN para a origem HTTPS do frontend.
 7. Execute npm run deploy.
 8. Defina VITE_API_URL com a URL do Worker antes de compilar/publicar o frontend.
@@ -38,16 +38,16 @@ O registro do aluno é separado da conta do personal. Tokens de aluno não acess
 
 ## Recuperação de senha
 
-O envio usa a API HTTPS do Resend. No ambiente local, adicione `RESEND_API_KEY=re_...` ao arquivo `.dev.vars`. O remetente padrão de teste é `FRS Personal <onboarding@resend.dev>`; esse domínio de teste só envia para o endereço associado à conta Resend.
+O aluno e o personal possuem fluxos separados de recuperação. O Worker envia os links pela API HTTPS de e-mails transacionais do Brevo.
 
-Para produção, valide seu domínio no Resend, altere `RESEND_FROM_EMAIL` para um endereço desse domínio, ajuste `PUBLIC_SITE_URL` para a URL pública do site e cadastre a chave com `npx wrangler secret put RESEND_API_KEY`. Opcionalmente, configure `RESEND_REPLY_TO`.
+No ambiente local, copie as variáveis de `.dev.vars.example` para `.dev.vars`: use uma chave de API do Brevo em `BREVO_API_KEY`, um remetente validado em `BREVO_FROM_EMAIL` e, opcionalmente, `BREVO_FROM_NAME` e `BREVO_REPLY_TO`. Sem provedor configurado, o desenvolvimento local mostra um botão com o link para facilitar o teste, mas não envia e-mail.
 
-O service binding legado `PASSWORD_MAILER` continua aceito como alternativa. Sem Resend ou esse binding, o desenvolvimento local exibe o link na tela, mas não envia e-mail.
+Para produção, valide o remetente ou domínio no Brevo, configure `BREVO_FROM_EMAIL`, ajuste `PUBLIC_SITE_URL` para a URL HTTPS publicada e cadastre `BREVO_API_KEY` como secret do Worker. Nunca coloque a chave do Brevo no frontend ou no repositório.
 
-Os tokens expiram em 30 minutos, são armazenados somente como hash e consumidos em um batch transacional D1. A troca de senha invalida sessões anteriores do aluno. Configure limitação de requisições na Cloudflare antes de disponibilizar os endpoints publicamente.
+Os tokens expiram em 30 minutos, são armazenados somente como hash e consumidos em um batch transacional D1. A troca de senha invalida as sessões anteriores da respectiva conta. Configure limitação de requisições na Cloudflare antes de disponibilizar os endpoints publicamente.
 
 ## Migrações
 
 As migrações ativas ficam em migrations-d1 e são selecionadas pelo Wrangler. A pasta migrations preserva o esquema antigo apenas como histórico; não execute seus arquivos no D1. Não há conversão automática de dados existentes.
 
-Documentação: https://developers.cloudflare.com/d1/get-started/
+Documentação: https://developers.cloudflare.com/d1/get-started/ e https://developers.brevo.com/docs/send-a-transactional-email

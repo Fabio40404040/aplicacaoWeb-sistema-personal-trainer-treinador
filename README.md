@@ -11,7 +11,9 @@ npm run dev
 
 O comando `npm run dev` prepara o banco local e inicia automaticamente a interface e a API. O site abre na porta 5173 e a API usa a porta 8787. Pressione `Ctrl+C` para encerrar os dois serviços.
 
-O painel demonstrativo do personal guarda alterações no dispositivo. Enquanto não houver uma conta profissional no banco local, use **Entrar no painel de demonstração** na tela de login. Para entrar com e-mail e senha, cadastre o primeiro personal seguindo as instruções em `backend/README.md`. O cadastro e login do aluno usam Cloudflare Workers + D1. O Vite encaminha `/api` para esse serviço. Para uma API publicada em outro domínio, informe sua URL em `VITE_API_URL` antes de compilar.
+O acesso do personal usa uma conta profissional armazenada no Cloudflare D1. A tela de ativação de novas contas está preparada, mas permanece desativada. O cadastro e login do aluno também usam Cloudflare Workers + D1. O Vite encaminha `/api` para esse serviço. Para uma API publicada em outro domínio, informe sua URL em `VITE_API_URL` antes de compilar.
+
+A recuperação de senha do aluno e do personal usa links temporários gerados pelo Worker e enviados pelo Brevo. As variáveis e as etapas de publicação estão descritas em `backend/README.md`.
 
 ## Adicionar à tela inicial
 

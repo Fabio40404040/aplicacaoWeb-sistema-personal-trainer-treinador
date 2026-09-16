@@ -2,6 +2,7 @@ import { withDb } from './lib/db.js'
 import { corsHeaders, json, readJson } from './lib/http.js'
 import { readSession } from './lib/session.js'
 import { login } from './routes/auth.js'
+import { personalRecovery } from './routes/personal-recovery.js'
 import { studentAuth } from './routes/student-auth.js'
 import { studentRecovery } from './routes/student-recovery.js'
 import { dashboard } from './routes/dashboard.js'
@@ -18,6 +19,9 @@ async function handle(request, env) {
     ['student/auth/forgot', 'student/auth/reset'].includes(segments.join('/'))
   ) {
     return withDb(env, (db) => studentRecovery(request, env, db, segments[2]))
+  }
+  if (request.method === 'POST' && ['auth/forgot', 'auth/reset'].includes(segments.join('/'))) {
+    return withDb(env, (db) => personalRecovery(request, env, db, segments[1]))
   }
   if (request.method === 'POST' && segments.join('/') === 'auth/login') {
     return withDb(env, async (db) => login(request, env, db))
@@ -49,6 +53,11 @@ async function handle(request, env) {
     return { error: 'Acesso exclusivo do personal trainer.', status: 403 }
 
   return withDb(env, async (db) => {
+    const trainer = await db.query(
+      'SELECT id FROM trainers WHERE id = $1 AND auth_version = $2 LIMIT 1',
+      [session.sub, session.version || 0],
+    )
+    if (!trainer.rows.length) return { error: 'Sessão inválida ou expirada.', status: 401 }
     if (request.method === 'GET' && segments[0] === 'dashboard')
       return { data: await dashboard(db, session.sub) }
     const [resource, id] = segments
@@ -60,7 +69,9 @@ async function handle(request, env) {
         status: 201,
       }
     if (request.method === 'PUT' && id)
-      return { data: await updateResource(db, resource, session.sub, id, await readJson(request)) }
+      return {
+        data: await updateResource(db, resource, session.sub, id, await readJson(request)),
+      }
     if (request.method === 'DELETE' && id) {
       await deleteResource(db, resource, session.sub, id)
       return { data: null, status: 204 }

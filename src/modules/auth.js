@@ -29,6 +29,9 @@ function handleLocation() {
   document.querySelectorAll('[data-student-screen]').forEach((screen) => {
     screen.hidden = true
   })
+  document.querySelectorAll('[data-personal-screen]').forEach((screen) => {
+    screen.hidden = true
+  })
   const studentRoute = route.split('?')[0]
   if (
     ['entrar-aluno', 'cadastro-aluno', 'painel-aluno', 'recuperar-senha', 'nova-senha'].includes(
@@ -39,6 +42,16 @@ function handleLocation() {
     document.querySelector('[data-login-screen]').hidden = true
     document.querySelector('[data-app-shell]').hidden = true
     document.querySelector(`[data-student-screen="${studentRoute}"]`).hidden = false
+    document.title = 'FRS Personal Trainer'
+    return
+  }
+  if (
+    ['recuperar-senha-personal', 'nova-senha-personal', 'ativar-personal'].includes(studentRoute)
+  ) {
+    document.querySelector('[data-public-screen]').hidden = true
+    document.querySelector('[data-login-screen]').hidden = true
+    document.querySelector('[data-app-shell]').hidden = true
+    document.querySelector(`[data-personal-screen="${studentRoute}"]`).hidden = false
     document.title = 'FRS Personal Trainer'
     return
   }
@@ -56,26 +69,11 @@ function handleLocation() {
 
 export function initAuth() {
   const form = document.querySelector('[data-login-form]')
-  const demoButton = document.querySelector('[data-demo-login]')
   let pendingLogin = null
   const status = form.querySelector('[data-personal-login-status]')
   const button = form.querySelector('[type="submit"]')
 
-  function enterLocalDemo() {
-    if (!import.meta.env.DEV) return
-    if (pendingLogin) {
-      pendingLogin.abort()
-      pendingLogin = null
-    }
-    clearApiSession()
-    sessionStorage.setItem(SESSION_KEY, 'local-demo')
-    status.textContent = ''
-    button.disabled = false
-    showApp()
-  }
-
   handleLocation()
-  demoButton.hidden = !import.meta.env.DEV
   window.addEventListener('hashchange', () => {
     if (location.hash !== '#login' && pendingLogin) {
       pendingLogin.abort()
@@ -114,8 +112,6 @@ export function initAuth() {
       if (!pendingLogin) button.disabled = false
     }
   })
-
-  demoButton.addEventListener('click', enterLocalDemo)
 
   document.querySelector('[data-logout]').addEventListener('click', () => {
     sessionStorage.removeItem(SESSION_KEY)

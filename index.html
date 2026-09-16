@@ -29,7 +29,7 @@
     <link
       rel="icon"
       type="image/svg+xml"
-      href="./public/favicon.png"
+      href="/favicon.png"
     />
     <link
       rel="manifest"
@@ -912,6 +912,153 @@
         ><a href="#recuperar-senha">Solicitar outro link</a>
       </form>
     </section>
+    <section
+      class="student-access"
+      data-personal-screen="recuperar-senha-personal"
+      hidden
+    >
+      <a
+        class="brand"
+        href="#inicio"
+        ><span class="brand-mark">FRS</span><span>Voltar ao site</span></a
+      >
+      <form
+        class="student-access-card"
+        data-personal-form="forgot"
+      >
+        <span class="eyebrow">Área do Personal</span>
+        <h1>Recuperar acesso</h1>
+        <p>Informe o e-mail da sua conta de personal para receber o link de recuperação.</p>
+        <label class="field"
+          ><span>E-mail</span
+          ><input
+            name="email"
+            type="email"
+            autocomplete="email"
+            maxlength="180"
+            required
+        /></label>
+        <p
+          role="status"
+          aria-live="polite"
+        ></p>
+        <button
+          class="button button--primary"
+          type="submit"
+        >
+          Enviar link de recuperação
+        </button>
+        <a href="#login">Voltar ao login do personal</a>
+      </form>
+    </section>
+    <section
+      class="student-access"
+      data-personal-screen="nova-senha-personal"
+      hidden
+    >
+      <a
+        class="brand"
+        href="#inicio"
+        ><span class="brand-mark">FRS</span><span>Voltar ao site</span></a
+      >
+      <form
+        class="student-access-card"
+        data-personal-form="reset"
+      >
+        <span class="eyebrow">Área do Personal</span>
+        <h1>Defina uma nova senha</h1>
+        <p
+          class="password-requirements"
+          id="personal-reset-password-requirements"
+        >
+          Use no mínimo 8 caracteres, incluindo uma letra maiúscula, uma letra minúscula, um número
+          e um caractere especial.
+        </p>
+        <label class="field"
+          ><span>Nova senha</span
+          ><input
+            name="password"
+            type="password"
+            autocomplete="new-password"
+            aria-describedby="personal-reset-password-requirements"
+            minlength="8"
+            maxlength="128"
+            pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s])\S{8,128}"
+            title="Use no mínimo 8 caracteres, com letra maiúscula, letra minúscula, número e caractere especial."
+            required
+        /></label>
+        <p
+          role="status"
+          aria-live="polite"
+        ></p>
+        <button
+          class="button button--primary"
+          type="submit"
+        >
+          Salvar nova senha
+        </button>
+        <a href="#login">Entrar no painel</a
+        ><a href="#recuperar-senha-personal">Solicitar outro link</a>
+      </form>
+    </section>
+    <section
+      class="student-access"
+      data-personal-screen="ativar-personal"
+      hidden
+    >
+      <a
+        class="brand"
+        href="#inicio"
+        ><span class="brand-mark">FRS</span><span>Voltar ao site</span></a
+      >
+      <form class="student-access-card">
+        <span class="eyebrow">Conta profissional</span>
+        <h1>Ativar conta do personal</h1>
+        <p>Esta página já está preparada, mas a ativação de novas contas ainda não foi liberada.</p>
+        <fieldset disabled>
+          <label class="field"
+            ><span>Nome completo</span
+            ><input
+              name="name"
+              autocomplete="name"
+          /></label>
+          <label class="field"
+            ><span>E-mail profissional</span
+            ><input
+              name="email"
+              type="email"
+              autocomplete="email"
+          /></label>
+          <label class="field"
+            ><span>CREF</span
+            ><input
+              name="cref"
+              autocomplete="off"
+          /></label>
+          <label class="field"
+            ><span>Telefone</span
+            ><input
+              name="phone"
+              type="tel"
+              autocomplete="tel"
+          /></label>
+        </fieldset>
+        <p
+          role="status"
+          aria-live="polite"
+        >
+          Ativação indisponível no momento.
+        </p>
+        <button
+          class="button button--primary"
+          type="submit"
+          disabled
+        >
+          Ativar minha conta
+        </button>
+        <a href="#login">Voltar ao login do personal</a>
+      </form>
+    </section>
     <template id="password-toggle-template"
       ><button
         class="password-toggle"
@@ -1052,12 +1199,12 @@
                 name="remember"
                 checked
               /><span>Lembrar de mim</span></label
-            ><button
+            ><a
               class="link-button"
-              type="button"
+              href="#recuperar-senha-personal"
             >
               Esqueci a senha
-            </button>
+            </a>
           </div>
           <button
             class="button button--primary button--large"
@@ -1065,14 +1212,12 @@
           >
             Entrar no painel <svg><use href="#icon-arrow"></use></svg>
           </button>
-          <button
+          <a
             class="button button--secondary button--large"
-            type="button"
-            data-demo-login
-            hidden
+            href="#ativar-personal"
           >
-            Entrar no painel de demonstração
-          </button>
+            Ativar conta do personal
+          </a>
           <p
             class="login-note"
             role="status"

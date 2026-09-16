@@ -7,6 +7,7 @@ import { initRemoteSync } from './modules/api-client.js'
 import { initWebTools } from './modules/web-tools.js'
 import { initPublicMenu } from './modules/public-menu.js'
 import { initStudentAccess } from './modules/student-access.js'
+import { initPersonalAccess } from './modules/personal-access.js'
 import { initPasswordControls } from './modules/password-controls.js'
 import { initPwa } from './modules/pwa.js'
 
@@ -19,5 +20,6 @@ initRemoteSync()
 initWebTools()
 initPublicMenu()
 initStudentAccess()
+initPersonalAccess()
 initPasswordControls()
 initPwa()
