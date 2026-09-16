@@ -40,9 +40,9 @@ O registro do aluno é separado da conta do personal. Tokens de aluno não acess
 
 O aluno e o personal possuem fluxos separados de recuperação. O Worker envia os links pela API HTTPS de e-mails transacionais do Brevo.
 
-No ambiente local, copie as variáveis de `.dev.vars.example` para `.dev.vars`: use uma chave de API do Brevo em `BREVO_API_KEY`, um remetente validado em `BREVO_FROM_EMAIL` e, opcionalmente, `BREVO_FROM_NAME` e `BREVO_REPLY_TO`. Sem provedor configurado, o desenvolvimento local mostra um botão com o link para facilitar o teste, mas não envia e-mail.
+No ambiente local, copie as variáveis de `.dev.vars.example` para `.dev.vars`: use uma chave de API do Brevo em `BREVO_API_KEY`, um remetente validado em `EMAIL_FROM` e, opcionalmente, `BREVO_FROM_NAME` e `BREVO_REPLY_TO`. O nome antigo `BREVO_FROM_EMAIL` continua aceito por compatibilidade. Sem provedor configurado, o desenvolvimento local mostra um botão com o link para facilitar o teste, mas não envia e-mail.
 
-Para produção, valide o remetente ou domínio no Brevo, configure `BREVO_FROM_EMAIL`, ajuste `PUBLIC_SITE_URL` para a URL HTTPS publicada e cadastre `BREVO_API_KEY` como secret do Worker. Nunca coloque a chave do Brevo no frontend ou no repositório.
+Para produção, valide o remetente ou domínio no Brevo, configure `EMAIL_FROM`, ajuste `PUBLIC_SITE_URL` para a URL HTTPS publicada e cadastre `BREVO_API_KEY` como secret do Worker. Nunca coloque a chave do Brevo no frontend ou no repositório.
 
 Os tokens expiram em 30 minutos, são armazenados somente como hash e consumidos em um batch transacional D1. A troca de senha invalida as sessões anteriores da respectiva conta. Configure limitação de requisições na Cloudflare antes de disponibilizar os endpoints publicamente.
 

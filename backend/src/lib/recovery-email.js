@@ -1,9 +1,12 @@
 export function hasRecoveryEmailProvider(env) {
-  return Boolean((env.BREVO_API_KEY && env.BREVO_FROM_EMAIL) || env.PASSWORD_MAILER)
+  return Boolean(
+    (env.BREVO_API_KEY && (env.EMAIL_FROM || env.BREVO_FROM_EMAIL)) || env.PASSWORD_MAILER,
+  )
 }
 
 export async function sendRecoveryEmail(env, message, idempotencyKey) {
-  if (env.BREVO_API_KEY && env.BREVO_FROM_EMAIL) {
+  const fromEmail = env.EMAIL_FROM || env.BREVO_FROM_EMAIL
+  if (env.BREVO_API_KEY && fromEmail) {
     return fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
@@ -14,7 +17,7 @@ export async function sendRecoveryEmail(env, message, idempotencyKey) {
       body: JSON.stringify({
         sender: {
           name: env.BREVO_FROM_NAME || 'FRS Personal Trainer',
-          email: env.BREVO_FROM_EMAIL,
+          email: fromEmail,
         },
         to: [{ email: message.to }],
         subject: message.subject,

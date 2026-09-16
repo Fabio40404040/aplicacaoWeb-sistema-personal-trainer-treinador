@@ -175,7 +175,7 @@ await withDb({ DB: binding }, async (db) => {
       {
         PUBLIC_SITE_URL: 'https://example.invalid',
         BREVO_API_KEY: 'xkeysib-test',
-        BREVO_FROM_EMAIL: 'coach@example.invalid',
+        EMAIL_FROM: 'coach@example.invalid',
         BREVO_FROM_NAME: 'FRS Personal Trainer',
       },
       db,

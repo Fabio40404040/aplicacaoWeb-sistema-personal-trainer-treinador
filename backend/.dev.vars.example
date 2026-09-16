@@ -1,5 +1,5 @@
 SESSION_SECRET=troque-por-uma-chave-longa-e-aleatoria
 BREVO_API_KEY=xkeysib-sua-chave-aqui
-BREVO_FROM_EMAIL=seu-remetente-verificado@seudominio.com
+EMAIL_FROM=seu-remetente-verificado@seudominio.com
 BREVO_FROM_NAME=FRS Personal Trainer
 # BREVO_REPLY_TO=contato@seudominio.com

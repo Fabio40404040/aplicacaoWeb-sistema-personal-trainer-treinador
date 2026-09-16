@@ -25,6 +25,16 @@ export function initPersonalAccess() {
       if (!form.reportValidity()) return
       const status = form.querySelector('[role="status"]')
       const button = form.querySelector('[type="submit"]')
+      const defaultButtonLabel = button.textContent.trim()
+      const restoreSubmitButton = () => {
+        if (!button.dataset.resetUrl) return
+        delete button.dataset.resetUrl
+        button.type = 'submit'
+        button.textContent = defaultButtonLabel
+        button.onclick = null
+        status.textContent = ''
+      }
+      form.addEventListener('input', restoreSubmitButton, { once: true })
       const action = form.dataset.personalForm
       const data = Object.fromEntries(new FormData(form))
       if (action === 'reset')
@@ -36,11 +46,10 @@ export function initPersonalAccess() {
         form.reset()
         status.replaceChildren(document.createTextNode(result.message))
         if (action === 'forgot' && result.resetUrl) {
-          const resetLink = document.createElement('a')
-          resetLink.href = result.resetUrl
-          resetLink.className = 'button button--primary button--full'
-          resetLink.textContent = 'Abrir link de recuperação'
-          status.append(document.createElement('br'), resetLink)
+          button.dataset.resetUrl = result.resetUrl
+          button.type = 'button'
+          button.textContent = 'Abrir link de recuperação'
+          button.onclick = () => location.assign(button.dataset.resetUrl)
         }
         if (action === 'reset') history.replaceState(null, '', '#nova-senha-personal')
       } catch (error) {
