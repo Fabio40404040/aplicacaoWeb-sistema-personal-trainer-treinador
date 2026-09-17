@@ -77,6 +77,8 @@ try {
     '--',
     '--var',
     `PUBLIC_SITE_URL:${siteUrl}`,
+    '--var',
+    `ALLOWED_ORIGIN:${siteUrl}`,
   ])
   const frontend = run(['run', 'dev:frontend'])
 
