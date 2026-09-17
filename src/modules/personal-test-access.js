@@ -2,7 +2,7 @@ const ENABLE_PERSONAL_PASSWORD_RECOVERY = false // Troque para true para reativa
 
 const TEST_CREDENTIALS = {
   email: 'fabiogisel7@gmail.com',
-  password: '@Fagisel7123',
+  password: '@Frspersonal123',
 }
 
 export function initPersonalTestAccess() {
