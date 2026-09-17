@@ -5,19 +5,29 @@ const TOKEN_KEY = 'frs-coach-api-token'
 
 async function request(path, options = {}) {
   const token = sessionStorage.getItem(TOKEN_KEY)
-  const response = await fetch(`${API_URL}/api${path}`, {
-    ...options,
-    signal: options.signal
-      ? AbortSignal.any([options.signal, AbortSignal.timeout(12000)])
-      : AbortSignal.timeout(12000),
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  }).catch(() => {
+  const controller = new AbortController()
+  const cancelRequest = () => controller.abort()
+  const timeoutId = setTimeout(cancelRequest, 12000)
+  if (options.signal?.aborted) cancelRequest()
+  else options.signal?.addEventListener('abort', cancelRequest, { once: true })
+
+  let response
+  try {
+    response = await fetch(`${API_URL}/api${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    })
+  } catch {
     throw new Error('Não foi possível conectar ao serviço de contas. Tente novamente mais tarde.')
-  })
+  } finally {
+    clearTimeout(timeoutId)
+    options.signal?.removeEventListener('abort', cancelRequest)
+  }
   if (response.status === 204) return null
   let result
   try {
