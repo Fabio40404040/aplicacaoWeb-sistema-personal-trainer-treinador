@@ -12,6 +12,19 @@
     width: 100%;
     max-width: 100%;
   }
+
+  .sidebar {
+    justify-content: flex-start;
+    gap: 18px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
+  }
+
+  .sidebar-footer {
+    gap: 12px;
+    margin-top: 0;
+  }
 }
 
 @media (max-width: 620px) {
