@@ -9,6 +9,7 @@ import { initPublicMenu } from './modules/public-menu.js'
 import { initStudentAccess } from './modules/student-access.js'
 import { initPersonalAccess } from './modules/personal-access.js'
 import { initPasswordControls } from './modules/password-controls.js'
+import { initPersonalTestAccess } from './modules/personal-test-access.js'
 import { initPwa } from './modules/pwa.js'
 
 initAuth()
@@ -22,4 +23,5 @@ initPublicMenu()
 initStudentAccess()
 initPersonalAccess()
 initPasswordControls()
+initPersonalTestAccess()
 initPwa()
