@@ -10,8 +10,10 @@ import { initStudentAccess } from './modules/student-access.js'
 import { initPersonalAccess } from './modules/personal-access.js'
 import { initPasswordControls } from './modules/password-controls.js'
 import { initPersonalTestAccess } from './modules/personal-test-access.js'
+import { initCredentialSeparation } from './modules/credential-separation.js'
 import { initPwa } from './modules/pwa.js'
 
+initCredentialSeparation()
 initAuth()
 initNavigation()
 initDashboard()
