@@ -1,6 +1,6 @@
 import { readJson } from '../lib/http.js'
 import { hasRecoveryEmailProvider, sendRecoveryEmail } from '../lib/recovery-email.js'
-import { hashPassword, isStrongPassword } from '../lib/session.js'
+import { createSession, hashPassword, isStrongPassword } from '../lib/session.js'
 
 const generic = {
   data: {
@@ -40,9 +40,16 @@ export async function personalRecovery(request, env, db, action) {
         error: 'Este link expirou ou já foi usado. Solicite outro.',
         status: 400,
       }
+    const trainerResult = await db.query(
+      'SELECT id, name, email, auth_version FROM trainers WHERE id = $1 LIMIT 1',
+      [result.rows[0].id],
+    )
+    const trainer = trainerResult.rows[0]
     return {
       data: {
-        message: 'Senha alterada. Você já pode entrar no painel do personal.',
+        message: 'Senha alterada. Abrindo o painel do personal…',
+        token: await createSession(trainer, env),
+        user: { id: trainer.id, name: trainer.name, email: trainer.email },
       },
     }
   }

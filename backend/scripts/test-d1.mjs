@@ -109,6 +109,7 @@ await withDb({ DB: binding }, async (db) => {
   let mail
   const env = {
     PUBLIC_SITE_URL: 'https://example.invalid',
+    SESSION_SECRET: 'test-session-secret',
     PASSWORD_MAILER: {
       fetch: async (_url, options) => {
         mail = JSON.parse(options.body)
@@ -149,6 +150,7 @@ await withDb({ DB: binding }, async (db) => {
     'reset',
   )
   assert.match(personalReset.data.message, /Senha alterada/u)
+  assert.ok(personalReset.data.token)
   assert.equal(
     (await db.query('SELECT auth_version FROM trainers WHERE id=$1', [trainer.id])).rows[0]
       .auth_version,

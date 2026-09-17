@@ -1,4 +1,8 @@
+import { syncRemoteData } from './api-client.js'
+
 const API_URL = import.meta.env.VITE_API_URL || ''
+const API_TOKEN_KEY = 'frs-coach-api-token'
+const PERSONAL_SESSION_KEY = 'frs-coach-session-v2'
 
 async function personalRequest(action, data) {
   const response = await fetch(`${API_URL}/api/auth/${action}`, {
@@ -51,7 +55,13 @@ export function initPersonalAccess() {
           button.textContent = 'Abrir link de recuperação'
           button.onclick = () => location.assign(button.dataset.resetUrl)
         }
-        if (action === 'reset') history.replaceState(null, '', '#nova-senha-personal')
+        if (action === 'reset') {
+          if (!result.token) throw new Error('O servidor não retornou uma sessão válida.')
+          sessionStorage.setItem(API_TOKEN_KEY, result.token)
+          sessionStorage.setItem(PERSONAL_SESSION_KEY, 'active')
+          await syncRemoteData()
+          location.hash = '#painel'
+        }
       } catch (error) {
         status.textContent = error.message
       } finally {
