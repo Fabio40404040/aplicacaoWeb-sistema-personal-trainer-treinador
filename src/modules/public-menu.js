@@ -1,7 +1,12 @@
+function setMenuState(menu, toggle, open) {
+  menu.hidden = !open
+  toggle.setAttribute('aria-expanded', String(open))
+  toggle.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu')
+  toggle.querySelector('use')?.setAttribute('href', open ? '#icon-close' : '#icon-menu')
+}
+
 function closeMenu(menu, toggle) {
-  menu.hidden = true
-  toggle.setAttribute('aria-expanded', 'false')
-  toggle.setAttribute('aria-label', 'Abrir menu')
+  setMenuState(menu, toggle, false)
 }
 
 export function initPublicMenu() {
@@ -11,10 +16,7 @@ export function initPublicMenu() {
   const desktop = window.matchMedia('(min-width: 821px)')
 
   toggle.addEventListener('click', () => {
-    const willOpen = menu.hidden
-    menu.hidden = !willOpen
-    toggle.setAttribute('aria-expanded', String(willOpen))
-    toggle.setAttribute('aria-label', willOpen ? 'Fechar menu' : 'Abrir menu')
+    setMenuState(menu, toggle, menu.hidden)
   })
 
   menu.addEventListener('click', (event) => {

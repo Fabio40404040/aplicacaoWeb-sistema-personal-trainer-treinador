@@ -1,10 +1,16 @@
 const routes = new Set(['painel', 'alunos', 'treinos', 'exercicios', 'avaliacoes', 'evolucao'])
 
-function closeMenu() {
+function setMenuState(open) {
   const sidebar = document.querySelector('[data-sidebar]')
   const toggle = document.querySelector('[data-menu-toggle]')
-  sidebar.classList.remove('is-open')
-  toggle.setAttribute('aria-expanded', 'false')
+  sidebar.classList.toggle('is-open', open)
+  toggle.setAttribute('aria-expanded', String(open))
+  toggle.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu')
+  toggle.querySelector('use')?.setAttribute('href', open ? '#icon-close' : '#icon-menu')
+}
+
+function closeMenu() {
+  setMenuState(false)
 }
 
 function renderRoute() {
@@ -27,11 +33,9 @@ function renderRoute() {
 
 export function initNavigation() {
   window.addEventListener('hashchange', renderRoute)
-  document.querySelector('[data-menu-toggle]').addEventListener('click', (event) => {
+  document.querySelector('[data-menu-toggle]').addEventListener('click', () => {
     const sidebar = document.querySelector('[data-sidebar]')
-    const willOpen = !sidebar.classList.contains('is-open')
-    sidebar.classList.toggle('is-open', willOpen)
-    event.currentTarget.setAttribute('aria-expanded', String(willOpen))
+    setMenuState(!sidebar.classList.contains('is-open'))
   })
   document.querySelector('[data-sidebar-backdrop]').addEventListener('click', closeMenu)
   renderRoute()
