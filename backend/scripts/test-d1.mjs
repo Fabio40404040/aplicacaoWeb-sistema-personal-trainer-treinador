@@ -15,6 +15,8 @@ for (const file of [
   '003_password_recovery.sql',
   '004_physical_assessment.sql',
   '005_personal_password_recovery.sql',
+  '006_integrated_student_portal.sql',
+  '007_consulting_periods.sql',
 ]) {
   sqlite.exec(readFileSync(new URL(`../migrations-d1/${file}`, import.meta.url), 'utf8'))
 }

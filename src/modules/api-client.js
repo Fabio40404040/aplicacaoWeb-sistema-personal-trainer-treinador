@@ -10,7 +10,6 @@ async function request(path, options = {}) {
   const timeoutId = setTimeout(cancelRequest, 12000)
   if (options.signal?.aborted) cancelRequest()
   else options.signal?.addEventListener('abort', cancelRequest, { once: true })
-
   let response
   try {
     response = await fetch(`${API_URL}/api${path}`, {
@@ -50,30 +49,31 @@ export async function login(credentials, signal) {
   sessionStorage.setItem(TOKEN_KEY, result.token)
   return result
 }
-
 export function clearApiSession() {
   sessionStorage.removeItem(TOKEN_KEY)
 }
-
-export async function persistRecord(collection, record, editingId = null) {
+export function persistRecord(collection, record, editingId = null) {
   return request(`/${collection}${editingId ? `/${editingId}` : ''}`, {
     method: editingId ? 'PUT' : 'POST',
     body: JSON.stringify(record),
   })
 }
-
-export async function removeRecord(collection, id) {
+export function removeRecord(collection, id) {
   return request(`/${collection}/${id}`, { method: 'DELETE' })
 }
-
+export function updateStudentAccess(id, data) {
+  return request(`/students/${id}/access`, { method: 'PUT', body: JSON.stringify(data) })
+}
 export async function syncRemoteData() {
   if (!sessionStorage.getItem(TOKEN_KEY)) return
   try {
     const remote = await request('/dashboard')
     replaceData({ ...getData(), ...remote })
   } catch {
-    // Mantém o cache local quando a API ainda não foi configurada.
+    // Mantém o último estado disponível quando a API estiver temporariamente indisponível.
   }
 }
-
-export const initRemoteSync = syncRemoteData
+export function initRemoteSync() {
+  window.addEventListener('frs:remote-refresh', syncRemoteData)
+  return syncRemoteData()
+}

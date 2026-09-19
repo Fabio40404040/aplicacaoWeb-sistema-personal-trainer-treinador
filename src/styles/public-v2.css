@@ -632,7 +632,8 @@
 .plan-price span {
   color: var(--site-muted);
 }
-.plan-card > a {
+.plan-card > a,
+.plan-primary-actions > a {
   min-height: 48px;
   display: flex;
   align-items: center;
@@ -645,12 +646,43 @@
   font-weight: 800;
   text-decoration: none;
 }
-.plan-card > a:hover {
+.plan-card > a:hover,
+.plan-primary-actions > a:hover {
   background: #347fe9;
 }
-.plan-card > a svg {
+.plan-card > a.plan-whatsapp-link {
+  min-height: 40px;
+  margin-top: 10px;
+  border-color: rgba(199, 216, 238, 0.28);
+  background: transparent;
+  color: var(--site-muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.plan-card > a.plan-whatsapp-link:hover {
+  border-color: rgba(199, 216, 238, 0.55);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+.plan-card > a svg,
+.plan-primary-actions > a svg {
   width: 17px;
   height: 17px;
+}
+.plan-primary-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+.plan-primary-actions > a.plan-preview-link {
+  border-color: rgba(199, 216, 238, 0.35);
+  background: transparent;
+  color: var(--site-muted);
+}
+.plan-primary-actions > a.plan-preview-link:hover {
+  border-color: rgba(199, 216, 238, 0.65);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
 }
 
 .student-area-grid {

@@ -11,11 +11,13 @@ import { initPersonalAccess } from './modules/personal-access.js'
 import { initPasswordControls } from './modules/password-controls.js'
 import { initPersonalTestAccess } from './modules/personal-test-access.js'
 import { initCredentialSeparation } from './modules/credential-separation.js'
+import { initIntegratedPortal } from './modules/integrated-portal.js'
 import { initPwa } from './modules/pwa.js'
 
 initCredentialSeparation()
 initAuth()
 initNavigation()
+initIntegratedPortal()
 initDashboard()
 initForms()
 initShortcuts()

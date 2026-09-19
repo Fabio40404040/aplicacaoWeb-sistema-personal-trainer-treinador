@@ -3,26 +3,24 @@ import { showToast } from './utils.js'
 import { persistRecord, syncRemoteData } from './api-client.js'
 
 const editing = { student: null, workout: null, exercise: null }
-
-function openModal(name) {
+const openModal = (name) => {
   const modal = document.querySelector(`[data-modal="${name}"]`)
   if (!modal.open) modal.showModal()
 }
-
 function closeModal(form) {
   form.closest('dialog').close()
   form.reset()
   editing[form.dataset.form] = null
 }
+const formData = (form) => new FormData(form)
+const value = (form, field) => formData(form).get(field)?.toString().trim() || ''
+const checked = (form, field) => Boolean(formData(form).get(field))
 
-function value(form, field) {
-  return new FormData(form).get(field).toString().trim()
+function saveAndRefresh(collection, record, id) {
+  void persistRecord(collection, record, id)
+    .then(syncRemoteData)
+    .catch((error) => showToast(error.message))
 }
-
-function optionalValue(form, field) {
-  return new FormData(form).get(field)?.toString().trim() || ''
-}
-
 function handleStudent(form) {
   const record = {
     name: value(form, 'name'),
@@ -31,11 +29,11 @@ function handleStudent(form) {
     status: value(form, 'status'),
     assessmentDate: value(form, 'assessmentDate'),
   }
-  updateData((data) => {
-    const existing = data.students.find((student) => student.id === editing.student)
-    if (existing) Object.assign(existing, record)
+  updateData((d) => {
+    const old = d.students.find((s) => s.id === editing.student)
+    if (old) Object.assign(old, record)
     else
-      data.students.unshift({
+      d.students.unshift({
         id: createId('s'),
         ...record,
         workout: 'Aguardando ficha',
@@ -43,161 +41,168 @@ function handleStudent(form) {
       })
   })
   showToast(editing.student ? 'Aluno atualizado com sucesso.' : 'Aluno cadastrado com sucesso.')
-  void persistRecord('students', record, editing.student)
-    .then(syncRemoteData)
-    .catch(() => {})
+  saveAndRefresh('students', record, editing.student)
   editing.student = null
 }
-
 function handleWorkout(form) {
+  const data = formData(form)
   const record = {
     name: value(form, 'name'),
     student: value(form, 'student'),
     goal: value(form, 'goal'),
     duration: value(form, 'duration'),
+    exerciseIds: data.getAll('exerciseIds'),
+    sets: value(form, 'sets'),
+    repetitions: value(form, 'repetitions'),
+    restSeconds: value(form, 'restSeconds'),
+    published: checked(form, 'published'),
+    permanentAccess: false,
   }
-  updateData((data) => {
-    const existing = data.workouts.find((workout) => workout.id === editing.workout)
-    if (existing) Object.assign(existing, record)
-    else data.workouts.unshift({ id: createId('w'), ...record, progress: 0 })
+  updateData((d) => {
+    const old = d.workouts.find((w) => w.id === editing.workout)
+    if (old)
+      Object.assign(old, record, {
+        publishedAt: record.published ? old.publishedAt || new Date().toISOString() : null,
+        exerciseCount: record.exerciseIds.length,
+      })
+    else
+      d.workouts.unshift({
+        id: createId('w'),
+        ...record,
+        progress: 0,
+        publishedAt: record.published ? new Date().toISOString() : null,
+        exerciseCount: record.exerciseIds.length,
+      })
   })
-  showToast(editing.workout ? 'Ficha atualizada com sucesso.' : 'Ficha criada com sucesso.')
-  void persistRecord('workouts', record, editing.workout)
-    .then(syncRemoteData)
-    .catch(() => {})
+  showToast(
+    record.published ? 'Ficha salva e publicada para o aluno.' : 'Ficha salva como rascunho.',
+  )
+  saveAndRefresh('workouts', record, editing.workout)
   editing.workout = null
 }
-
 function handleExercise(form) {
   const record = {
     name: value(form, 'name'),
     group: value(form, 'group'),
     equipment: value(form, 'equipment'),
     instructions: value(form, 'instructions'),
+    difficulty: value(form, 'difficulty'),
+    mediaType: value(form, 'mediaType'),
+    mediaUrl: value(form, 'mediaUrl'),
+    animationClip: value(form, 'animationClip'),
   }
-  updateData((data) => {
-    const existing = data.exercises.find((exercise) => exercise.id === editing.exercise)
-    if (existing) Object.assign(existing, record)
-    else data.exercises.unshift({ id: createId('e'), ...record })
+  updateData((d) => {
+    const old = d.exercises.find((e) => e.id === editing.exercise)
+    if (old) Object.assign(old, record)
+    else d.exercises.unshift({ id: createId('e'), ...record })
   })
   showToast(
     editing.exercise ? 'Exercício atualizado com sucesso.' : 'Exercício adicionado com sucesso.',
   )
-  void persistRecord('exercises', record, editing.exercise)
-    .then(syncRemoteData)
-    .catch(() => {})
+  saveAndRefresh('exercises', record, editing.exercise)
   editing.exercise = null
 }
-
 function handleAssessment(form) {
-  const formatter = new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-  const record = {
+  const r = {
     student: value(form, 'student'),
     protocol: value(form, 'protocol'),
     weight: value(form, 'weight'),
     height: value(form, 'height'),
     fat: value(form, 'fat'),
     waist: value(form, 'waist'),
-    hip: optionalValue(form, 'hip'),
-    chest: optionalValue(form, 'chest'),
-    arm: optionalValue(form, 'arm'),
-    thigh: optionalValue(form, 'thigh'),
-    calf: optionalValue(form, 'calf'),
-    bloodPressure: optionalValue(form, 'bloodPressure'),
-    restingHR: optionalValue(form, 'restingHR'),
-    restriction: optionalValue(form, 'restriction'),
-    parq: optionalValue(form, 'parq'),
-    pushUps: optionalValue(form, 'pushUps'),
-    plank: optionalValue(form, 'plank'),
-    sitAndReach: optionalValue(form, 'sitAndReach'),
+    hip: value(form, 'hip'),
+    chest: value(form, 'chest'),
+    arm: value(form, 'arm'),
+    thigh: value(form, 'thigh'),
+    calf: value(form, 'calf'),
+    bloodPressure: value(form, 'bloodPressure'),
+    restingHR: value(form, 'restingHR'),
+    restriction: value(form, 'restriction'),
+    parq: value(form, 'parq'),
+    pushUps: value(form, 'pushUps'),
+    plank: value(form, 'plank'),
+    sitAndReach: value(form, 'sitAndReach'),
     notes: value(form, 'notes'),
+    published: checked(form, 'published'),
   }
-  const weight = Number(record.weight)
-  const heightMeters = Number(record.height) / 100
-  const hip = Number(record.hip)
-  const waist = Number(record.waist)
-  updateData((data) =>
-    data.assessments.unshift({
+  const h = Number(r.height) / 100,
+    hip = Number(r.hip),
+    waist = Number(r.waist)
+  updateData((d) =>
+    d.assessments.unshift({
       id: createId('a'),
-      student: record.student,
-      date: formatter.format(new Date()).replace('.', ''),
-      protocol: record.protocol,
-      weight: `${record.weight.replace('.', ',')} kg`,
-      height: `${record.height.replace('.', ',')} cm`,
-      bmi: heightMeters ? (weight / heightMeters ** 2).toFixed(1).replace('.', ',') : '',
-      fat: `${record.fat.replace('.', ',')}%`,
-      waist: `${record.waist.replace('.', ',')} cm`,
-      hip: record.hip ? `${record.hip.replace('.', ',')} cm` : '',
-      whr: hip ? (waist / hip).toFixed(2).replace('.', ',') : '',
-      chest: record.chest,
-      arm: record.arm,
-      thigh: record.thigh,
-      calf: record.calf,
-      bloodPressure: record.bloodPressure,
-      restingHR: record.restingHR ? `${record.restingHR} bpm` : '',
-      restriction: record.restriction,
-      parq: record.parq,
-      pushUps: record.pushUps,
-      plank: record.plank,
-      sitAndReach: record.sitAndReach,
-      notes: record.notes,
+      student: r.student,
+      date: new Intl.DateTimeFormat('pt-BR').format(new Date()),
+      protocol: r.protocol,
+      weight: `${r.weight} kg`,
+      height: `${r.height} cm`,
+      bmi: h ? (Number(r.weight) / h ** 2).toFixed(1) : '',
+      fat: `${r.fat}%`,
+      waist: `${r.waist} cm`,
+      hip: r.hip ? `${r.hip} cm` : '',
+      whr: hip ? (waist / hip).toFixed(2) : '',
+      restingHR: r.restingHR ? `${r.restingHR} bpm` : '',
+      ...r,
+      publishedAt: r.published ? new Date().toISOString() : null,
     }),
   )
-  void persistRecord('assessments', record)
-    .then(syncRemoteData)
-    .catch(() => {})
-  showToast('Avaliação registrada com sucesso.')
+  saveAndRefresh('assessments', r)
+  showToast(r.published ? 'Avaliação salva e publicada.' : 'Avaliação salva como rascunho.')
 }
-
 function fillForm(type, id) {
   const collection = type === 'student' ? 'students' : type === 'workout' ? 'workouts' : 'exercises'
   const record = getData()[collection].find((item) => item.id === id)
   if (!record) return
   editing[type] = id
   const form = document.querySelector(`[data-form="${type}"]`)
-  Object.entries(record).forEach(([key, fieldValue]) => {
-    if (form.elements[key]) form.elements[key].value = fieldValue
+  Object.entries(record).forEach(([key, val]) => {
+    const field = form.elements[key]
+    if (!field) return
+    if (field instanceof RadioNodeList) {
+      ;[...field].forEach((entry) => {
+        entry.checked = Array.isArray(val) ? val.includes(entry.value) : entry.value === val
+      })
+    } else if (field.type === 'checkbox') field.checked = Boolean(val)
+    else if (field.multiple) {
+      ;[...field.options].forEach((o) => {
+        o.selected = (record.exerciseIds || []).includes(o.value)
+      })
+    } else field.value = val ?? ''
   })
+  if (form.elements.published) form.elements.published.checked = Boolean(record.publishedAt)
   openModal(type)
 }
-
 export function initForms() {
-  document.querySelectorAll('[data-open-modal]').forEach((button) =>
-    button.addEventListener('click', () => {
-      editing[button.dataset.openModal] = null
-      openModal(button.dataset.openModal)
+  document.querySelectorAll('[data-open-modal]').forEach((b) =>
+    b.addEventListener('click', () => {
+      editing[b.dataset.openModal] = null
+      openModal(b.dataset.openModal)
     }),
   )
-
   const handlers = {
     student: handleStudent,
     workout: handleWorkout,
     exercise: handleExercise,
     assessment: handleAssessment,
   }
-  document.querySelectorAll('[data-close-modal]').forEach((button) => {
-    button.addEventListener('click', () => closeModal(button.closest('form')))
-  })
-  document.querySelectorAll('dialog[data-modal]').forEach((modal) => {
-    modal.addEventListener('cancel', (event) => {
-      event.preventDefault()
-      closeModal(modal.querySelector('form'))
-    })
-  })
+  document
+    .querySelectorAll('[data-close-modal]')
+    .forEach((b) => b.addEventListener('click', () => closeModal(b.closest('form'))))
+  document.querySelectorAll('dialog[data-modal]').forEach((m) =>
+    m.addEventListener('cancel', (e) => {
+      e.preventDefault()
+      closeModal(m.querySelector('form'))
+    }),
+  )
   document.querySelectorAll('[data-form]').forEach((form) =>
-    form.addEventListener('submit', (event) => {
-      event.preventDefault()
+    form.addEventListener('submit', (e) => {
+      e.preventDefault()
       if (!form.reportValidity()) return
       handlers[form.dataset.form](form)
       closeModal(form)
     }),
   )
-
-  window.addEventListener('frs:edit-student', (event) => fillForm('student', event.detail))
-  window.addEventListener('frs:edit-workout', (event) => fillForm('workout', event.detail))
-  window.addEventListener('frs:edit-exercise', (event) => fillForm('exercise', event.detail))
+  window.addEventListener('frs:edit-student', (e) => fillForm('student', e.detail))
+  window.addEventListener('frs:edit-workout', (e) => fillForm('workout', e.detail))
+  window.addEventListener('frs:edit-exercise', (e) => fillForm('exercise', e.detail))
 }

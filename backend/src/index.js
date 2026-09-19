@@ -7,6 +7,8 @@ import { studentAuth } from './routes/student-auth.js'
 import { studentRecovery } from './routes/student-recovery.js'
 import { dashboard } from './routes/dashboard.js'
 import { createResource, deleteResource, listResource, updateResource } from './routes/resources.js'
+import { paymentWebhook, updateStudentAccess } from './routes/access.js'
+import { requestPlan, studentPortal, submitCheckin } from './routes/student-portal.js'
 
 async function handle(request, env) {
   const url = new URL(request.url)
@@ -14,39 +16,32 @@ async function handle(request, env) {
     .replace(/^\/api\/?/u, '')
     .split('/')
     .filter(Boolean)
-  if (
-    request.method === 'POST' &&
-    ['student/auth/forgot', 'student/auth/reset'].includes(segments.join('/'))
-  ) {
+  const route = segments.join('/')
+  if (request.method === 'POST' && route === 'payments/webhook')
+    return withDb(env, (db) => paymentWebhook(request, env, db))
+  if (request.method === 'POST' && ['student/auth/forgot', 'student/auth/reset'].includes(route))
     return withDb(env, (db) => studentRecovery(request, env, db, segments[2]))
-  }
-  if (request.method === 'POST' && ['auth/forgot', 'auth/reset'].includes(segments.join('/'))) {
+  if (request.method === 'POST' && ['auth/forgot', 'auth/reset'].includes(route))
     return withDb(env, (db) => personalRecovery(request, env, db, segments[1]))
-  }
-  if (request.method === 'POST' && segments.join('/') === 'auth/login') {
-    return withDb(env, async (db) => login(request, env, db))
-  }
-  if (
-    request.method === 'POST' &&
-    ['student/auth/login', 'student/auth/register'].includes(segments.join('/'))
-  ) {
+  if (request.method === 'POST' && route === 'auth/login')
+    return withDb(env, (db) => login(request, env, db))
+  if (request.method === 'POST' && ['student/auth/login', 'student/auth/register'].includes(route))
     return withDb(env, (db) => studentAuth(request, env, db, segments[2]))
-  }
 
   const session = await readSession(request, env)
   if (!session) return { error: 'Sessão inválida ou expirada.', status: 401 }
   if (segments[0] === 'student') {
     if (session.role !== 'student') return { error: 'Use sua conta de aluno.', status: 403 }
-    if (request.method !== 'GET' || segments.join('/') !== 'student/me')
-      return { error: 'Rota não encontrada.', status: 404 }
     return withDb(env, async (db) => {
-      const result = await db.query(
-        'SELECT id, name, email FROM student_accounts WHERE id = $1 AND auth_version = $2',
-        [session.sub, session.version || 0],
-      )
-      return result.rows[0]
-        ? { data: result.rows[0] }
-        : { error: 'Conta não encontrada.', status: 401 }
+      if (request.method === 'GET' && route === 'student/me') {
+        const data = await studentPortal(db, session.sub, session.version)
+        return data ? { data } : { error: 'Conta não encontrada.', status: 401 }
+      }
+      if (request.method === 'POST' && route === 'student/checkins')
+        return submitCheckin(db, session.sub, await readJson(request))
+      if (request.method === 'POST' && route === 'student/plan-request')
+        return requestPlan(db, session.sub, await readJson(request))
+      return { error: 'Rota não encontrada.', status: 404 }
     })
   }
   if (session.role !== 'coach')
@@ -54,12 +49,14 @@ async function handle(request, env) {
 
   return withDb(env, async (db) => {
     const trainer = await db.query(
-      'SELECT id FROM trainers WHERE id = $1 AND auth_version = $2 LIMIT 1',
+      'SELECT id FROM trainers WHERE id=$1 AND auth_version=$2 LIMIT 1',
       [session.sub, session.version || 0],
     )
     if (!trainer.rows.length) return { error: 'Sessão inválida ou expirada.', status: 401 }
     if (request.method === 'GET' && segments[0] === 'dashboard')
       return { data: await dashboard(db, session.sub) }
+    if (request.method === 'PUT' && segments[0] === 'students' && segments[2] === 'access')
+      return updateStudentAccess(db, session.sub, segments[1], await readJson(request))
     const [resource, id] = segments
     if (request.method === 'GET' && !id)
       return { data: await listResource(db, resource, session.sub) }
@@ -69,9 +66,7 @@ async function handle(request, env) {
         status: 201,
       }
     if (request.method === 'PUT' && id)
-      return {
-        data: await updateResource(db, resource, session.sub, id, await readJson(request)),
-      }
+      return { data: await updateResource(db, resource, session.sub, id, await readJson(request)) }
     if (request.method === 'DELETE' && id) {
       await deleteResource(db, resource, session.sub, id)
       return { data: null, status: 204 }
