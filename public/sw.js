@@ -1,4 +1,4 @@
-const CACHE_NAME = 'frs-coach-static-v2'
+const CACHE_NAME = 'frs-personal-static-v9'
 const OFFLINE_URL = '/offline.html'
 const PRECACHE = [OFFLINE_URL, '/icons/icon-192.png', '/icons/icon-512.png']
 
@@ -15,7 +15,12 @@ self.addEventListener('activate', (event) => {
         .then((names) =>
           Promise.all(
             names
-              .filter((name) => name.startsWith('frs-coach-static-') && name !== CACHE_NAME)
+              .filter(
+                (name) =>
+                  (name.startsWith('frs-coach-static-') ||
+                    name.startsWith('frs-personal-static-')) &&
+                  name !== CACHE_NAME,
+              )
               .map((name) => caches.delete(name)),
           ),
         ),
@@ -37,16 +42,14 @@ self.addEventListener('fetch', (event) => {
 
   if (!url.pathname.startsWith('/assets/')) return
   event.respondWith(
-    caches.match(request).then(
-      (cached) =>
-        cached ||
-        fetch(request).then((response) => {
-          if (response.ok) {
-            const copy = response.clone()
-            void caches.open(CACHE_NAME).then((cache) => cache.put(request, copy))
-          }
-          return response
-        }),
-    ),
+    fetch(request)
+      .then((response) => {
+        if (response.ok) {
+          const copy = response.clone()
+          void caches.open(CACHE_NAME).then((cache) => cache.put(request, copy))
+        }
+        return response
+      })
+      .catch(() => caches.match(request)),
   )
 })

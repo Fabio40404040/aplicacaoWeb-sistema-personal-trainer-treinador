@@ -1,7 +1,7 @@
 import QRCode from 'qrcode'
 
 const pixConfig = {
-  key: String(import.meta.env.VITE_PIX_KEY || '').trim(),
+  key: String(import.meta.env.VITE_PIX_KEY || 'fabiogisel7@gmail.com').trim(),
   merchantName: String(import.meta.env.VITE_PIX_NAME || 'FRS PERSONAL').trim(),
   merchantCity: String(import.meta.env.VITE_PIX_CITY || 'FORTALEZA').trim(),
 }

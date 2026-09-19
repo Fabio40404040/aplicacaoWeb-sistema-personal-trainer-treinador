@@ -14,18 +14,30 @@ import { initCredentialSeparation } from './modules/credential-separation.js'
 import { initIntegratedPortal } from './modules/integrated-portal.js'
 import { initPwa } from './modules/pwa.js'
 
-initCredentialSeparation()
-initAuth()
-initNavigation()
-initIntegratedPortal()
-initDashboard()
-initForms()
-initShortcuts()
-initRemoteSync()
-initWebTools()
-initPublicMenu()
-initStudentAccess()
-initPersonalAccess()
-initPasswordControls()
-initPersonalTestAccess()
-initPwa()
+function initialize(name, initializer) {
+  try {
+    const result = initializer()
+    if (result && typeof result.catch === 'function')
+      result.catch((error) => console.error(`Falha ao iniciar ${name}.`, error))
+  } catch (error) {
+    console.error(`Falha ao iniciar ${name}.`, error)
+  }
+}
+
+// Os acessos ficam independentes dos demais recursos do painel. Assim, uma
+// incompatibilidade em outro módulo não impede o aluno de entrar ou ver erros.
+initialize('separação de credenciais', initCredentialSeparation)
+initialize('controles de senha', initPasswordControls)
+initialize('acesso do aluno', initStudentAccess)
+initialize('acesso de teste do personal', initPersonalTestAccess)
+initialize('autenticação do personal', initAuth)
+initialize('navegação', initNavigation)
+initialize('portal integrado', initIntegratedPortal)
+initialize('painel', initDashboard)
+initialize('formulários', initForms)
+initialize('atalhos', initShortcuts)
+initialize('sincronização remota', initRemoteSync)
+initialize('ferramentas web', initWebTools)
+initialize('menu público', initPublicMenu)
+initialize('acesso do personal', initPersonalAccess)
+initialize('aplicativo instalável', initPwa)

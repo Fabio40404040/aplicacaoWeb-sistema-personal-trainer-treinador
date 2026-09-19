@@ -3,6 +3,7 @@ import { getData } from './state.js'
 import { exerciseCatalog } from '../data/exercises.js'
 import { showToast } from './utils.js'
 import { createWhatsappUrl, planNames } from './whatsapp.js'
+import { createPixQrCode } from './pix.js'
 
 const billingCycleLabels = {
   monthly: 'mensal',
@@ -11,7 +12,16 @@ const billingCycleLabels = {
   permanent: 'permanente',
 }
 const consultingPrices = { basic: 149, premium: 249, athlete: 399 }
+const readyWorkoutPrice = 99
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+
+function registrationAmount(planCode, billingCycle) {
+  if (planCode === 'ready') return readyWorkoutPrice
+  const monthly = consultingPrices[planCode] || consultingPrices.basic
+  if (billingCycle === 'monthly') return monthly
+  if (billingCycle === 'semiannual') return monthly * 6 * 0.9
+  return monthly * 3 * 0.95
+}
 
 function field(label, html) {
   const wrapper = document.createElement('label')
@@ -49,17 +59,84 @@ function enhanceRegistration() {
   form.insertBefore(paymentArea, insertionPoint)
 
   function renderPaymentArea() {
+    const planCode = plan.querySelector('select').value
+    const cycle = billingCycle.querySelector('select').value
+    const amount = registrationAmount(planCode, cycle)
+    const submit = form.querySelector('[type="submit"]')
     paymentArea.hidden = false
-    paymentArea.innerHTML = `<div class="online-payment-note"><strong>Pagamento seguro após criar a conta</strong><p>Você poderá pagar por PIX ou cartão de crédito. Quando o Mercado Pago confirmar, o acesso será liberado automaticamente.</p></div>`
+    paymentArea.replaceChildren()
+
+    const pixDetails = document.createElement('details')
+    pixDetails.className = 'pix-payment-details'
+    pixDetails.innerHTML = `<summary>PIX — liberação após confirmação</summary><div class="pix-payment-content"><p>Pague ${money.format(amount)} usando a chave PIX <strong>fabiogisel7@gmail.com</strong>.</p><div class="pix-placeholder"><span>QR PIX</span><small>Gerando QR Code…</small></div></div>`
+
+    const cardDetails = document.createElement('details')
+    cardDetails.className = 'pix-payment-details'
+    cardDetails.innerHTML = `<summary>Cartão de crédito — liberação após confirmação</summary><div class="pix-payment-content"><strong>Formulário seguro do Mercado Pago</strong><p>Preencha os dados do cadastro acima e abra o formulário protegido. Os dados do cartão não passam pelo servidor da FRS Personal.</p><button class="button button--secondary" type="button" data-open-card-form>Abrir formulário seguro</button></div>`
+
+    paymentArea.append(pixDetails, cardDetails)
+    const select = channel.querySelector('select')
+    const pixContent = pixDetails.querySelector('.pix-payment-content')
+    let pixLoaded = false
+
+    pixDetails.addEventListener('toggle', async () => {
+      if (!pixDetails.open) return
+      cardDetails.open = false
+      select.value = 'pix'
+      submit.textContent = 'Cadastrar como aluno'
+      if (pixLoaded) return
+      pixLoaded = true
+      try {
+        const { payload, imageUrl } = await createPixQrCode(amount)
+        const placeholder = pixContent.querySelector('.pix-placeholder')
+        const image = document.createElement('img')
+        image.className = 'pix-qr-code'
+        image.src = imageUrl
+        image.alt = `QR Code PIX de ${money.format(amount)} para fabiogisel7@gmail.com`
+        placeholder.replaceWith(image)
+        const copy = document.createElement('button')
+        copy.className = 'button button--secondary'
+        copy.type = 'button'
+        copy.textContent = 'Copiar código PIX'
+        copy.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(payload)
+            copy.textContent = 'Código PIX copiado'
+          } catch {
+            copy.textContent = 'Selecione o QR Code para pagar'
+          }
+        })
+        pixContent.append(copy)
+      } catch {
+        pixContent.querySelector('.pix-placeholder').innerHTML =
+          '<span>PIX</span><small>Use a chave fabiogisel7@gmail.com</small>'
+      }
+    })
+
+    const selectCard = () => {
+      pixDetails.open = false
+      select.value = 'credit_card'
+      submit.textContent = 'Cadastrar como aluno'
+    }
+    cardDetails.addEventListener('toggle', () => {
+      if (cardDetails.open) selectCard()
+    })
+    cardDetails.querySelector('[data-open-card-form]').addEventListener('click', () => {
+      selectCard()
+      if (typeof form.requestSubmit === 'function') form.requestSubmit()
+      else submit.click()
+    })
+    select.value = 'pix'
+    submit.textContent = 'Cadastrar como aluno'
   }
 
   function updateContractOptions() {
     const select = channel.querySelector('select')
     const selectedPlan = plan.querySelector('select').value
     select.innerHTML =
-      '<option value="pix">PIX — liberação após confirmação</option><option value="credit_card">Cartão de crédito — checkout seguro</option>'
-    channel.hidden = false
-    paymentTitle.hidden = true
+      '<option value="pix">PIX — liberação após confirmação</option><option value="credit_card">Cartão de crédito — liberação após confirmação</option>'
+    channel.hidden = true
+    paymentTitle.hidden = false
     if (selectedPlan === 'ready') {
       billingCycle.hidden = true
       billingCycle.querySelector('select').value = 'permanent'
@@ -76,6 +153,10 @@ function enhanceRegistration() {
     renderPaymentArea()
   }
   plan.querySelector('select').addEventListener('change', updateContractOptions)
+  billingCycle.querySelector('select').addEventListener('change', renderPaymentArea)
+  const requestedPlan = new URLSearchParams(location.hash.split('?')[1] || '').get('plan')
+  if ([...plan.querySelector('select').options].some((option) => option.value === requestedPlan))
+    plan.querySelector('select').value = requestedPlan
   updateContractOptions()
 }
 

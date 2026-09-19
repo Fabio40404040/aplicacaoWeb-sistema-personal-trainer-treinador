@@ -4,6 +4,7 @@
   "main": "src/index.js",
   "compatibility_date": "2026-09-11",
   "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
   "vars": {
     "ALLOWED_ORIGIN": "https://aplicacaoweb-sistema-personal-trainer-treinador.pages.dev",
     "PUBLIC_SITE_URL": "https://aplicacaoweb-sistema-personal-trainer-treinador.pages.dev/",

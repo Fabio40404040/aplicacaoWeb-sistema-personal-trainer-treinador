@@ -1,5 +1,6 @@
 import { createWhatsappUrl } from './whatsapp.js'
 import { downloadWorkoutPdf } from './workout-pdf.js'
+import { openSecureCardForm } from './mercado-pago-card.js'
 
 const TOKEN_KEY = 'frs-student-token'
 const API_URL = import.meta.env.VITE_API_URL || ''
@@ -50,7 +51,7 @@ const billingCycleLabels = {
 function billingCycleLabel(access) {
   return billingCycleLabels[access.billingCycle] || ''
 }
-function renderLocked(container, data) {
+function renderLocked(container, data, refresh) {
   const plan = article('Plano e acesso')
   addLine(plan, data.access.planName, true)
   if (billingCycleLabel(data.access)) addLine(plan, billingCycleLabel(data.access))
@@ -65,6 +66,25 @@ function renderLocked(container, data) {
   whatsapp.target = '_blank'
   whatsapp.rel = 'noreferrer'
   plan.append(whatsapp)
+  if (data.access.paymentStatus === 'pending') {
+    const updateNote = element(
+      'p',
+      'student-payment-update-note',
+      'Já concluiu o pagamento? Atualize a página ou toque abaixo para confirmar a liberação.',
+    )
+    const updateButton = element(
+      'button',
+      'button button--secondary',
+      'Atualizar situação do pagamento',
+    )
+    updateButton.type = 'button'
+    updateButton.addEventListener('click', async () => {
+      updateButton.disabled = true
+      updateButton.textContent = 'Consultando o Mercado Pago…'
+      await refresh()
+    })
+    plan.append(updateNote, updateButton)
+  }
   container.replaceChildren(plan)
   const payment = article('Pagamento online')
   addLine(
@@ -81,8 +101,17 @@ function renderLocked(container, data) {
     button.type = 'button'
     button.addEventListener('click', async () => {
       button.disabled = true
-      status.textContent = 'Abrindo o pagamento seguro…'
+      status.textContent =
+        method === 'credit_card'
+          ? 'Abrindo o formulário seguro do cartão…'
+          : 'Abrindo o pagamento seguro…'
       try {
+        if (method === 'credit_card') {
+          await openSecureCardForm(studentRequest, { onApproved: refresh })
+          status.textContent = ''
+          button.disabled = false
+          return
+        }
         const result = await studentRequest('payments/checkout', { method })
         location.href = result.checkoutUrl
       } catch (error) {
@@ -250,13 +279,19 @@ export function initStudentAccess() {
       const data = await studentRequest('me')
       if (current !== generation) return
       document.querySelector('[data-student-name]').textContent = `Olá, ${data.name}`
-      status.textContent = data.access.active
-        ? 'Seu acompanhamento está ativo e sincronizado com o personal.'
-        : data.access.paymentStatus === 'pending'
-          ? 'Cadastro recebido. Aguardando confirmação do pagamento e liberação do personal.'
-          : 'Seu acompanhamento está aguardando liberação.'
+      const paymentMessage = sessionStorage.getItem('frs-student-payment-message')
+      if (paymentMessage) {
+        sessionStorage.removeItem('frs-student-payment-message')
+        status.textContent = `Sua conta foi criada. ${paymentMessage}`
+      } else {
+        status.textContent = data.access.active
+          ? 'Seu acompanhamento está ativo e sincronizado com o personal.'
+          : data.access.paymentStatus === 'pending'
+            ? 'Cadastro recebido. Se você já pagou, atualize a página para confirmar o pagamento e liberar o acesso.'
+            : 'Seu acompanhamento está aguardando liberação.'
+      }
       if (data.access.active) renderPortal(container, data)
-      else renderLocked(container, data)
+      else renderLocked(container, data, loadPanel)
     } catch (error) {
       if (current === generation) status.textContent = error.message
     }
@@ -287,6 +322,19 @@ export function initStudentAccess() {
         }
         if (!result?.token) throw new Error('O servidor não retornou uma sessão válida.')
         sessionStorage.setItem(TOKEN_KEY, result.token)
+        if (action === 'register' && data.paymentChannel === 'credit_card') {
+          status.textContent = 'Abrindo o formulário seguro do cartão…'
+          form.reset()
+          location.hash = '#painel-aluno'
+          try {
+            await openSecureCardForm(studentRequest, { onApproved: loadPanel })
+            return
+          } catch (error) {
+            sessionStorage.setItem('frs-student-payment-message', error.message)
+            await loadPanel()
+            return
+          }
+        }
         form.reset()
         status.textContent = ''
         location.hash = '#painel-aluno'
