@@ -21,7 +21,7 @@ function saveAndRefresh(collection, record, id) {
     .then(syncRemoteData)
     .catch((error) => showToast(error.message))
 }
-function handleStudent(form) {
+async function handleStudent(form) {
   const record = {
     name: value(form, 'name'),
     email: value(form, 'email'),
@@ -29,19 +29,10 @@ function handleStudent(form) {
     status: value(form, 'status'),
     assessmentDate: value(form, 'assessmentDate'),
   }
-  updateData((d) => {
-    const old = d.students.find((s) => s.id === editing.student)
-    if (old) Object.assign(old, record)
-    else
-      d.students.unshift({
-        id: createId('s'),
-        ...record,
-        workout: 'Aguardando ficha',
-        activity: 'Novo cadastro',
-      })
-  })
-  showToast(editing.student ? 'Aluno atualizado com sucesso.' : 'Aluno cadastrado com sucesso.')
-  saveAndRefresh('students', record, editing.student)
+  const editingId = editing.student
+  await persistRecord('students', record, editingId)
+  await syncRemoteData()
+  showToast(editingId ? 'Aluno atualizado com sucesso.' : 'Aluno cadastrado com sucesso.')
   editing.student = null
 }
 function handleWorkout(form) {
@@ -207,12 +198,23 @@ function fillForm(type, id) {
     form.elements.duration.value = String(Math.max(30, Math.round((end - start) / 60_000)))
   }
   if (form.elements.published) form.elements.published.checked = Boolean(record.publishedAt)
+  if (type === 'student') {
+    form.querySelector('header .eyebrow').textContent = 'Editar cadastro'
+    form.querySelector('header h2').textContent = 'Editar aluno'
+    form.querySelector('[type="submit"]').textContent = 'Salvar alterações'
+  }
   openModal(type)
 }
 export function initForms() {
   document.querySelectorAll('[data-open-modal]').forEach((b) =>
     b.addEventListener('click', () => {
       editing[b.dataset.openModal] = null
+      if (b.dataset.openModal === 'student') {
+        const form = document.querySelector('[data-form="student"]')
+        form.querySelector('header .eyebrow').textContent = 'Novo cadastro'
+        form.querySelector('header h2').textContent = 'Adicionar aluno'
+        form.querySelector('[type="submit"]').textContent = 'Cadastrar aluno'
+      }
       openModal(b.dataset.openModal)
     }),
   )
@@ -233,11 +235,21 @@ export function initForms() {
     }),
   )
   document.querySelectorAll('[data-form]').forEach((form) =>
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault()
       if (!form.reportValidity()) return
-      handlers[form.dataset.form](form)
-      closeModal(form)
+      const submit = form.querySelector('[type="submit"]')
+      const label = submit.textContent
+      submit.disabled = true
+      try {
+        await handlers[form.dataset.form](form)
+        closeModal(form)
+      } catch (error) {
+        showToast(error.message)
+      } finally {
+        submit.disabled = false
+        submit.textContent = label
+      }
     }),
   )
   window.addEventListener('frs:edit-student', (e) => fillForm('student', e.detail))

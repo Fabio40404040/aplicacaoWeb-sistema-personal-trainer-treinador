@@ -1,6 +1,12 @@
 import { updateStudentAccess } from './api-client.js'
 import { getData } from './state.js'
 import { exerciseCatalog } from '../data/exercises.js'
+import {
+  exerciseVideoLibrary,
+  muscleGroups,
+  readyWorkoutLibrary,
+  videosByMuscleGroup,
+} from '../data/library.js'
 import { showToast } from './utils.js'
 import { createWhatsappUrl, planNames } from './whatsapp.js'
 import { createPixQrCode } from './pix.js'
@@ -9,16 +15,27 @@ const billingCycleLabels = {
   monthly: 'mensal',
   quarterly: 'trimestral',
   semiannual: 'semestral',
+  annual: 'anual',
   permanent: 'permanente',
 }
 const consultingPrices = { basic: 149, premium: 249, athlete: 399 }
 const readyWorkoutPrice = 99
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+const mediaExerciseCatalog = [
+  ...exerciseCatalog,
+  ...exerciseVideoLibrary.map((item) => ({
+    ...item,
+    mediaType: 'video',
+    mediaUrl: item.videoUrl,
+    animationClip: '',
+  })),
+]
 
 function registrationAmount(planCode, billingCycle) {
   if (planCode === 'ready') return readyWorkoutPrice
   const monthly = consultingPrices[planCode] || consultingPrices.basic
   if (billingCycle === 'monthly') return monthly
+  if (billingCycle === 'annual') return monthly * 12 * 0.85
   if (billingCycle === 'semiannual') return monthly * 6 * 0.9
   return monthly * 3 * 0.95
 }
@@ -40,7 +57,7 @@ function enhanceRegistration() {
   )
   const billingCycle = field(
     'Período da consultoria',
-    `<select name="billingCycle"><option value="monthly">Mensal — sem desconto</option><option value="quarterly" selected>Trimestral — recomendado, 5% de desconto</option><option value="semiannual">Semestral — melhor valor, 10% de desconto</option></select>`,
+    `<select name="billingCycle"><option value="monthly">Mensal — sem desconto</option><option value="quarterly" selected>Trimestral — recomendado, 5% de desconto</option><option value="semiannual">Semestral — 10% de desconto</option><option value="annual">Anual — melhor valor, 15% de desconto</option></select>`,
   )
   const channel = field('Forma de pagamento', '<select name="paymentChannel"></select>')
   const paymentTitle = document.createElement('span')
@@ -146,6 +163,7 @@ function enhanceRegistration() {
       billingSelect.options[0].textContent = `Mensal — ${money.format(monthlyPrice)}, sem desconto`
       billingSelect.options[1].textContent = `Trimestral — ${money.format(monthlyPrice * 3 * 0.95)}, recomendado (5% off)`
       billingSelect.options[2].textContent = `Semestral — ${money.format(monthlyPrice * 6 * 0.9)} (10% off)`
+      billingSelect.options[3].textContent = `Anual — ${money.format(monthlyPrice * 12 * 0.85)} (15% off)`
       billingCycle.hidden = false
       if (billingCycle.querySelector('select').value === 'permanent')
         billingCycle.querySelector('select').value = 'quarterly'
@@ -198,7 +216,7 @@ function enhanceExercise() {
   name.setAttribute('list', 'exercise-catalog-list')
   const list = document.createElement('datalist')
   list.id = 'exercise-catalog-list'
-  exerciseCatalog.forEach((item) => {
+  mediaExerciseCatalog.forEach((item) => {
     const option = document.createElement('option')
     option.value = item.name
     list.append(option)
@@ -207,9 +225,31 @@ function enhanceExercise() {
   const extra = document.createElement('div')
   extra.innerHTML = `<div class="field-grid"><label class="field"><span>Dificuldade</span><select name="difficulty"><option>Iniciante</option><option selected>Intermediário</option><option>Avançado</option></select></label><label class="field"><span>Formato da mídia</span><select name="mediaType"><option value="3d">Animação 3D</option><option value="video">Vídeo</option><option value="image">Imagem</option></select></label></div><label class="field"><span>Arquivo 3D, vídeo ou imagem (URL)</span><input name="mediaUrl" placeholder="/models/exercises/exercicio.glb"></label><label class="field"><span>Nome da animação 3D</span><input name="animationClip" placeholder="Ex.: Squat"></label>`
   body.append(...extra.children)
-  name.addEventListener('change', () => {
-    const item = exerciseCatalog.find((entry) => entry.name === name.value)
+  const picker = field('Selecionar da biblioteca de vídeos', '<select data-video-picker></select>')
+  const pickerSelect = picker.querySelector('select')
+  const placeholder = document.createElement('option')
+  placeholder.value = ''
+  placeholder.textContent = exerciseVideoLibrary.length
+    ? 'Escolha um exercício para preencher o formulário'
+    : 'Nenhum MP4 cadastrado em src/data/library.js'
+  pickerSelect.append(placeholder)
+  muscleGroups.forEach((group) => {
+    const items = exerciseVideoLibrary.filter((item) => item.group === group.name)
+    if (!items.length) return
+    const options = document.createElement('optgroup')
+    options.label = group.name
+    items.forEach((item) => {
+      const option = document.createElement('option')
+      option.value = item.id
+      option.textContent = item.name
+      options.append(option)
+    })
+    pickerSelect.append(options)
+  })
+  body.insertBefore(picker, body.firstElementChild)
+  const applyCatalogItem = (item) => {
     if (!item) return
+    name.value = item.name
     ;[
       'group',
       'equipment',
@@ -221,7 +261,125 @@ function enhanceExercise() {
     ].forEach((key) => {
       if (form.elements[key]) form.elements[key].value = item[key] || ''
     })
+  }
+  pickerSelect.addEventListener('change', () =>
+    applyCatalogItem(mediaExerciseCatalog.find((entry) => entry.id === pickerSelect.value)),
+  )
+  name.addEventListener('change', () => {
+    applyCatalogItem(mediaExerciseCatalog.find((entry) => entry.name === name.value))
   })
+}
+
+function configureMuscleGroupFields() {
+  const values = muscleGroups.map((group) => group.name)
+  const groupSelect = document.querySelector('[data-form="exercise"] [name="group"]')
+  const filter = document.querySelector('[data-exercise-filter]')
+  if (groupSelect) {
+    const selected = groupSelect.value
+    groupSelect.replaceChildren(
+      ...values.map((value) => {
+        const option = document.createElement('option')
+        option.value = value
+        option.textContent = value
+        return option
+      }),
+    )
+    if (values.includes(selected)) groupSelect.value = selected
+  }
+  if (filter) {
+    const all = document.createElement('option')
+    all.value = 'all'
+    all.textContent = 'Todos os grupos'
+    filter.replaceChildren(
+      all,
+      ...values.map((value) => {
+        const option = document.createElement('option')
+        option.value = value
+        option.textContent = value
+        return option
+      }),
+    )
+  }
+}
+
+function createReadyWorkoutLibraryPanel() {
+  const page = document.querySelector('[data-route="treinos"]')
+  if (!page || page.querySelector('[data-ready-workout-library]')) return
+  const panel = document.createElement('article')
+  panel.className = 'panel media-library-panel'
+  panel.dataset.readyWorkoutLibrary = ''
+  panel.innerHTML = `<div class="panel-heading"><div><span class="eyebrow eyebrow--blue">Biblioteca de PDFs</span><h2>Treinos Prontos</h2><p>Adicione os arquivos em <code>public/library/workouts/pdfs</code> e edite <code>src/data/library.js</code>.</p></div></div>`
+  const grid = document.createElement('div')
+  grid.className = 'media-library-grid'
+  readyWorkoutLibrary.forEach((workout) => {
+    const card = document.createElement('section')
+    card.className = 'media-library-card'
+    const groups = workout.muscleGroups?.join(', ') || 'Treino completo'
+    card.innerHTML = `<div><span class="tag">${workout.published ? 'Publicado' : 'Rascunho'}</span><h3></h3><p></p><small></small></div>`
+    card.querySelector('h3').textContent = workout.name
+    card.querySelector('p').textContent = workout.description || `${workout.goal} · ${workout.level}`
+    card.querySelector('small').textContent = `${groups} · ${workout.duration}`
+    const open = document.createElement('a')
+    open.className = 'button button--secondary'
+    open.href = workout.pdfUrl
+    open.target = '_blank'
+    open.rel = 'noreferrer'
+    open.textContent = 'Abrir PDF'
+    card.append(open)
+    grid.append(card)
+  })
+  if (!readyWorkoutLibrary.length) {
+    const empty = document.createElement('p')
+    empty.textContent = 'Nenhum PDF cadastrado em src/data/library.js.'
+    grid.append(empty)
+  }
+  panel.append(grid)
+  page.append(panel)
+}
+
+function createExerciseVideoLibraryPanel() {
+  const page = document.querySelector('[data-route="exercicios"]')
+  if (!page || page.querySelector('[data-exercise-video-library]')) return
+  const panel = document.createElement('article')
+  panel.className = 'panel media-library-panel'
+  panel.dataset.exerciseVideoLibrary = ''
+  panel.innerHTML = `<div class="panel-heading"><div><span class="eyebrow eyebrow--blue">Biblioteca de MP4</span><h2>Vídeos por grupo muscular</h2><p>Copie os vídeos para <code>public/library/exercises/videos</code> e cadastre nome e caminho em <code>src/data/library.js</code>.</p></div></div>`
+  const groups = document.createElement('div')
+  groups.className = 'video-group-library'
+  videosByMuscleGroup(exerciseVideoLibrary).forEach((group) => {
+    const section = document.createElement('details')
+    section.className = 'video-muscle-group'
+    if (group.exercises.length) section.open = true
+    const summary = document.createElement('summary')
+    summary.textContent = `${group.name} (${group.exercises.length})`
+    const content = document.createElement('div')
+    content.className = 'video-library-grid'
+    if (!group.exercises.length) {
+      const empty = document.createElement('p')
+      empty.textContent = `Nenhum MP4 cadastrado na pasta ${group.id}.`
+      content.append(empty)
+    }
+    group.exercises.forEach((exercise) => {
+      const card = document.createElement('article')
+      card.className = 'video-library-card'
+      const video = document.createElement('video')
+      video.controls = true
+      video.preload = 'metadata'
+      video.playsInline = true
+      video.src = exercise.videoUrl
+      if (exercise.posterUrl) video.poster = exercise.posterUrl
+      const title = document.createElement('h3')
+      title.textContent = exercise.name
+      const meta = document.createElement('p')
+      meta.textContent = `${exercise.equipment} · ${exercise.difficulty}${exercise.published ? ' · publicado' : ' · rascunho'}`
+      card.append(video, title, meta)
+      content.append(card)
+    })
+    section.append(summary, content)
+    groups.append(section)
+  })
+  panel.append(groups)
+  page.append(panel)
 }
 
 function enhanceAssessment() {
@@ -238,7 +396,7 @@ function createAccessDialog() {
   const dialog = document.createElement('dialog')
   dialog.className = 'modal'
   dialog.dataset.accessDialog = ''
-  dialog.innerHTML = `<form method="dialog" data-access-form><header><div><span class="eyebrow eyebrow--blue">Plano e pagamento</span><h2>Liberar acesso do aluno</h2></div><button class="icon-button" type="button" data-access-close aria-label="Fechar">×</button></header><div class="modal-body"><p data-access-student></p><label class="field"><span>Plano</span><select name="planCode"><option value="ready">Treinos Prontos — permanente</option><option value="basic">Consultoria Básica</option><option value="premium">Consultoria Premium</option><option value="athlete">Performance Atleta</option></select></label><label class="field" data-access-billing-field><span>Período</span><select name="billingCycle"><option value="monthly">Mensal — 30 dias</option><option value="quarterly">Trimestral — 90 dias, recomendado</option><option value="semiannual">Semestral — 180 dias</option></select></label><div class="field-grid"><label class="field"><span>Situação</span><select name="accessStatus"><option value="active">Liberar acesso</option><option value="pending">Aguardando</option><option value="paused">Pausar</option><option value="cancelled">Cancelar</option></select></label><label class="field"><span>Pagamento</span><select name="paymentStatus"><option value="paid">Confirmado</option><option value="pending">Pendente</option><option value="refunded">Estornado</option></select></label></div><label class="field"><span>Forma de pagamento</span><select name="paymentMethod"><option value="whatsapp">WhatsApp / pessoalmente</option><option value="pix">PIX manual</option><option value="cash">Dinheiro</option><option value="webapp">WebApp</option></select></label><label class="field"><span>Validade personalizada (opcional)</span><input name="expiresAt" type="date"></label><p class="password-requirements">A validade é calculada pelo período: 30, 90 ou 180 dias. Treinos Prontos não expiram.</p><p role="status"></p></div><footer><button class="button button--secondary" type="button" data-access-close>Cancelar</button><button class="button button--primary" type="submit">Salvar acesso</button></footer></form>`
+  dialog.innerHTML = `<form method="dialog" data-access-form><header><div><span class="eyebrow eyebrow--blue">Plano e pagamento</span><h2>Liberar acesso do aluno</h2></div><button class="icon-button" type="button" data-access-close aria-label="Fechar">×</button></header><div class="modal-body"><p data-access-student></p><label class="field"><span>Plano</span><select name="planCode"><option value="ready">Treinos Prontos — permanente</option><option value="basic">Consultoria Básica</option><option value="premium">Consultoria Premium</option><option value="athlete">Performance Atleta</option></select></label><label class="field" data-access-billing-field><span>Período</span><select name="billingCycle"><option value="monthly">Mensal — 30 dias</option><option value="quarterly">Trimestral — 90 dias, recomendado</option><option value="semiannual">Semestral — 180 dias</option><option value="annual">Anual — 365 dias</option></select></label><div class="field-grid"><label class="field"><span>Situação</span><select name="accessStatus"><option value="active">Liberar acesso</option><option value="pending">Aguardando</option><option value="paused">Pausar</option><option value="cancelled">Cancelar</option></select></label><label class="field"><span>Pagamento</span><select name="paymentStatus"><option value="paid">Confirmado</option><option value="pending">Pendente</option><option value="refunded">Estornado</option></select></label></div><label class="field"><span>Forma de pagamento</span><select name="paymentMethod"><option value="whatsapp">WhatsApp / pessoalmente</option><option value="pix">PIX manual</option><option value="cash">Dinheiro</option><option value="webapp">WebApp</option></select></label><label class="field"><span>Validade personalizada (opcional)</span><input name="expiresAt" type="date"></label><p class="password-requirements">A validade é calculada pelo período: 30, 90, 180 ou 365 dias. Treinos Prontos não expiram.</p><p role="status"></p></div><footer><button class="button button--secondary" type="button" data-access-close>Cancelar</button><button class="button button--primary" type="submit">Salvar acesso</button></footer></form>`
   document.body.append(dialog)
   const accessForm = dialog.querySelector('form')
   const syncAccessPeriod = () => {
@@ -275,7 +433,7 @@ function createAccessDialog() {
     form.dataset.studentId = student.id
     form.querySelector('[data-access-student]').textContent = `${student.name} · ${student.email}`
     form.elements.planCode.value = student.planCode || 'basic'
-    form.elements.billingCycle.value = ['monthly', 'quarterly', 'semiannual'].includes(
+    form.elements.billingCycle.value = ['monthly', 'quarterly', 'semiannual', 'annual'].includes(
       student.billingCycle,
     )
       ? student.billingCycle
@@ -401,6 +559,9 @@ export function initIntegratedPortal() {
   enhanceRegistration()
   enhanceWorkout()
   enhanceExercise()
+  configureMuscleGroupFields()
+  createReadyWorkoutLibraryPanel()
+  createExerciseVideoLibraryPanel()
   enhanceAssessment()
   createAppointmentDialog()
   createAccessDialog()

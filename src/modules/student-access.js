@@ -1,6 +1,12 @@
-import { createWhatsappUrl } from './whatsapp.js'
 import { downloadWorkoutPdf } from './workout-pdf.js'
 import { openSecureCardForm } from './mercado-pago-card.js'
+import {
+  findExerciseVideo,
+  muscleGroups,
+  publishedExerciseVideos,
+  publishedReadyWorkouts,
+  videosByMuscleGroup,
+} from '../data/library.js'
 
 const TOKEN_KEY = 'frs-student-token'
 const API_URL = import.meta.env.VITE_API_URL || ''
@@ -46,12 +52,13 @@ const billingCycleLabels = {
   monthly: 'Plano mensal · 30 dias',
   quarterly: 'Plano trimestral · 90 dias',
   semiannual: 'Plano semestral · 180 dias',
+  annual: 'Plano anual · 365 dias',
   permanent: 'Acesso permanente',
 }
 function billingCycleLabel(access) {
   return billingCycleLabels[access.billingCycle] || ''
 }
-function renderLocked(container, data, refresh) {
+function renderLocked(container, data) {
   const plan = article('Plano e acesso')
   addLine(plan, data.access.planName, true)
   if (billingCycleLabel(data.access)) addLine(plan, billingCycleLabel(data.access))
@@ -61,68 +68,7 @@ function renderLocked(container, data, refresh) {
     cancelled: 'Seu acesso foi cancelado. Fale com o personal.',
   }
   addLine(plan, messages[data.access.status] || 'Aguardando liberação.')
-  const whatsapp = element('a', 'button button--secondary', 'Continuar pelo WhatsApp')
-  whatsapp.href = createWhatsappUrl({ name: data.name, planName: data.access.planName })
-  whatsapp.target = '_blank'
-  whatsapp.rel = 'noreferrer'
-  plan.append(whatsapp)
-  if (data.access.paymentStatus === 'pending') {
-    const updateNote = element(
-      'p',
-      'student-payment-update-note',
-      'Já concluiu o pagamento? Atualize a página ou toque abaixo para confirmar a liberação.',
-    )
-    const updateButton = element(
-      'button',
-      'button button--secondary',
-      'Atualizar situação do pagamento',
-    )
-    updateButton.type = 'button'
-    updateButton.addEventListener('click', async () => {
-      updateButton.disabled = true
-      updateButton.textContent = 'Consultando o Mercado Pago…'
-      await refresh()
-    })
-    plan.append(updateNote, updateButton)
-  }
   container.replaceChildren(plan)
-  const payment = article('Pagamento online')
-  addLine(
-    payment,
-    'Pague por PIX ou cartão. Após a confirmação, o acesso será liberado automaticamente.',
-  )
-  const actions = element('div', 'student-payment-actions')
-  const status = element('p', 'student-payment-status')
-  ;[
-    ['pix', 'Pagar com PIX'],
-    ['credit_card', 'Pagar com cartão de crédito'],
-  ].forEach(([method, label]) => {
-    const button = element('button', 'button button--primary', label)
-    button.type = 'button'
-    button.addEventListener('click', async () => {
-      button.disabled = true
-      status.textContent =
-        method === 'credit_card'
-          ? 'Abrindo o formulário seguro do cartão…'
-          : 'Abrindo o pagamento seguro…'
-      try {
-        if (method === 'credit_card') {
-          await openSecureCardForm(studentRequest, { onApproved: refresh })
-          status.textContent = ''
-          button.disabled = false
-          return
-        }
-        const result = await studentRequest('payments/checkout', { method })
-        location.href = result.checkoutUrl
-      } catch (error) {
-        status.textContent = error.message
-        button.disabled = false
-      }
-    })
-    actions.append(button)
-  })
-  payment.append(actions, status)
-  container.append(payment)
   ;['Ficha de treino', 'Exercícios', 'Avaliação física', 'Progresso', 'Check-in semanal'].forEach(
     (title) => {
       const card = article(title)
@@ -131,6 +77,126 @@ function renderLocked(container, data, refresh) {
     },
   )
 }
+
+function appendExerciseMedia(parent, exercise) {
+  const libraryVideo = findExerciseVideo(exercise)
+  const mediaUrl = exercise.mediaUrl || libraryVideo?.videoUrl
+  const mediaType = exercise.mediaType || (libraryVideo ? 'video' : '')
+  if (!mediaUrl) {
+    parent.append(element('span', 'exercise-3d-pending', 'Demonstração em preparação'))
+    return
+  }
+  if (mediaType === 'video') {
+    const video = element('video', 'student-exercise-video')
+    video.controls = true
+    video.preload = 'metadata'
+    video.playsInline = true
+    video.src = mediaUrl
+    if (exercise.thumbnailUrl || libraryVideo?.posterUrl)
+      video.poster = exercise.thumbnailUrl || libraryVideo.posterUrl
+    parent.append(video)
+    return
+  }
+  const media = element(
+    'a',
+    '',
+    mediaType === '3d' ? 'Abrir demonstração 3D' : 'Abrir demonstração',
+  )
+  media.href = mediaUrl
+  media.target = '_blank'
+  media.rel = 'noreferrer'
+  parent.append(media)
+}
+
+function groupedExercises(exercises) {
+  const order = new Map(muscleGroups.map((group, index) => [group.name, index]))
+  const groups = new Map()
+  exercises.forEach((exercise) => {
+    const group = exercise.group || 'Outros'
+    if (!groups.has(group)) groups.set(group, [])
+    groups.get(group).push(exercise)
+  })
+  return [...groups.entries()].sort(
+    ([a], [b]) => (order.get(a) ?? 999) - (order.get(b) ?? 999) || a.localeCompare(b, 'pt-BR'),
+  )
+}
+
+function appendExerciseGroups(parent, exercises) {
+  groupedExercises(exercises).forEach(([group, items]) => {
+    const section = element('section', 'student-muscle-group')
+    section.append(element('h3', '', group))
+    const list = element('ol')
+    items.forEach((exercise) => {
+      const item = element('li')
+      const prescription = `${exercise.sets} × ${exercise.repetitions}${exercise.restSeconds ? ` · descanso ${exercise.restSeconds}s` : ''}`
+      addLine(item, `${exercise.name} — ${prescription}`, true)
+      addLine(item, exercise.instructions || 'Siga a orientação do personal.')
+      appendExerciseMedia(item, exercise)
+      list.append(item)
+    })
+    section.append(list)
+    parent.append(section)
+  })
+}
+
+function renderReadyWorkoutLibrary(container, data) {
+  if (data.access.planCode !== 'ready') return
+  const card = article('Biblioteca de Treinos Prontos em PDF')
+  const workouts = publishedReadyWorkouts()
+  if (!workouts.length) {
+    addLine(card, 'Os novos treinos em PDF aparecerão aqui assim que forem publicados.')
+  }
+  workouts.forEach((workout) => {
+    const block = element('section', 'student-workout')
+    addLine(block, workout.name, true)
+    addLine(
+      block,
+      `${workout.goal} · ${workout.level} · ${workout.duration} · ${workout.muscleGroups.join(', ')}`,
+    )
+    if (workout.description) addLine(block, workout.description)
+    const open = element('a', 'button button--secondary', 'Abrir ou baixar PDF')
+    open.href = workout.pdfUrl
+    open.target = '_blank'
+    open.rel = 'noreferrer'
+    block.append(open)
+    card.append(block)
+  })
+  container.append(card)
+}
+
+function renderExerciseVideoLibrary(container) {
+  const videos = publishedExerciseVideos()
+  const card = article('Biblioteca de exercícios em vídeo')
+  if (!videos.length) {
+    addLine(card, 'Os vídeos MP4 aparecerão aqui, separados por grupo muscular.')
+    container.append(card)
+    return
+  }
+  videosByMuscleGroup(videos)
+    .filter((group) => group.exercises.length)
+    .forEach((group) => {
+      const section = element('section', 'student-muscle-group')
+      section.append(element('h3', '', group.name))
+      const grid = element('div', 'student-video-library-grid')
+      group.exercises.forEach((exercise) => {
+        const item = element('article', 'student-video-card')
+        const video = element('video', 'student-exercise-video')
+        video.controls = true
+        video.preload = 'metadata'
+        video.playsInline = true
+        video.src = exercise.videoUrl
+        if (exercise.posterUrl) video.poster = exercise.posterUrl
+        item.append(video, element('strong', '', exercise.name))
+        addLine(item, `${exercise.equipment} · ${exercise.difficulty}`)
+        if (exercise.instructions) addLine(item, exercise.instructions)
+        grid.append(item)
+      })
+      section.append(grid)
+      card.append(section)
+    })
+  container.append(card)
+}
+
 function renderPortal(container, data) {
   const plan = article('Meu plano')
   addLine(plan, data.access.planName, true)
@@ -142,6 +208,7 @@ function renderPortal(container, data) {
       : `Acesso até ${new Intl.DateTimeFormat('pt-BR').format(new Date(data.access.expiresAt))}.`,
   )
   container.replaceChildren(plan)
+  renderReadyWorkoutLibrary(container, data)
   const workouts = article('Ficha de treino e exercícios')
   if (!data.workouts.length) addLine(workouts, 'Nenhuma ficha foi publicada pelo personal.')
   data.workouts.forEach((workout) => {
@@ -161,32 +228,11 @@ function renderPortal(container, data) {
       )
       workoutBlock.append(library)
     }
-    const list = element('ol')
-    workout.exercises.forEach((exercise) => {
-      const item = element('li')
-      const prescription = `${exercise.sets} × ${exercise.repetitions}${exercise.restSeconds ? ` · descanso ${exercise.restSeconds}s` : ''}`
-      addLine(item, `${exercise.name} — ${prescription}`, true)
-      addLine(item, exercise.instructions || 'Siga a orientação do personal.')
-      if (exercise.mediaUrl) {
-        const media = element(
-          'a',
-          '',
-          exercise.mediaType === '3d' ? 'Abrir demonstração 3D' : 'Abrir demonstração',
-        )
-        media.href = exercise.mediaUrl
-        media.target = '_blank'
-        media.rel = 'noreferrer'
-        item.append(media)
-      } else {
-        const pending3d = element('span', 'exercise-3d-pending', 'Animação 3D em preparação')
-        item.append(pending3d)
-      }
-      list.append(item)
-    })
-    workoutBlock.append(list)
+    appendExerciseGroups(workoutBlock, workout.exercises)
     workouts.append(workoutBlock)
   })
   container.append(workouts)
+  renderExerciseVideoLibrary(container)
   if (data.access.features.includes('assessments')) {
     const assessmentCard = article('Avaliação física')
     if (!data.assessments.length) addLine(assessmentCard, 'Nenhuma avaliação foi publicada.')
@@ -287,11 +333,11 @@ export function initStudentAccess() {
         status.textContent = data.access.active
           ? 'Seu acompanhamento está ativo e sincronizado com o personal.'
           : data.access.paymentStatus === 'pending'
-            ? 'Cadastro recebido. Se você já pagou, atualize a página para confirmar o pagamento e liberar o acesso.'
+            ? 'Seu cadastro está aguardando liberação. A situação será atualizada automaticamente.'
             : 'Seu acompanhamento está aguardando liberação.'
       }
       if (data.access.active) renderPortal(container, data)
-      else renderLocked(container, data, loadPanel)
+      else renderLocked(container, data)
     } catch (error) {
       if (current === generation) status.textContent = error.message
     }

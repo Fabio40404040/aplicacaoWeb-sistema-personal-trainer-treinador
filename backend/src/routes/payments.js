@@ -2,6 +2,7 @@ const BILLING_CYCLES = {
   monthly: { days: 30, months: 1, discount: 1 },
   quarterly: { days: 90, months: 3, discount: 0.95 },
   semiannual: { days: 180, months: 6, discount: 0.9 },
+  annual: { days: 365, months: 12, discount: 0.85 },
 }
 
 function amountFor(plan, billingCycle) {

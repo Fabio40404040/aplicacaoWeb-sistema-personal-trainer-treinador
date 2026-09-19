@@ -278,6 +278,63 @@
   .table-wrap {
     margin-inline: -18px;
   }
+  .page[data-route='alunos'] .table-wrap {
+    margin-inline: 0;
+    overflow: visible;
+  }
+  .page[data-route='alunos'] table,
+  .page[data-route='alunos'] tbody {
+    display: block;
+    width: 100%;
+  }
+  .page[data-route='alunos'] thead {
+    display: none;
+  }
+  .page[data-route='alunos'] tbody {
+    display: grid;
+    gap: 12px;
+  }
+  .page[data-route='alunos'] tbody tr {
+    display: grid;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--white);
+  }
+  .page[data-route='alunos'] tbody td {
+    display: flex;
+    min-width: 0;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border: 0;
+    white-space: normal;
+  }
+  .page[data-route='alunos'] tbody td:nth-child(2)::before {
+    content: 'Objetivo';
+  }
+  .page[data-route='alunos'] tbody td:nth-child(3)::before {
+    content: 'Próxima avaliação';
+  }
+  .page[data-route='alunos'] tbody td:nth-child(4)::before {
+    content: 'Acesso';
+  }
+  .page[data-route='alunos'] tbody td:nth-child(n + 2)::before {
+    color: var(--ink-500);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .page[data-route='alunos'] tbody td:last-child {
+    margin-top: 4px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .page[data-route='alunos'] tbody td:last-child::before {
+    content: 'Ações';
+  }
+  .page[data-route='alunos'] .row-actions {
+    margin-left: auto;
+  }
   .chart-panel .panel-heading {
     flex-direction: column;
   }

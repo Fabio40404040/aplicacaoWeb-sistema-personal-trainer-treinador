@@ -7,6 +7,7 @@ const billingCycleLabels = {
   monthly: 'mensal',
   quarterly: 'trimestral',
   semiannual: 'semestral',
+  annual: 'anual',
   permanent: 'permanente',
 }
 const planSummary = (student) =>
@@ -28,6 +29,7 @@ const numberFrom = (value) => {
   return Number.isFinite(parsed) ? parsed : null
 }
 const assessmentDate = (item) => {
+  if (!item) return null
   const date = new Date(item.assessedAt || '')
   return Number.isNaN(date.getTime()) ? null : date
 }
@@ -35,6 +37,25 @@ const shortDate = (date) =>
   new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(date)
 const monthLabel = (date) =>
   new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(date).replace('.', '')
+
+function confirmStudentDeletion(student) {
+  let dialog = document.querySelector('[data-modal="delete-student"]')
+  if (!dialog) {
+    dialog = document.createElement('dialog')
+    dialog.className = 'modal'
+    dialog.dataset.modal = 'delete-student'
+    dialog.innerHTML = `<form method="dialog"><header><div><span class="eyebrow eyebrow--blue">Confirmar exclusão</span><h2>Excluir aluno?</h2></div><button class="icon-button" type="submit" value="cancel" aria-label="Fechar">×</button></header><div class="modal-body"><p>Você está prestes a excluir <strong data-delete-student-name></strong>.</p><p>Também serão removidos a conta de acesso, fichas de treino, avaliações, check-ins e agendamentos vinculados.</p><p class="password-requirements">Esta ação não pode ser desfeita.</p></div><footer><button class="button button--secondary" type="submit" value="cancel">Cancelar</button><button class="button button--primary" type="submit" value="confirm">Excluir aluno</button></footer></form>`
+    document.body.append(dialog)
+  }
+  dialog.querySelector('[data-delete-student-name]').textContent = student.name
+  dialog.returnValue = 'cancel'
+  dialog.showModal()
+  return new Promise((resolve) => {
+    dialog.addEventListener('close', () => resolve(dialog.returnValue === 'confirm'), {
+      once: true,
+    })
+  })
+}
 
 function renderStudents() {
   const { students } = getData(),
@@ -87,6 +108,7 @@ function renderRecentStudents() {
     .students.slice(0, 4)
     .map((s) => {
       const row = cloneTemplate('recent-row-template')
+      row.dataset.id = s.id
       row.querySelector('.avatar').textContent = initials(s.name)
       row.querySelector('.person-cell strong').textContent = s.name
       row.querySelector('.person-cell small').textContent = `${s.email} · ${planSummary(s)}`
@@ -96,6 +118,11 @@ function renderRecentStudents() {
       const status = row.querySelector('.status')
       status.textContent = accessLabel(s)
       status.classList.add(s.accessStatus === 'active' ? 'status--active' : 'status--paused')
+      const view = row.querySelector('button')
+      view.setAttribute('aria-label', `Editar ${s.name}`)
+      view.addEventListener('click', () =>
+        window.dispatchEvent(new CustomEvent('frs:edit-student', { detail: String(s.id) })),
+      )
       return row
     })
   document.querySelector('[data-recent-students]').replaceChildren(...rows)
@@ -483,7 +510,7 @@ export function initDashboard() {
     .querySelector('[data-dashboard-chart-metric]')
     .addEventListener('change', renderDashboardChart)
   document.querySelector('[data-progress-metric]').addEventListener('change', renderProgress)
-  document.querySelector('[data-students-table]').addEventListener('click', (event) => {
+  document.querySelector('[data-students-table]').addEventListener('click', async (event) => {
     const b = event.target.closest('[data-action]')
     if (!b) return
     const id = b.closest('tr').dataset.id
@@ -491,12 +518,20 @@ export function initDashboard() {
       window.dispatchEvent(new CustomEvent('frs:edit-student', { detail: id }))
     if (b.dataset.action === 'access')
       window.dispatchEvent(new CustomEvent('frs:manage-access', { detail: id }))
-    if (b.dataset.action === 'delete' && window.confirm('Excluir este aluno?')) {
-      updateData((d) => {
-        d.students = d.students.filter((s) => s.id !== id)
-      })
-      void removeRecord('students', id).catch(() => {})
-      showToast('Aluno excluído com sucesso.')
+    if (b.dataset.action === 'delete') {
+      const student = getData().students.find((item) => String(item.id) === String(id))
+      if (!student || !(await confirmStudentDeletion(student))) return
+      b.disabled = true
+      try {
+        await removeRecord('students', id)
+        updateData((d) => {
+          d.students = d.students.filter((s) => String(s.id) !== String(id))
+        })
+        showToast('Aluno e conta de acesso excluídos com sucesso.')
+      } catch (error) {
+        b.disabled = false
+        showToast(error.message)
+      }
     }
   })
   document.querySelector('[data-workouts-grid]').addEventListener('click', (event) => {

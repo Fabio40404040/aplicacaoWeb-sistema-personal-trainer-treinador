@@ -148,7 +148,7 @@ export async function requestPlan(db, accountId, body) {
   const billingCycle =
     plan.accessType === 'permanent'
       ? 'permanent'
-      : ['monthly', 'quarterly', 'semiannual'].includes(body?.billingCycle)
+      : ['monthly', 'quarterly', 'semiannual', 'annual'].includes(body?.billingCycle)
         ? body.billingCycle
         : 'quarterly'
   await db.batch([

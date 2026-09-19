@@ -1,0 +1,29 @@
+BIBLIOTECA FRS PERSONAL
+
+PDFs de Treinos Prontos:
+  public/library/workouts/pdfs/
+
+Vídeos MP4 por grupo muscular:
+  public/library/exercises/videos/peitoral/
+  public/library/exercises/videos/costas/
+  public/library/exercises/videos/ombros/
+  public/library/exercises/videos/biceps/
+  public/library/exercises/videos/triceps/
+  public/library/exercises/videos/antebracos/
+  public/library/exercises/videos/abdomen/
+  public/library/exercises/videos/gluteos/
+  public/library/exercises/videos/quadriceps/
+  public/library/exercises/videos/posteriores/
+  public/library/exercises/videos/panturrilhas/
+  public/library/exercises/videos/cardio/
+  public/library/exercises/videos/mobilidade/
+
+Depois de copiar o arquivo, cadastre seus dados em:
+  src/data/library.js
+
+Use nomes de arquivos sem espaços e sem acentos. Exemplo:
+  supino-reto-barra.mp4
+  pernas-completo-iniciante.pdf
+
+Não é necessário editar HTML. Após publicar o site, os itens marcados com
+published: true aparecem automaticamente nas áreas correspondentes.

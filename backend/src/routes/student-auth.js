@@ -2,7 +2,7 @@ import { readJson } from '../lib/http.js'
 import { createSession, hashPassword, isStrongPassword, verifyPassword } from '../lib/session.js'
 
 const PLAN_CODES = new Set(['ready', 'basic', 'premium', 'athlete'])
-const BILLING_CYCLES = new Set(['monthly', 'quarterly', 'semiannual'])
+const BILLING_CYCLES = new Set(['monthly', 'quarterly', 'semiannual', 'annual'])
 
 export async function studentAuth(request, env, db, action) {
   const body = await readJson(request)

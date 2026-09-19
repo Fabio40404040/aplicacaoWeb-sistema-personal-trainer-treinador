@@ -263,6 +263,45 @@
 .student-workout li p {
   margin-top: 4px;
 }
+.student-muscle-group {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #40546e;
+}
+.student-muscle-group h3 {
+  margin: 0;
+  color: #dce9f8;
+  font-size: 1rem;
+}
+.student-exercise-video {
+  width: min(100%, 520px);
+  aspect-ratio: 16 / 9;
+  display: block;
+  margin-top: 10px;
+  border-radius: 10px;
+  background: #09111d;
+}
+.student-video-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.student-video-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #40546e;
+  border-radius: 12px;
+  background: rgba(8, 18, 31, 0.28);
+}
+.student-video-card strong {
+  display: block;
+  margin-top: 10px;
+}
+.student-video-card p {
+  margin-top: 5px;
+}
 .exercise-3d-pending {
   display: inline-flex;
   margin-top: 8px;

@@ -190,6 +190,18 @@ export async function updateResource(db, resource, trainerId, id, body) {
     return row
   }
   const config = configs[resource]
+  if (resource === 'students') {
+    const values = [trainerId, id, ...config.values(body)]
+    const [studentResult] = await db.batch([
+      { sql: config.update, values },
+      {
+        sql: `UPDATE student_accounts SET name=$3,email=$4
+          WHERE id=(SELECT account_id FROM students WHERE id=$2 AND trainer_id=$1)`,
+        values: [trainerId, id, body.name, body.email],
+      },
+    ])
+    return studentResult.rows[0] || null
+  }
   return config
     ? (
         await db.query(config.update, [
@@ -203,5 +215,16 @@ export async function updateResource(db, resource, trainerId, id, body) {
 
 export async function deleteResource(db, resource, trainerId, id) {
   if (!configs[resource] && resource !== 'workouts') return null
+  if (resource === 'students') {
+    const [, deleted] = await db.batch([
+      {
+        sql: `DELETE FROM student_accounts
+          WHERE id=(SELECT account_id FROM students WHERE id=$1 AND trainer_id=$2)`,
+        values: [id, trainerId],
+      },
+      { sql: 'DELETE FROM students WHERE id=$1 AND trainer_id=$2 RETURNING id', values: [id, trainerId] },
+    ])
+    return deleted.rows[0] || null
+  }
   return db.query(`DELETE FROM ${resource} WHERE id=$1 AND trainer_id=$2`, [id, trainerId])
 }
