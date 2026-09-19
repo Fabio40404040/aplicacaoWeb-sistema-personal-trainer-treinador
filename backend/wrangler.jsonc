@@ -7,6 +7,7 @@
   "vars": {
     "ALLOWED_ORIGIN": "https://aplicacaoweb-sistema-personal-trainer-treinador.pages.dev",
     "PUBLIC_SITE_URL": "https://aplicacaoweb-sistema-personal-trainer-treinador.pages.dev/",
+    "PUBLIC_API_URL": "https://frs-coach-api.fabioribeirodev.workers.dev",
     "EMAIL_FROM": "fabiogisel7@gmail.com",
     "BREVO_FROM_NAME": "FRS Personal Trainer",
     "SESSION_TTL_SECONDS": "43200",

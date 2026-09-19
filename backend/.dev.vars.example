@@ -3,3 +3,5 @@ BREVO_API_KEY=xkeysib-sua-chave-aqui
 EMAIL_FROM=seu-remetente-verificado@seudominio.com
 BREVO_FROM_NAME=FRS Personal Trainer
 # BREVO_REPLY_TO=contato@seudominio.com
+MERCADO_PAGO_ACCESS_TOKEN=APP_USR-sua-chave-privada
+MERCADO_PAGO_WEBHOOK_SECRET=sua-assinatura-secreta-do-webhook

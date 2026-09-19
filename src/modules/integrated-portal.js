@@ -3,7 +3,6 @@ import { getData } from './state.js'
 import { exerciseCatalog } from '../data/exercises.js'
 import { showToast } from './utils.js'
 import { createWhatsappUrl, planNames } from './whatsapp.js'
-import { createPixQrCode, hasPixConfiguration } from './pix.js'
 
 const billingCycleLabels = {
   monthly: 'mensal',
@@ -33,7 +32,7 @@ function enhanceRegistration() {
     'Período da consultoria',
     `<select name="billingCycle"><option value="monthly">Mensal — sem desconto</option><option value="quarterly" selected>Trimestral — recomendado, 5% de desconto</option><option value="semiannual">Semestral — melhor valor, 10% de desconto</option></select>`,
   )
-  const channel = field('Forma de contratação', '<select name="paymentChannel"></select>')
+  const channel = field('Forma de pagamento', '<select name="paymentChannel"></select>')
   const paymentTitle = document.createElement('span')
   paymentTitle.className = 'registration-payment-title'
   paymentTitle.textContent = 'Forma de contratação'
@@ -50,108 +49,44 @@ function enhanceRegistration() {
   form.insertBefore(paymentArea, insertionPoint)
 
   function renderPaymentArea() {
-    paymentArea.replaceChildren()
-    if (plan.querySelector('select').value !== 'ready') {
-      paymentArea.hidden = true
-      return
-    }
     paymentArea.hidden = false
-
-    const pixDetails = document.createElement('details')
-    pixDetails.className = 'pix-payment-details'
-    const pixSummary = document.createElement('summary')
-    pixSummary.textContent = 'PIX com QR Code'
-    const pixContent = document.createElement('div')
-    pixContent.className = 'pix-payment-content'
-    pixDetails.append(pixSummary, pixContent)
-
-    const cardDetails = document.createElement('details')
-    cardDetails.className = 'pix-payment-details'
-    const cardSummary = document.createElement('summary')
-    cardSummary.textContent = 'Pedir link de cartão pelo WhatsApp'
-    const cardContent = document.createElement('div')
-    cardContent.className = 'pix-payment-content'
-    const cardText = document.createElement('p')
-    cardText.textContent =
-      'O personal enviará um link seguro para o pagamento no cartão de crédito.'
-    const cardLink = document.createElement('a')
-    cardLink.className = 'button button--secondary'
-    cardLink.href = createWhatsappUrl({ planCode: 'ready', purpose: 'card' })
-    cardLink.target = '_blank'
-    cardLink.rel = 'noreferrer'
-    cardLink.textContent = 'Solicitar link pelo WhatsApp'
-    cardContent.append(cardText, cardLink)
-    cardDetails.append(cardSummary, cardContent)
-    paymentArea.append(pixDetails, cardDetails)
-
-    let loaded = false
-    pixDetails.addEventListener('toggle', async () => {
-      if (!pixDetails.open) return
-      cardDetails.open = false
-      channel.querySelector('select').value = 'pix'
-      if (loaded) return
-      loaded = true
-      if (!hasPixConfiguration()) {
-        const placeholder = document.createElement('div')
-        placeholder.className = 'pix-placeholder'
-        placeholder.innerHTML = '<span>QR PIX</span><small>Aguardando cadastro da chave PIX</small>'
-        pixContent.append(placeholder)
-        return
-      }
-      const { payload, imageUrl } = await createPixQrCode(99)
-      const image = document.createElement('img')
-      image.className = 'pix-qr-code'
-      image.src = imageUrl
-      image.alt = 'QR Code PIX para pagamento de Treinos Prontos'
-      const copy = document.createElement('button')
-      copy.className = 'button button--secondary'
-      copy.type = 'button'
-      copy.textContent = 'Copiar código PIX'
-      copy.addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(payload)
-          copy.textContent = 'Código PIX copiado'
-        } catch {
-          copy.textContent = 'Não foi possível copiar'
-        }
-      })
-      pixContent.append(image, copy)
-    })
-    cardDetails.addEventListener('toggle', () => {
-      if (!cardDetails.open) return
-      pixDetails.open = false
-      channel.querySelector('select').value = 'card_whatsapp'
-    })
+    paymentArea.innerHTML = `<div class="online-payment-note"><strong>Pagamento seguro após criar a conta</strong><p>Você poderá pagar por PIX ou cartão de crédito. Quando o Mercado Pago confirmar, o acesso será liberado automaticamente.</p></div>`
   }
 
   function updateContractOptions() {
     const select = channel.querySelector('select')
     const selectedPlan = plan.querySelector('select').value
+    select.innerHTML =
+      '<option value="pix">PIX — liberação após confirmação</option><option value="credit_card">Cartão de crédito — checkout seguro</option>'
+    channel.hidden = false
+    paymentTitle.hidden = true
     if (selectedPlan === 'ready') {
-      select.innerHTML =
-        '<option value="pix">PIX com QR Code</option><option value="card_whatsapp">Pedir link de cartão pelo WhatsApp</option>'
-      channel.hidden = true
       billingCycle.hidden = true
       billingCycle.querySelector('select').value = 'permanent'
-      paymentTitle.hidden = false
     } else {
       const monthlyPrice = consultingPrices[selectedPlan]
       const billingSelect = billingCycle.querySelector('select')
       billingSelect.options[0].textContent = `Mensal — ${money.format(monthlyPrice)}, sem desconto`
       billingSelect.options[1].textContent = `Trimestral — ${money.format(monthlyPrice * 3 * 0.95)}, recomendado (5% off)`
       billingSelect.options[2].textContent = `Semestral — ${money.format(monthlyPrice * 6 * 0.9)} (10% off)`
-      select.innerHTML =
-        '<option value="whatsapp">Combinar pelo WhatsApp</option><option value="webapp">Pagar pelo WebApp (em preparação)</option>'
-      channel.hidden = false
       billingCycle.hidden = false
       if (billingCycle.querySelector('select').value === 'permanent')
         billingCycle.querySelector('select').value = 'quarterly'
-      paymentTitle.hidden = true
     }
     renderPaymentArea()
   }
   plan.querySelector('select').addEventListener('change', updateContractOptions)
   updateContractOptions()
+}
+
+function createAppointmentDialog() {
+  if (document.querySelector('[data-modal="appointment"]')) return
+  const dialog = document.createElement('dialog')
+  dialog.className = 'modal'
+  dialog.dataset.modal = 'appointment'
+  const today = new Date().toISOString().slice(0, 10)
+  dialog.innerHTML = `<form method="dialog" data-form="appointment"><header><div><span class="eyebrow eyebrow--blue">Agenda presencial</span><h2>Novo atendimento</h2></div><button class="icon-button" type="button" data-close-modal aria-label="Fechar">×</button></header><div class="modal-body"><label class="field"><span>Aluno</span><select name="student" data-student-options required></select></label><div class="field-grid"><label class="field"><span>Data</span><input name="date" type="date" value="${today}" required></label><label class="field"><span>Horário</span><input name="time" type="time" required></label></div><div class="field-grid"><label class="field"><span>Duração</span><select name="duration"><option value="30">30 minutos</option><option value="45">45 minutos</option><option value="60" selected>1 hora</option><option value="90">1h30</option></select></label><label class="field"><span>Situação</span><select name="status"><option value="scheduled">Agendado</option><option value="completed">Concluído</option><option value="cancelled">Cancelado</option></select></label></div><label class="field"><span>Atendimento</span><select name="service"><option>Avaliação física</option><option>Treino presencial</option><option>Reavaliação física</option><option>Orientação técnica</option></select></label><label class="field"><span>Local</span><input name="location" placeholder="Academia ou endereço"></label><label class="field"><span>Observações</span><textarea name="notes" rows="3"></textarea></label><p role="status"></p></div><footer><button class="button button--secondary" type="button" data-close-modal>Cancelar</button><button class="button button--primary" type="submit">Salvar atendimento</button></footer></form>`
+  document.body.append(dialog)
 }
 
 function enhanceWorkout() {
@@ -386,6 +321,7 @@ export function initIntegratedPortal() {
   enhanceWorkout()
   enhanceExercise()
   enhanceAssessment()
+  createAppointmentDialog()
   createAccessDialog()
   connectPlanCards()
   createOperationsPanel()

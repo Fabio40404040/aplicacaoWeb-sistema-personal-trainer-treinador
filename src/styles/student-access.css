@@ -198,11 +198,60 @@
   font-size: 1.1rem;
   margin-bottom: 10px;
 }
+.student-payment-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.student-payment-status:not(:empty) {
+  margin-top: 12px;
+}
+.student-workout {
+  display: grid;
+  gap: 12px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #40546e;
+}
+.student-workout:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.student-workout ol {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding-left: 22px;
+}
+.student-workout li {
+  padding-left: 4px;
+}
+.student-workout li p {
+  margin-top: 4px;
+}
+.exercise-3d-pending {
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 6px 9px;
+  border: 1px dashed #607896;
+  border-radius: 8px;
+  color: #aebed2;
+  font-size: 0.78rem;
+}
+.student-feature-locked {
+  opacity: 0.78;
+  background: rgba(15, 25, 38, 0.24);
+}
 .student-card--login > a:last-child {
   margin-top: 18px;
 }
 @media (max-width: 600px) {
   .student-access-features {
+    grid-template-columns: 1fr;
+  }
+  .student-payment-actions {
     grid-template-columns: 1fr;
   }
 }

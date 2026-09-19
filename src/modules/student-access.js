@@ -1,4 +1,5 @@
 import { createWhatsappUrl } from './whatsapp.js'
+import { downloadWorkoutPdf } from './workout-pdf.js'
 
 const TOKEN_KEY = 'frs-student-token'
 const API_URL = import.meta.env.VITE_API_URL || ''
@@ -65,6 +66,34 @@ function renderLocked(container, data) {
   whatsapp.rel = 'noreferrer'
   plan.append(whatsapp)
   container.replaceChildren(plan)
+  const payment = article('Pagamento online')
+  addLine(
+    payment,
+    'Pague por PIX ou cartão. Após a confirmação, o acesso será liberado automaticamente.',
+  )
+  const actions = element('div', 'student-payment-actions')
+  const status = element('p', 'student-payment-status')
+  ;[
+    ['pix', 'Pagar com PIX'],
+    ['credit_card', 'Pagar com cartão de crédito'],
+  ].forEach(([method, label]) => {
+    const button = element('button', 'button button--primary', label)
+    button.type = 'button'
+    button.addEventListener('click', async () => {
+      button.disabled = true
+      status.textContent = 'Abrindo o pagamento seguro…'
+      try {
+        const result = await studentRequest('payments/checkout', { method })
+        location.href = result.checkoutUrl
+      } catch (error) {
+        status.textContent = error.message
+        button.disabled = false
+      }
+    })
+    actions.append(button)
+  })
+  payment.append(actions, status)
+  container.append(payment)
   ;['Ficha de treino', 'Exercícios', 'Avaliação física', 'Progresso', 'Check-in semanal'].forEach(
     (title) => {
       const card = article(title)
@@ -87,8 +116,22 @@ function renderPortal(container, data) {
   const workouts = article('Ficha de treino e exercícios')
   if (!data.workouts.length) addLine(workouts, 'Nenhuma ficha foi publicada pelo personal.')
   data.workouts.forEach((workout) => {
-    addLine(workouts, `${workout.name} · ${workout.goal} · ${workout.duration}`, true)
-    if (!workout.exercises.length) addLine(workouts, 'O personal ainda não adicionou exercícios.')
+    const workoutBlock = element('section', 'student-workout')
+    addLine(workoutBlock, `${workout.name} · ${workout.goal} · ${workout.duration}`, true)
+    const download = element('button', 'button button--secondary', 'Baixar ficha em PDF')
+    download.type = 'button'
+    download.addEventListener('click', () => downloadWorkoutPdf(workout, data.name))
+    workoutBlock.append(download)
+    if (!workout.exercises.length)
+      addLine(workoutBlock, 'O personal ainda não adicionou exercícios.')
+    if (!workout.exercises.length) {
+      const library = element(
+        'div',
+        'exercise-3d-pending',
+        'Biblioteca de animações 3D em preparação. Os exercícios aparecerão aqui quando forem cadastrados.',
+      )
+      workoutBlock.append(library)
+    }
     const list = element('ol')
     workout.exercises.forEach((exercise) => {
       const item = element('li')
@@ -105,10 +148,14 @@ function renderPortal(container, data) {
         media.target = '_blank'
         media.rel = 'noreferrer'
         item.append(media)
+      } else {
+        const pending3d = element('span', 'exercise-3d-pending', 'Animação 3D em preparação')
+        item.append(pending3d)
       }
       list.append(item)
     })
-    workouts.append(list)
+    workoutBlock.append(list)
+    workouts.append(workoutBlock)
   })
   container.append(workouts)
   if (data.access.features.includes('assessments')) {
@@ -158,6 +205,23 @@ function renderPortal(container, data) {
       )
     container.append(checkin)
   }
+  const unavailable = [
+    ['assessments', 'Avaliação física', 'Disponível a partir da Consultoria Básica.'],
+    ['progress', 'Progresso', 'Disponível a partir da Consultoria Básica.'],
+    ['checkins', 'Check-in semanal', 'Disponível nos planos Premium e Atleta.'],
+  ]
+  unavailable
+    .filter(([feature]) => !data.access.features.includes(feature))
+    .forEach(([, title, message]) => {
+      const locked = article(`🔒 ${title}`)
+      locked.classList.add('student-feature-locked')
+      addLine(locked, message)
+      addLine(
+        locked,
+        'O recurso permanece visível para você conhecer as opções de evolução do plano.',
+      )
+      container.append(locked)
+    })
 }
 function applyPlanFromHash() {
   const select = document.querySelector('[data-student-form="register"] [name="planCode"]')

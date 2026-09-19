@@ -31,7 +31,7 @@ export async function studentAuth(request, env, db, action) {
     if (!trainer)
       return { error: 'O cadastro ainda não foi habilitado pelo personal.', status: 503 }
     const planCode = PLAN_CODES.has(body.planCode) ? body.planCode : 'basic'
-    const paymentChannel = ['webapp', 'whatsapp', 'pix', 'card_whatsapp'].includes(
+    const paymentChannel = ['webapp', 'whatsapp', 'pix', 'credit_card'].includes(
       body.paymentChannel,
     )
       ? body.paymentChannel

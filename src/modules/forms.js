@@ -2,7 +2,7 @@ import { createId, getData, updateData } from './state.js'
 import { showToast } from './utils.js'
 import { persistRecord, syncRemoteData } from './api-client.js'
 
-const editing = { student: null, workout: null, exercise: null }
+const editing = { student: null, workout: null, exercise: null, appointment: null }
 const openModal = (name) => {
   const modal = document.querySelector(`[data-modal="${name}"]`)
   if (!modal.open) modal.showModal()
@@ -149,8 +149,38 @@ function handleAssessment(form) {
   saveAndRefresh('assessments', r)
   showToast(r.published ? 'Avaliação salva e publicada.' : 'Avaliação salva como rascunho.')
 }
+function handleAppointment(form) {
+  const start = new Date(`${value(form, 'date')}T${value(form, 'time')}:00`)
+  const duration = Number(value(form, 'duration')) || 60
+  const end = new Date(start.getTime() + duration * 60_000)
+  const record = {
+    student: value(form, 'student'),
+    startsAt: start.toISOString(),
+    endsAt: end.toISOString(),
+    service: value(form, 'service'),
+    location: value(form, 'location'),
+    notes: value(form, 'notes'),
+    status: value(form, 'status'),
+  }
+  updateData((d) => {
+    d.appointments ||= []
+    const old = d.appointments.find((item) => item.id === editing.appointment)
+    if (old) Object.assign(old, record)
+    else d.appointments.push({ id: createId('ap'), ...record })
+  })
+  showToast(editing.appointment ? 'Atendimento atualizado.' : 'Atendimento agendado.')
+  saveAndRefresh('appointments', record, editing.appointment)
+  editing.appointment = null
+}
 function fillForm(type, id) {
-  const collection = type === 'student' ? 'students' : type === 'workout' ? 'workouts' : 'exercises'
+  const collection =
+    type === 'student'
+      ? 'students'
+      : type === 'workout'
+        ? 'workouts'
+        : type === 'appointment'
+          ? 'appointments'
+          : 'exercises'
   const record = getData()[collection].find((item) => item.id === id)
   if (!record) return
   editing[type] = id
@@ -169,6 +199,13 @@ function fillForm(type, id) {
       })
     } else field.value = val ?? ''
   })
+  if (type === 'appointment') {
+    const start = new Date(record.startsAt)
+    const end = new Date(record.endsAt)
+    form.elements.date.value = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`
+    form.elements.time.value = `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`
+    form.elements.duration.value = String(Math.max(30, Math.round((end - start) / 60_000)))
+  }
   if (form.elements.published) form.elements.published.checked = Boolean(record.publishedAt)
   openModal(type)
 }
@@ -184,6 +221,7 @@ export function initForms() {
     workout: handleWorkout,
     exercise: handleExercise,
     assessment: handleAssessment,
+    appointment: handleAppointment,
   }
   document
     .querySelectorAll('[data-close-modal]')
@@ -205,4 +243,5 @@ export function initForms() {
   window.addEventListener('frs:edit-student', (e) => fillForm('student', e.detail))
   window.addEventListener('frs:edit-workout', (e) => fillForm('workout', e.detail))
   window.addEventListener('frs:edit-exercise', (e) => fillForm('exercise', e.detail))
+  window.addEventListener('frs:edit-appointment', (e) => fillForm('appointment', e.detail))
 }

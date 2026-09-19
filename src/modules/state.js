@@ -166,6 +166,7 @@ const initialData = {
       parq: 'Sim',
     },
   ],
+  appointments: [],
 }
 
 function loadData() {

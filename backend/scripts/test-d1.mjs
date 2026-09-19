@@ -17,6 +17,7 @@ for (const file of [
   '005_personal_password_recovery.sql',
   '006_integrated_student_portal.sql',
   '007_consulting_periods.sql',
+  '008_payments_appointments.sql',
 ]) {
   sqlite.exec(readFileSync(new URL(`../migrations-d1/${file}`, import.meta.url), 'utf8'))
 }
@@ -80,10 +81,18 @@ await withDb({ DB: binding }, async (db) => {
     fat: 18,
     waist: 85,
   })
+  const appointment = await createResource(db, 'appointments', trainer.id, {
+    student: 'Aluno',
+    startsAt: '2026-09-20T13:00:00.000Z',
+    endsAt: '2026-09-20T14:00:00.000Z',
+    service: 'Avaliação física',
+    status: 'scheduled',
+  })
   const data = await dashboard(db, trainer.id)
   assert.equal(data.students[0].workout, 'Treino A')
   assert.equal(data.assessments.length, 1)
   assert.equal(data.exercises.length, 1)
+  assert.equal(data.appointments.length, 1)
   assert.equal((await dashboard(db, other.id)).students.length, 0)
   assert.equal(
     await updateResource(db, 'students', other.id, student.id, {
@@ -102,6 +111,14 @@ await withDb({ DB: binding }, async (db) => {
   assert.equal((await dashboard(db, trainer.id)).workouts[0].name, 'Treino B')
   await deleteResource(db, 'workouts', trainer.id, workout.id)
   assert.equal((await dashboard(db, trainer.id)).workouts.length, 0)
+  await updateResource(db, 'appointments', trainer.id, appointment.id, {
+    student: 'Aluno',
+    startsAt: '2026-09-20T13:00:00.000Z',
+    endsAt: '2026-09-20T14:30:00.000Z',
+    service: 'Atendimento presencial',
+    status: 'completed',
+  })
+  assert.equal((await dashboard(db, trainer.id)).appointments[0].status, 'completed')
   const account = (
     await db.query(
       'INSERT INTO student_accounts (name,email,password_hash) VALUES ($1,$2,$3) RETURNING id',

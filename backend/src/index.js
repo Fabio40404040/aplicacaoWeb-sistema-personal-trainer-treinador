@@ -9,6 +9,7 @@ import { dashboard } from './routes/dashboard.js'
 import { createResource, deleteResource, listResource, updateResource } from './routes/resources.js'
 import { paymentWebhook, updateStudentAccess } from './routes/access.js'
 import { requestPlan, studentPortal, submitCheckin } from './routes/student-portal.js'
+import { createCheckout, mercadoPagoWebhook } from './routes/payments.js'
 
 async function handle(request, env) {
   const url = new URL(request.url)
@@ -17,6 +18,8 @@ async function handle(request, env) {
     .split('/')
     .filter(Boolean)
   const route = segments.join('/')
+  if (request.method === 'POST' && route === 'payments/mercadopago/webhook')
+    return withDb(env, (db) => mercadoPagoWebhook(request, env, db))
   if (request.method === 'POST' && route === 'payments/webhook')
     return withDb(env, (db) => paymentWebhook(request, env, db))
   if (request.method === 'POST' && ['student/auth/forgot', 'student/auth/reset'].includes(route))
@@ -41,6 +44,8 @@ async function handle(request, env) {
         return submitCheckin(db, session.sub, await readJson(request))
       if (request.method === 'POST' && route === 'student/plan-request')
         return requestPlan(db, session.sub, await readJson(request))
+      if (request.method === 'POST' && route === 'student/payments/checkout')
+        return createCheckout(db, session.sub, env, await readJson(request))
       return { error: 'Rota não encontrada.', status: 404 }
     })
   }

@@ -1381,8 +1381,11 @@
         >
           <div class="page-heading">
             <div>
-              <span class="eyebrow eyebrow--blue">Sexta-feira, 11 de setembro</span>
-              <h1>Bom dia, Fabio.</h1>
+              <span
+                class="eyebrow eyebrow--blue"
+                data-dashboard-date
+              ></span>
+              <h1 data-dashboard-greeting>Olá, Fabio.</h1>
               <p>Acompanhe o que está acontecendo com seus alunos hoje.</p>
             </div>
             <button
@@ -1400,7 +1403,11 @@
               </div>
               <div>
                 <span>Alunos ativos</span><strong data-stat-students>48</strong
-                ><small class="trend trend--up">↑ 12% <em>vs. mês anterior</em></small>
+                ><small
+                  class="trend"
+                  data-stat-students-detail
+                  >Dados atuais do sistema</small
+                >
               </div>
             </article>
             <article class="stat-card">
@@ -1409,7 +1416,11 @@
               </div>
               <div>
                 <span>Treinos ativos</span><strong data-stat-workouts>36</strong
-                ><small class="trend trend--up">↑ 8% <em>vs. mês anterior</em></small>
+                ><small
+                  class="trend"
+                  data-stat-workouts-detail
+                  >Fichas publicadas</small
+                >
               </div>
             </article>
             <article class="stat-card">
@@ -1417,8 +1428,12 @@
                 <svg><use href="#icon-clipboard"></use></svg>
               </div>
               <div>
-                <span>Avaliações pendentes</span><strong>07</strong
-                ><small class="trend trend--warn">3 <em>vencem esta semana</em></small>
+                <span>Avaliações pendentes</span><strong data-stat-assessments>0</strong
+                ><small
+                  class="trend trend--warn"
+                  data-stat-assessments-detail
+                  >Sem avaliação recente</small
+                >
               </div>
             </article>
             <article class="stat-card">
@@ -1426,8 +1441,12 @@
                 <svg><use href="#icon-chart"></use></svg>
               </div>
               <div>
-                <span>Evolução média</span><strong>+18%</strong
-                ><small class="trend trend--up">↑ 3,2% <em>nos últimos 30 dias</em></small>
+                <span>Evolução média</span><strong data-stat-evolution>—</strong
+                ><small
+                  class="trend"
+                  data-stat-evolution-detail
+                  >Aguardando reavaliações</small
+                >
               </div>
             </article>
           </div>
@@ -1436,11 +1455,14 @@
               <div class="panel-heading">
                 <div>
                   <h2>Evolução dos alunos</h2>
-                  <p>Média geral dos últimos 6 meses</p>
+                  <p data-dashboard-chart-subtitle>Aguardando avaliações suficientes</p>
                 </div>
-                <select aria-label="Métrica de evolução">
-                  <option>Ganho de performance</option>
-                  <option>Redução de gordura</option>
+                <select
+                  aria-label="Métrica de evolução"
+                  data-dashboard-chart-metric
+                >
+                  <option value="weight">Peso médio</option>
+                  <option value="fat">Gordura corporal média</option>
                 </select>
               </div>
               <div class="chart-wrap">
@@ -1476,14 +1498,19 @@
                   </defs>
                   <path
                     class="chart-area"
+                    data-dashboard-chart-area
                     d="M0 207 C70 196 90 175 145 179 S230 150 280 157 S370 119 420 128 S510 79 560 89 S650 48 700 32 L700 240 L0 240Z"
                   />
                   <path
                     class="chart-line"
+                    data-dashboard-chart-line
                     d="M0 207 C70 196 90 175 145 179 S230 150 280 157 S370 119 420 128 S510 79 560 89 S650 48 700 32"
                   />
                 </svg>
-                <div class="chart-x">
+                <div
+                  class="chart-x"
+                  data-dashboard-chart-months
+                >
                   <span>Abr</span><span>Mai</span><span>Jun</span><span>Jul</span><span>Ago</span
                   ><span>Set</span>
                 </div>
@@ -1492,40 +1519,21 @@
             <article class="panel schedule-panel">
               <div class="panel-heading">
                 <div>
-                  <h2>Agenda de hoje</h2>
-                  <p>5 atendimentos programados</p>
+                  <h2 data-schedule-title>Agenda de hoje</h2>
+                  <p data-schedule-summary>Nenhum atendimento programado</p>
                 </div>
                 <button
                   class="link-button"
                   type="button"
+                  data-open-modal="appointment"
                 >
-                  Ver agenda
+                  Novo atendimento
                 </button>
               </div>
-              <div class="schedule-list">
-                <div class="schedule-item is-current">
-                  <time>08:00</time><span class="avatar avatar--coral">MC</span>
-                  <div>
-                    <strong>Mariana Costa</strong><small>Treino de membros inferiores</small>
-                  </div>
-                  <span class="status status--now">Agora</span>
-                </div>
-                <div class="schedule-item">
-                  <time>10:30</time><span class="avatar avatar--blue">RL</span>
-                  <div><strong>Rafael Lima</strong><small>Avaliação física</small></div>
-                  <span class="status">Em breve</span>
-                </div>
-                <div class="schedule-item">
-                  <time>14:00</time><span class="avatar avatar--green">AS</span>
-                  <div>
-                    <strong>Ana Souza</strong><small>Musculação para condicionamento</small>
-                  </div>
-                </div>
-                <div class="schedule-item">
-                  <time>16:30</time><span class="avatar avatar--violet">GP</span>
-                  <div><strong>Gabriel Prado</strong><small>Treino de hipertrofia</small></div>
-                </div>
-              </div>
+              <div
+                class="schedule-list"
+                data-schedule-list
+              ></div>
             </article>
           </div>
           <article class="panel recent-panel">
@@ -1792,15 +1800,20 @@
               <dl>
                 <div>
                   <dt>Início</dt>
-                  <dd>12 abr. 2026</dd>
+                  <dd data-progress-start>—</dd>
                 </div>
                 <div>
                   <dt>Frequência</dt>
-                  <dd>4x por semana</dd>
+                  <dd data-progress-frequency>—</dd>
                 </div>
                 <div>
                   <dt>Aderência</dt>
-                  <dd class="positive">92%</dd>
+                  <dd
+                    class="positive"
+                    data-progress-adherence
+                  >
+                    —
+                  </dd>
                 </div>
               </dl>
             </article>
@@ -1810,39 +1823,53 @@
                   <h2>Evolução corporal</h2>
                   <p>Últimos seis registros</p>
                 </div>
-                <select aria-label="Indicador">
-                  <option>Peso (kg)</option>
-                  <option>Gordura corporal (%)</option>
+                <select
+                  aria-label="Indicador"
+                  data-progress-metric
+                >
+                  <option value="weightKg">Peso (kg)</option>
+                  <option value="bodyFatPercent">Gordura corporal (%)</option>
                 </select>
               </div>
-              <div class="weight-chart">
-                <div class="weight-bars">
-                  <i style="--value: 88%"><span>78,4</span></i
-                  ><i style="--value: 79%"><span>76,9</span></i
-                  ><i style="--value: 68%"><span>74,8</span></i
-                  ><i style="--value: 59%"><span>73,2</span></i
-                  ><i style="--value: 47%"><span>71,6</span></i
-                  ><i style="--value: 38%"><span>70,4</span></i>
-                </div>
-                <div class="chart-x">
-                  <span>Abr</span><span>Mai</span><span>Jun</span><span>Jul</span><span>Ago</span
-                  ><span>Set</span>
-                </div>
+              <div
+                class="weight-chart"
+                data-progress-chart
+              >
+                <div
+                  class="weight-bars"
+                  data-progress-bars
+                ></div>
+                <div
+                  class="chart-x"
+                  data-progress-months
+                ></div>
               </div>
             </article>
           </div>
           <div class="kpi-grid">
-            <article class="kpi-card">
-              <span>Peso</span><strong>−8,0 kg</strong><small>78,4 → 70,4 kg</small>
+            <article
+              class="kpi-card"
+              data-progress-kpi="weight"
+            >
+              <span>Peso</span><strong>—</strong><small>Aguardando reavaliação</small>
             </article>
-            <article class="kpi-card">
-              <span>Gordura corporal</span><strong>−5,2%</strong><small>29,8 → 24,6%</small>
+            <article
+              class="kpi-card"
+              data-progress-kpi="fat"
+            >
+              <span>Gordura corporal</span><strong>—</strong><small>Aguardando reavaliação</small>
             </article>
-            <article class="kpi-card">
-              <span>Cintura</span><strong>−9 cm</strong><small>86 → 77 cm</small>
+            <article
+              class="kpi-card"
+              data-progress-kpi="waist"
+            >
+              <span>Cintura</span><strong>—</strong><small>Aguardando reavaliação</small>
             </article>
-            <article class="kpi-card">
-              <span>Performance</span><strong>+24%</strong><small>carga média</small>
+            <article
+              class="kpi-card"
+              data-progress-kpi="performance"
+            >
+              <span>Aderência ao treino</span><strong>—</strong><small>Aguardando registros</small>
             </article>
           </div>
         </section>
