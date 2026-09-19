@@ -241,5 +241,12 @@ export function initStudentAccess() {
     location.hash = '#entrar-aluno'
   })
   window.addEventListener('hashchange', loadPanel)
+  window.addEventListener('focus', loadPanel)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) loadPanel()
+  })
+  window.setInterval(() => {
+    if (!document.hidden && location.hash.split('?')[0] === '#painel-aluno') loadPanel()
+  }, 30000)
   loadPanel()
 }

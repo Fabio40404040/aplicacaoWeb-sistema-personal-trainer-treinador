@@ -54,8 +54,11 @@ function renderStudents() {
       manage.type = 'button'
       manage.dataset.action = 'access'
       manage.title = 'Plano, pagamento e acesso'
-      manage.setAttribute('aria-label', 'Gerenciar plano e acesso')
-      manage.textContent = '✓'
+      manage.setAttribute(
+        'aria-label',
+        student.accessStatus === 'active' ? 'Gerenciar plano e acesso' : 'Liberar acesso do aluno',
+      )
+      manage.textContent = student.accessStatus === 'active' ? '✓' : '🔓'
       row.querySelector('.row-actions').prepend(manage)
       return row
     }),

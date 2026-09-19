@@ -327,6 +327,35 @@ function renderOperations() {
   }
   pending.slice(0, 6).forEach((student) => {
     const item = document.createElement('p')
+    const release = document.createElement('button')
+    release.className = 'link-button'
+    release.type = 'button'
+    release.textContent = 'Confirmar pagamento e liberar'
+    release.addEventListener('click', async () => {
+      if (
+        !window.confirm(
+          `Confirma que o pagamento de ${student.name} foi recebido e deseja liberar o acesso?`,
+        )
+      )
+        return
+      release.disabled = true
+      release.textContent = 'Liberando…'
+      try {
+        await updateStudentAccess(student.id, {
+          planCode: student.planCode || 'basic',
+          billingCycle: student.billingCycle || 'quarterly',
+          accessStatus: 'active',
+          paymentStatus: 'paid',
+          paymentMethod: student.paymentMethod || 'manual',
+        })
+        showToast('Pagamento confirmado. O conteúdo já está liberado para o aluno.')
+        window.dispatchEvent(new Event('frs:remote-refresh'))
+      } catch (error) {
+        showToast(error.message)
+        release.disabled = false
+        release.textContent = 'Confirmar pagamento e liberar'
+      }
+    })
     const button = document.createElement('button')
     button.className = 'link-button'
     button.type = 'button'
@@ -338,6 +367,8 @@ function renderOperations() {
       document.createTextNode(
         `${student.name} · ${student.planCode || 'basic'} · ${billingCycleLabels[student.billingCycle] || 'período não definido'} · pagamento pendente · `,
       ),
+      release,
+      document.createTextNode(' · '),
       button,
     )
     content.append(item)
