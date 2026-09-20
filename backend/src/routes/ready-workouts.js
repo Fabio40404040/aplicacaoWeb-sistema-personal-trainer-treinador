@@ -102,6 +102,18 @@ export async function deleteReadyWorkout(env, db, trainerId, id) {
   return null
 }
 
+export async function updateReadyWorkout(db, trainerId, id, body) {
+  const published = body?.published === true || body?.published === 1 ? 1 : 0
+  const row = (
+    await db.query(
+      `UPDATE ready_workout_pdfs SET published=$3,updated_at=CURRENT_TIMESTAMP
+       WHERE id=$1 AND trainer_id=$2 RETURNING ${selectFields}`,
+      [id, trainerId, published],
+    )
+  ).rows[0]
+  return row || { error: 'PDF não encontrado.', status: 404 }
+}
+
 export async function trainerReadyWorkoutFile(env, db, trainerId, id) {
   if (!env.MEDIA) return storageUnavailable()
   const row = (

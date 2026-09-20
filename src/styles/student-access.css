@@ -145,7 +145,7 @@
 .password-eye-slash {
   display: none;
 }
-.password-toggle[aria-pressed='true'] .password-eye-slash {
+.password-toggle[aria-pressed="true"] .password-eye-slash {
   display: block;
 }
 .password-toggle:focus-visible {
@@ -210,7 +210,7 @@
 .student-access-card .field > span {
   color: #eef4ff;
 }
-.student-access-card [role='status']:empty {
+.student-access-card [role="status"]:empty {
   display: none;
 }
 .student-access-card--panel {
@@ -282,6 +282,23 @@
   margin-top: 10px;
   border-radius: 10px;
   background: #09111d;
+}
+.student-prescription-media {
+  display: grid;
+  justify-items: start;
+  gap: 9px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #40546e;
+  border-radius: 12px;
+  background: #18283b;
+}
+.student-prescription-media > strong {
+  color: #dce9f8;
+  font-size: 0.9rem;
+}
+.student-prescription-media .student-exercise-video {
+  margin-top: 0;
 }
 .student-video-library-grid {
   display: grid;

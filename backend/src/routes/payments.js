@@ -100,7 +100,9 @@ export async function createCheckout(db, accountId, env, body) {
         payer: { name: row.name, email: row.email },
         payment_methods: checkoutSettings(method),
         external_reference: intentId,
-        notification_url: `${apiUrl}/api/payments/mercadopago/webhook`,
+        ...(env.MERCADO_PAGO_WEBHOOK_SECRET
+          ? { notification_url: `${apiUrl}/api/payments/mercadopago/webhook` }
+          : {}),
         back_urls: {
           success: `${siteUrl}/?payment=success#painel-aluno`,
           pending: `${siteUrl}/?payment=pending#painel-aluno`,
@@ -206,7 +208,9 @@ export async function createCardPayment(db, accountId, env, body) {
           identification: { type: identificationType, number: identificationNumber },
         },
         external_reference: intentId,
-        notification_url: `${apiUrl}/api/payments/mercadopago/webhook`,
+        ...(env.MERCADO_PAGO_WEBHOOK_SECRET
+          ? { notification_url: `${apiUrl}/api/payments/mercadopago/webhook` }
+          : {}),
         statement_descriptor: 'FRS PERSONAL',
         metadata: { intent_id: intentId, student_id: row.studentId, plan_code: row.planCode },
       }),

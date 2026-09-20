@@ -8,7 +8,13 @@ const configs = {
       RETURNING id,name,email,goal,status,assessment_date AS "assessmentDate"`,
     update: `UPDATE students SET name=$3,email=$4,goal=$5,status=$6,assessment_date=$7,updated_at=CURRENT_TIMESTAMP
       WHERE id=$2 AND trainer_id=$1 RETURNING id`,
-    values: (b) => [b.name, b.email, b.goal, b.status || 'Ativo', b.assessmentDate || null],
+    values: (b) => [
+      b.name,
+      b.email,
+      b.goal,
+      b.status || "Ativo",
+      b.assessmentDate || null,
+    ],
   },
   exercises: {
     select: `SELECT id,name,muscle_group AS "group",equipment,instructions,difficulty,media_type AS "mediaType",
@@ -24,8 +30,8 @@ const configs = {
       b.group,
       b.equipment,
       b.instructions || null,
-      b.difficulty || 'Intermediário',
-      b.mediaType || '3d',
+      b.difficulty || "Intermediário",
+      b.mediaType || "3d",
       b.mediaUrl || null,
       b.thumbnailUrl || null,
       b.animationClip || null,
@@ -46,10 +52,10 @@ const configs = {
     values: (b) => {
       const h = Number(b.height) / 100,
         hip = Number(b.hip),
-        waist = Number(b.waist)
+        waist = Number(b.waist);
       return [
         b.student,
-        b.protocol || 'Inicial',
+        b.protocol || "Inicial",
         b.weight,
         b.height,
         h ? (Number(b.weight) / h ** 2).toFixed(1) : null,
@@ -70,7 +76,7 @@ const configs = {
         b.sitAndReach || null,
         b.notes || null,
         b.published ? 1 : 0,
-      ]
+      ];
     },
     updateValues: (b) => [
       b.weight,
@@ -98,50 +104,86 @@ const configs = {
       b.service,
       b.location || null,
       b.notes || null,
-      ['scheduled', 'completed', 'cancelled'].includes(b.status) ? b.status : 'scheduled',
+      ["scheduled", "completed", "cancelled"].includes(b.status)
+        ? b.status
+        : "scheduled",
     ],
   },
-}
+};
 
 async function saveWorkoutExercises(db, trainerId, workoutId, body) {
-  const ids = Array.isArray(body.exerciseIds) ? [...new Set(body.exerciseIds.filter(Boolean))] : []
+  const prescriptions = Array.isArray(body.exercisePrescriptions)
+    ? body.exercisePrescriptions
+        .filter((item) => item && item.exerciseId)
+        .filter(
+          (item, index, items) =>
+            items.findIndex(
+              (candidate) => candidate.exerciseId === item.exerciseId,
+            ) === index,
+        )
+    : (Array.isArray(body.exerciseIds)
+        ? [...new Set(body.exerciseIds.filter(Boolean))]
+        : []
+      ).map((exerciseId) => ({
+        exerciseId,
+        sets: body.sets,
+        repetitions: body.repetitions,
+        restSeconds: body.restSeconds,
+        notes: body.exerciseNotes,
+      }));
   const queries = [
-    { sql: 'DELETE FROM workout_exercises WHERE workout_id=$1', values: [workoutId] },
-  ]
-  ids.forEach((exerciseId, index) =>
+    {
+      sql: "DELETE FROM workout_exercises WHERE workout_id=$1",
+      values: [workoutId],
+    },
+  ];
+  prescriptions.forEach((prescription, index) =>
     queries.push({
-      sql: `INSERT INTO workout_exercises (workout_id,exercise_id,position,sets,repetitions,rest_seconds,notes)
-      SELECT $1,id,$2,$3,$4,$5,$6 FROM exercises WHERE id=$7 AND trainer_id=$8`,
+      sql: `INSERT INTO workout_exercises (workout_id,exercise_id,position,sets,repetitions,rest_seconds,notes,session_label)
+      SELECT $1,id,$2,$3,$4,$5,$6,$7 FROM exercises WHERE id=$8 AND trainer_id=$9`,
       values: [
         workoutId,
         index + 1,
-        Number(body.sets) || 3,
-        body.repetitions || '10',
-        Number(body.restSeconds) || 60,
-        body.exerciseNotes || null,
-        exerciseId,
+        Math.max(1, Math.min(20, Number(prescription.sets) || 3)),
+        String(prescription.repetitions || "10").slice(0, 40),
+        Math.max(0, Math.min(1800, Number(prescription.restSeconds) || 0)),
+        String(prescription.notes || "")
+          .trim()
+          .slice(0, 500) || null,
+        /^[A-Z]$/u.test(String(prescription.sessionLabel || "").toUpperCase())
+          ? String(prescription.sessionLabel).toUpperCase()
+          : "A",
+        prescription.exerciseId,
         trainerId,
       ],
     }),
-  )
-  await db.batch(queries)
+  );
+  await db.batch(queries);
 }
 
 export async function listResource(db, resource, trainerId) {
-  if (resource === 'workouts')
+  if (resource === "workouts")
     return (
       await db.query(
         `SELECT w.id,w.name,s.name AS student,w.goal,w.duration,w.progress,w.published_at AS "publishedAt",
-    w.permanent_access AS "permanentAccess" FROM workouts w JOIN students s ON s.id=w.student_id WHERE w.trainer_id=$1 ORDER BY w.created_at DESC`,
+    w.permanent_access AS "permanentAccess",
+    COALESCE((SELECT json_group_array(json_object(
+      'exerciseId',e.id,'name',e.name,'group',e.muscle_group,'equipment',e.equipment,
+      'instructions',e.instructions,'difficulty',e.difficulty,'position',we.position,
+      'sets',we.sets,'repetitions',we.repetitions,'restSeconds',we.rest_seconds,'notes',we.notes,
+      'sessionLabel',we.session_label
+    )) FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id
+    WHERE we.workout_id=w.id ORDER BY we.position),'[]') AS "exercisePrescriptionsJson"
+    FROM workouts w JOIN students s ON s.id=w.student_id WHERE w.trainer_id=$1 ORDER BY w.created_at DESC`,
         [trainerId],
       )
-    ).rows
-  const config = configs[resource]
-  return config ? (await db.query(config.select, [trainerId])).rows : null
+    ).rows;
+  const config = configs[resource];
+  return config ? (await db.query(config.select, [trainerId])).rows : null;
 }
 
 export async function createResource(db, resource, trainerId, body) {
-  if (resource === 'workouts') {
+  if (resource === "workouts") {
     const row = (
       await db.query(
         `INSERT INTO workouts (trainer_id,student_id,name,goal,duration,published_at,permanent_access)
@@ -157,18 +199,19 @@ export async function createResource(db, resource, trainerId, body) {
           body.permanentAccess ? 1 : 0,
         ],
       )
-    ).rows[0]
-    if (row) await saveWorkoutExercises(db, trainerId, row.id, body)
-    return row
+    ).rows[0];
+    if (row) await saveWorkoutExercises(db, trainerId, row.id, body);
+    return row;
   }
-  const config = configs[resource]
+  const config = configs[resource];
   return config
-    ? (await db.query(config.insert, [trainerId, ...config.values(body)])).rows[0]
-    : null
+    ? (await db.query(config.insert, [trainerId, ...config.values(body)]))
+        .rows[0]
+    : null;
 }
 
 export async function updateResource(db, resource, trainerId, id, body) {
-  if (resource === 'workouts') {
+  if (resource === "workouts") {
     const row = (
       await db.query(
         `UPDATE workouts SET student_id=(SELECT id FROM students WHERE trainer_id=$1 AND name=$3 LIMIT 1),
@@ -185,13 +228,13 @@ export async function updateResource(db, resource, trainerId, id, body) {
           body.permanentAccess ? 1 : 0,
         ],
       )
-    ).rows[0]
-    if (row) await saveWorkoutExercises(db, trainerId, id, body)
-    return row
+    ).rows[0];
+    if (row) await saveWorkoutExercises(db, trainerId, id, body);
+    return row;
   }
-  const config = configs[resource]
-  if (resource === 'students') {
-    const values = [trainerId, id, ...config.values(body)]
+  const config = configs[resource];
+  if (resource === "students") {
+    const values = [trainerId, id, ...config.values(body)];
     const [studentResult] = await db.batch([
       { sql: config.update, values },
       {
@@ -199,8 +242,8 @@ export async function updateResource(db, resource, trainerId, id, body) {
           WHERE id=(SELECT account_id FROM students WHERE id=$2 AND trainer_id=$1)`,
         values: [trainerId, id, body.name, body.email],
       },
-    ])
-    return studentResult.rows[0] || null
+    ]);
+    return studentResult.rows[0] || null;
   }
   return config
     ? (
@@ -210,21 +253,27 @@ export async function updateResource(db, resource, trainerId, id, body) {
           ...(config.updateValues?.(body) || config.values(body)),
         ])
       ).rows[0]
-    : null
+    : null;
 }
 
 export async function deleteResource(db, resource, trainerId, id) {
-  if (!configs[resource] && resource !== 'workouts') return null
-  if (resource === 'students') {
+  if (!configs[resource] && resource !== "workouts") return null;
+  if (resource === "students") {
     const [, deleted] = await db.batch([
       {
         sql: `DELETE FROM student_accounts
           WHERE id=(SELECT account_id FROM students WHERE id=$1 AND trainer_id=$2)`,
         values: [id, trainerId],
       },
-      { sql: 'DELETE FROM students WHERE id=$1 AND trainer_id=$2 RETURNING id', values: [id, trainerId] },
-    ])
-    return deleted.rows[0] || null
+      {
+        sql: "DELETE FROM students WHERE id=$1 AND trainer_id=$2 RETURNING id",
+        values: [id, trainerId],
+      },
+    ]);
+    return deleted.rows[0] || null;
   }
-  return db.query(`DELETE FROM ${resource} WHERE id=$1 AND trainer_id=$2`, [id, trainerId])
+  return db.query(`DELETE FROM ${resource} WHERE id=$1 AND trainer_id=$2`, [
+    id,
+    trainerId,
+  ]);
 }
