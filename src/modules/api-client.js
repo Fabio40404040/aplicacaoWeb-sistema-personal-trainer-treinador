@@ -5,27 +5,29 @@ const TOKEN_KEY = 'frs-coach-api-token'
 
 async function request(path, options = {}) {
   const token = sessionStorage.getItem(TOKEN_KEY)
+  const { timeoutMs = 12000, ...fetchOptions } = options
   const controller = new AbortController()
   const cancelRequest = () => controller.abort()
-  const timeoutId = setTimeout(cancelRequest, 12000)
-  if (options.signal?.aborted) cancelRequest()
-  else options.signal?.addEventListener('abort', cancelRequest, { once: true })
+  const timeoutId = setTimeout(cancelRequest, timeoutMs)
+  if (fetchOptions.signal?.aborted) cancelRequest()
+  else fetchOptions.signal?.addEventListener('abort', cancelRequest, { once: true })
   let response
   try {
+    const isFormData = fetchOptions.body instanceof FormData
     response = await fetch(`${API_URL}/api${path}`, {
-      ...options,
+      ...fetchOptions,
       signal: controller.signal,
       headers: {
-        'Content-Type': 'application/json',
+        ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...options.headers,
+        ...fetchOptions.headers,
       },
     })
   } catch {
     throw new Error('Não foi possível conectar ao serviço de contas. Tente novamente mais tarde.')
   } finally {
     clearTimeout(timeoutId)
-    options.signal?.removeEventListener('abort', cancelRequest)
+    fetchOptions.signal?.removeEventListener('abort', cancelRequest)
   }
   if (response.status === 204) return null
   let result
@@ -63,6 +65,49 @@ export function removeRecord(collection, id) {
 }
 export function updateStudentAccess(id, data) {
   return request(`/students/${id}/access`, { method: 'PUT', body: JSON.stringify(data) })
+}
+export function uploadReadyWorkout(formData) {
+  return request('/ready-workouts', { method: 'POST', body: formData })
+}
+export function deleteReadyWorkout(id) {
+  return request(`/ready-workouts/${id}`, { method: 'DELETE' })
+}
+export async function downloadReadyWorkout(id, filename) {
+  const token = sessionStorage.getItem(TOKEN_KEY)
+  const response = await fetch(`${API_URL}/api/ready-workouts/${id}/file`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!response.ok) {
+    const result = await response.json().catch(() => null)
+    throw new Error(result?.error || 'Não foi possível baixar o PDF.')
+  }
+  const url = URL.createObjectURL(await response.blob())
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename || 'treino-pronto.pdf'
+  link.click()
+  window.setTimeout(() => URL.revokeObjectURL(url), 30_000)
+}
+export function uploadExerciseVideo(formData) {
+  return request('/exercise-videos', {
+    method: 'POST',
+    body: formData,
+    timeoutMs: 180000,
+  })
+}
+export function deleteExerciseVideo(id) {
+  return request(`/exercise-videos/${id}`, { method: 'DELETE' })
+}
+export async function loadExerciseVideo(id) {
+  const token = sessionStorage.getItem(TOKEN_KEY)
+  const response = await fetch(`${API_URL}/api/exercise-videos/${id}/file`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!response.ok) {
+    const result = await response.json().catch(() => null)
+    throw new Error(result?.error || 'Não foi possível carregar o vídeo.')
+  }
+  return URL.createObjectURL(await response.blob())
 }
 export async function syncRemoteData() {
   if (!sessionStorage.getItem(TOKEN_KEY)) return

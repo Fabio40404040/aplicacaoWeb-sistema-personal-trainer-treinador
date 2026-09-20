@@ -3,8 +3,6 @@ import { openSecureCardForm } from './mercado-pago-card.js'
 import {
   findExerciseVideo,
   muscleGroups,
-  publishedExerciseVideos,
-  publishedReadyWorkouts,
   videosByMuscleGroup,
 } from '../data/library.js'
 
@@ -33,6 +31,33 @@ async function studentRequest(path, data) {
   }
   if (!response.ok) throw new Error(result?.error || 'Não foi possível acessar sua conta.')
   return result
+}
+async function downloadStudentReadyWorkout(id, filename) {
+  const token = sessionStorage.getItem(TOKEN_KEY)
+  const response = await fetch(`${API_URL}/api/student/ready-workouts/${id}/file`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!response.ok) {
+    const result = await response.json().catch(() => null)
+    throw new Error(result?.error || 'Não foi possível baixar o PDF.')
+  }
+  const url = URL.createObjectURL(await response.blob())
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename || 'treino-pronto.pdf'
+  link.click()
+  window.setTimeout(() => URL.revokeObjectURL(url), 30_000)
+}
+async function loadStudentExerciseVideo(id) {
+  const token = sessionStorage.getItem(TOKEN_KEY)
+  const response = await fetch(`${API_URL}/api/student/exercise-videos/${id}/file`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!response.ok) {
+    const result = await response.json().catch(() => null)
+    throw new Error(result?.error || 'Não foi possível carregar o vídeo.')
+  }
+  return URL.createObjectURL(await response.blob())
 }
 const element = (tag, className, text) => {
   const node = document.createElement(tag)
@@ -142,7 +167,7 @@ function appendExerciseGroups(parent, exercises) {
 function renderReadyWorkoutLibrary(container, data) {
   if (data.access.planCode !== 'ready') return
   const card = article('Biblioteca de Treinos Prontos em PDF')
-  const workouts = publishedReadyWorkouts()
+  const workouts = data.readyWorkouts || []
   if (!workouts.length) {
     addLine(card, 'Os novos treinos em PDF aparecerão aqui assim que forem publicados.')
   }
@@ -151,21 +176,31 @@ function renderReadyWorkoutLibrary(container, data) {
     addLine(block, workout.name, true)
     addLine(
       block,
-      `${workout.goal} · ${workout.level} · ${workout.duration} · ${workout.muscleGroups.join(', ')}`,
+      `${workout.goal} · ${workout.level} · ${workout.duration} · ${workout.muscleGroups}`,
     )
     if (workout.description) addLine(block, workout.description)
-    const open = element('a', 'button button--secondary', 'Abrir ou baixar PDF')
-    open.href = workout.pdfUrl
-    open.target = '_blank'
-    open.rel = 'noreferrer'
+    const open = element('button', 'button button--secondary', 'Baixar PDF')
+    open.type = 'button'
+    open.addEventListener('click', async () => {
+      open.disabled = true
+      open.textContent = 'Preparando PDF…'
+      try {
+        await downloadStudentReadyWorkout(workout.id, workout.originalFilename)
+        open.textContent = 'Baixar PDF'
+      } catch (error) {
+        open.textContent = error.message
+      } finally {
+        open.disabled = false
+      }
+    })
     block.append(open)
     card.append(block)
   })
   container.append(card)
 }
 
-function renderExerciseVideoLibrary(container) {
-  const videos = publishedExerciseVideos()
+function renderExerciseVideoLibrary(container, data) {
+  const videos = data.exerciseVideos || []
   const card = article('Biblioteca de exercícios em vídeo')
   if (!videos.length) {
     addLine(card, 'Os vídeos MP4 aparecerão aqui, separados por grupo muscular.')
@@ -180,15 +215,31 @@ function renderExerciseVideoLibrary(container) {
       const grid = element('div', 'student-video-library-grid')
       group.exercises.forEach((exercise) => {
         const item = element('article', 'student-video-card')
-        const video = element('video', 'student-exercise-video')
-        video.controls = true
-        video.preload = 'metadata'
-        video.playsInline = true
-        video.src = exercise.videoUrl
-        if (exercise.posterUrl) video.poster = exercise.posterUrl
-        item.append(video, element('strong', '', exercise.name))
-        addLine(item, `${exercise.equipment} · ${exercise.difficulty}`)
+        item.append(element('strong', '', exercise.name))
+        addLine(item, `${exercise.equipment || 'Sem equipamento'} · ${exercise.difficulty}`)
         if (exercise.instructions) addLine(item, exercise.instructions)
+        const load = element('button', 'button button--secondary', 'Carregar vídeo')
+        load.type = 'button'
+        load.addEventListener('click', async () => {
+          load.disabled = true
+          load.textContent = 'Carregando…'
+          try {
+            const video = element('video', 'student-exercise-video')
+            video.controls = true
+            video.preload = 'metadata'
+            video.playsInline = true
+            video.src = await loadStudentExerciseVideo(exercise.id)
+            video.addEventListener('loadedmetadata', () => video.play().catch(() => {}), {
+              once: true,
+            })
+            item.prepend(video)
+            load.remove()
+          } catch (error) {
+            load.disabled = false
+            load.textContent = error.message
+          }
+        })
+        item.append(load)
         grid.append(item)
       })
       section.append(grid)
@@ -232,7 +283,7 @@ function renderPortal(container, data) {
     workouts.append(workoutBlock)
   })
   container.append(workouts)
-  renderExerciseVideoLibrary(container)
+  renderExerciseVideoLibrary(container, data)
   if (data.access.features.includes('assessments')) {
     const assessmentCard = article('Avaliação física')
     if (!data.assessments.length) addLine(assessmentCard, 'Nenhuma avaliação foi publicada.')

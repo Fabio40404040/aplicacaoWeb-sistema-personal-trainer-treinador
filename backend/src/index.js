@@ -16,6 +16,18 @@ import {
   mercadoPagoWebhook,
   reconcileStudentPayments,
 } from './routes/payments.js'
+import {
+  deleteReadyWorkout,
+  studentReadyWorkoutFile,
+  trainerReadyWorkoutFile,
+  uploadReadyWorkout,
+} from './routes/ready-workouts.js'
+import {
+  deleteExerciseVideo,
+  studentExerciseVideoFile,
+  trainerExerciseVideoFile,
+  uploadExerciseVideo,
+} from './routes/exercise-videos.js'
 
 async function handle(request, env) {
   const url = new URL(request.url)
@@ -57,6 +69,18 @@ async function handle(request, env) {
         return cardPaymentConfig(db, session.sub, env)
       if (request.method === 'POST' && route === 'student/payments/card')
         return createCardPayment(db, session.sub, env, await readJson(request))
+      if (
+        request.method === 'GET' &&
+        segments[1] === 'ready-workouts' &&
+        segments[3] === 'file'
+      )
+        return studentReadyWorkoutFile(env, db, session.sub, segments[2])
+      if (
+        request.method === 'GET' &&
+        segments[1] === 'exercise-videos' &&
+        segments[3] === 'file'
+      )
+        return studentExerciseVideoFile(env, db, session.sub, segments[2])
       return { error: 'Rota não encontrada.', status: 404 }
     })
   }
@@ -73,6 +97,34 @@ async function handle(request, env) {
       return { data: await dashboard(db, session.sub) }
     if (request.method === 'PUT' && segments[0] === 'students' && segments[2] === 'access')
       return updateStudentAccess(db, session.sub, segments[1], await readJson(request))
+    if (request.method === 'POST' && route === 'ready-workouts') {
+      const result = await uploadReadyWorkout(request, env, db, session.sub)
+      return result?.error ? result : { data: result, status: 201 }
+    }
+    if (request.method === 'DELETE' && segments[0] === 'ready-workouts' && segments[1]) {
+      const result = await deleteReadyWorkout(env, db, session.sub, segments[1])
+      return result?.error ? result : { data: null, status: 204 }
+    }
+    if (
+      request.method === 'GET' &&
+      segments[0] === 'ready-workouts' &&
+      segments[2] === 'file'
+    )
+      return trainerReadyWorkoutFile(env, db, session.sub, segments[1])
+    if (request.method === 'POST' && route === 'exercise-videos') {
+      const result = await uploadExerciseVideo(request, env, db, session.sub)
+      return result?.error ? result : { data: result, status: 201 }
+    }
+    if (request.method === 'DELETE' && segments[0] === 'exercise-videos' && segments[1]) {
+      const result = await deleteExerciseVideo(env, db, session.sub, segments[1])
+      return result?.error ? result : { data: null, status: 204 }
+    }
+    if (
+      request.method === 'GET' &&
+      segments[0] === 'exercise-videos' &&
+      segments[2] === 'file'
+    )
+      return trainerExerciseVideoFile(env, db, session.sub, segments[1])
     const [resource, id] = segments
     if (request.method === 'GET' && !id)
       return { data: await listResource(db, resource, session.sub) }
@@ -97,6 +149,11 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
     try {
       const result = await handle(request, env)
+      if (result instanceof Response) {
+        const headers = new Headers(result.headers)
+        Object.entries(cors).forEach(([name, value]) => headers.set(name, value))
+        return new Response(result.body, { status: result.status, headers })
+      }
       if (result?.error) return json({ error: result.error }, result.status || 400, cors)
       return json(result?.data ?? null, result?.status || 200, cors)
     } catch (error) {

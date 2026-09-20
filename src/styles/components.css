@@ -938,6 +938,32 @@ td {
   overflow-wrap: anywhere;
   color: var(--blue-700);
 }
+.media-upload-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fafbfc;
+}
+.media-upload-form > .button {
+  justify-self: start;
+}
+.media-upload-form > small {
+  color: var(--ink-500);
+}
+.media-upload-form [role='status']:not(:empty) {
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--red-600);
+  background: var(--red-100);
+}
+.media-library-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .media-library-grid,
 .video-library-grid {
   display: grid;

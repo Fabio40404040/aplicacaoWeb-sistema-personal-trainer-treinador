@@ -1,10 +1,5 @@
 // Biblioteca de conteúdo da FRS Personal.
 //
-// COMO ADICIONAR UM PDF
-// 1. Coloque o arquivo em: public/library/workouts/pdfs/
-// 2. Copie um objeto de readyWorkoutLibrary e altere os dados.
-// 3. Use published: true quando quiser liberar o PDF aos alunos de Treinos Prontos.
-//
 // COMO ADICIONAR UM VÍDEO MP4
 // 1. Coloque o arquivo na pasta do grupo em: public/library/exercises/videos/
 // 2. Copie um objeto de exerciseVideoLibrary e altere os dados.
@@ -28,32 +23,6 @@ export const muscleGroups = [
   { id: 'mobilidade', name: 'Mobilidade e aquecimento' },
 ]
 
-export const readyWorkoutLibrary = [
-  {
-    id: 'demonstracao-peito-completo',
-    name: 'Demonstração — Peito completo',
-    goal: 'Hipertrofia',
-    level: 'Intermediário',
-    duration: 'Treino demonstrativo',
-    muscleGroups: ['Peitoral', 'Tríceps', 'Ombros'],
-    pdfUrl: '/library/workouts/pdfs/ficha-demonstrativa-peito-completo.pdf',
-    description: 'Arquivo de demonstração. Troque published para true quando quiser liberá-lo.',
-    published: false,
-  },
-  // MODELO PARA COPIAR:
-  // {
-  //   id: 'pernas-completo-iniciante',
-  //   name: 'Pernas completo — iniciante',
-  //   goal: 'Hipertrofia',
-  //   level: 'Iniciante',
-  //   duration: '8 semanas',
-  //   muscleGroups: ['Quadríceps', 'Posteriores de coxa', 'Glúteos', 'Panturrilhas'],
-  //   pdfUrl: '/library/workouts/pdfs/pernas-completo-iniciante.pdf',
-  //   description: 'Programa completo para membros inferiores.',
-  //   published: true,
-  // },
-]
-
 export const exerciseVideoLibrary = [
   // MODELO PARA COPIAR:
   // {
@@ -68,10 +37,6 @@ export const exerciseVideoLibrary = [
   //   published: true,
   // },
 ]
-
-export function publishedReadyWorkouts() {
-  return readyWorkoutLibrary.filter((item) => item.published)
-}
 
 export function publishedExerciseVideos() {
   return exerciseVideoLibrary.filter((item) => item.published)

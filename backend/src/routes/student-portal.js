@@ -26,7 +26,7 @@ export async function studentPortal(db, accountId, version) {
   const account = (
     await db.query(
       `SELECT a.id, a.name, a.email, a.auth_version AS "authVersion",
-        s.id AS "studentId", s.goal, s.status,
+        s.id AS "studentId", s.trainer_id AS "trainerId", s.goal, s.status,
         s.access_status AS "accessStatus", s.plan_code AS "planCode",
         s.access_type AS "accessType", s.billing_cycle AS "billingCycle", s.access_expires_at AS "accessExpiresAt",
         s.payment_status AS "paymentStatus", s.payment_method AS "paymentMethod",
@@ -60,10 +60,34 @@ export async function studentPortal(db, accountId, version) {
       features,
     },
     workouts: [],
+    readyWorkouts: [],
+    exerciseVideos: [],
     assessments: [],
     checkins: [],
   }
   if (!accessActive || !account.studentId) return response
+
+  if (account.planCode === 'ready') {
+    response.readyWorkouts = (
+      await db.query(
+        `SELECT id,name,goal,level,duration,muscle_groups AS "muscleGroups",description,
+         original_filename AS "originalFilename",size_bytes AS "sizeBytes",created_at AS "createdAt"
+         FROM ready_workout_pdfs WHERE trainer_id=$1 AND published=1 ORDER BY created_at DESC`,
+        [account.trainerId],
+      )
+    ).rows
+  }
+
+  if (features.includes('exercises')) {
+    response.exerciseVideos = (
+      await db.query(
+        `SELECT id,name,muscle_group AS "group",equipment,difficulty,instructions,
+         original_filename AS "originalFilename",size_bytes AS "sizeBytes",created_at AS "createdAt"
+         FROM exercise_videos WHERE trainer_id=$1 AND published=1 ORDER BY muscle_group,name`,
+        [account.trainerId],
+      )
+    ).rows
+  }
 
   if (features.includes('workouts')) {
     const workouts = await db.query(

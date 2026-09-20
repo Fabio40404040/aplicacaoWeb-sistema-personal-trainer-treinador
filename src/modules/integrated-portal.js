@@ -1,10 +1,17 @@
-import { updateStudentAccess } from './api-client.js'
+import {
+  deleteExerciseVideo,
+  deleteReadyWorkout,
+  downloadReadyWorkout,
+  loadExerciseVideo,
+  updateStudentAccess,
+  uploadExerciseVideo,
+  uploadReadyWorkout,
+} from './api-client.js'
 import { getData } from './state.js'
 import { exerciseCatalog } from '../data/exercises.js'
 import {
   exerciseVideoLibrary,
   muscleGroups,
-  readyWorkoutLibrary,
   videosByMuscleGroup,
 } from '../data/library.js'
 import { showToast } from './utils.js'
@@ -308,33 +315,97 @@ function createReadyWorkoutLibraryPanel() {
   const panel = document.createElement('article')
   panel.className = 'panel media-library-panel'
   panel.dataset.readyWorkoutLibrary = ''
-  panel.innerHTML = `<div class="panel-heading"><div><span class="eyebrow eyebrow--blue">Biblioteca de PDFs</span><h2>Treinos Prontos</h2><p>Adicione os arquivos em <code>public/library/workouts/pdfs</code> e edite <code>src/data/library.js</code>.</p></div></div>`
-  const grid = document.createElement('div')
-  grid.className = 'media-library-grid'
-  readyWorkoutLibrary.forEach((workout) => {
+  panel.innerHTML = `<div class="panel-heading"><div><span class="eyebrow eyebrow--blue">Biblioteca de PDFs</span><h2>Treinos Prontos</h2><p>Envie e publique os PDFs diretamente pelo painel.</p></div></div><form class="media-upload-form" data-ready-workout-upload><div class="field-grid"><label class="field"><span>Nome do treino</span><input name="name" required placeholder="Ex.: Peito completo"></label><label class="field"><span>Arquivo PDF</span><input name="pdf" type="file" accept="application/pdf,.pdf" required></label></div><div class="field-grid field-grid--three"><label class="field"><span>Objetivo</span><input name="goal" required placeholder="Hipertrofia"></label><label class="field"><span>Nível</span><select name="level"><option>Iniciante</option><option selected>Intermediário</option><option>Avançado</option></select></label><label class="field"><span>Duração</span><input name="duration" required placeholder="8 semanas"></label></div><label class="field"><span>Grupos musculares</span><input name="muscleGroups" required placeholder="Peitoral, Tríceps, Ombros"></label><label class="field"><span>Descrição</span><textarea name="description" rows="2" placeholder="Resumo do treino"></textarea></label><label class="check-field"><input name="published" type="checkbox" value="1"><span>Publicar imediatamente para alunos de Treinos Prontos</span></label><small>Somente PDF, com no máximo 15 MB.</small><button class="button button--primary" type="submit">Enviar PDF</button><p role="status" aria-live="polite"></p></form><div class="media-library-grid" data-ready-workout-grid></div>`
+  const form = panel.querySelector('form')
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    if (!form.reportValidity()) return
+    const button = form.querySelector('[type="submit"]')
+    const status = form.querySelector('[role="status"]')
+    button.disabled = true
+    button.textContent = 'Enviando PDF…'
+    status.textContent = ''
+    try {
+      await uploadReadyWorkout(new FormData(form))
+      form.reset()
+      showToast('PDF enviado para a biblioteca.')
+      window.dispatchEvent(new Event('frs:remote-refresh'))
+    } catch (error) {
+      status.textContent = error.message
+    } finally {
+      button.disabled = false
+      button.textContent = 'Enviar PDF'
+    }
+  })
+  page.append(panel)
+  renderReadyWorkoutLibrary()
+}
+
+function confirmReadyWorkoutDeletion(workout) {
+  let dialog = document.querySelector('[data-delete-ready-workout]')
+  if (!dialog) {
+    dialog = document.createElement('dialog')
+    dialog.className = 'modal'
+    dialog.dataset.deleteReadyWorkout = ''
+    dialog.innerHTML = `<form method="dialog"><header><div><span class="eyebrow eyebrow--blue">Biblioteca de PDFs</span><h2>Excluir PDF?</h2></div><button class="icon-button" type="submit" value="cancel" aria-label="Fechar">×</button></header><div class="modal-body"><p>O arquivo <strong data-ready-workout-name></strong> será removido da biblioteca e deixará de aparecer para os alunos.</p><p class="password-requirements">Esta ação não pode ser desfeita.</p></div><footer><button class="button button--secondary" type="submit" value="cancel">Cancelar</button><button class="button button--primary" type="submit" value="confirm">Excluir PDF</button></footer></form>`
+    document.body.append(dialog)
+  }
+  dialog.querySelector('[data-ready-workout-name]').textContent = workout.name
+  dialog.returnValue = 'cancel'
+  dialog.showModal()
+  return new Promise((resolve) =>
+    dialog.addEventListener('close', () => resolve(dialog.returnValue === 'confirm'), {
+      once: true,
+    }),
+  )
+}
+
+function renderReadyWorkoutLibrary() {
+  const grid = document.querySelector('[data-ready-workout-grid]')
+  if (!grid) return
+  const workouts = getData().readyWorkouts || []
+  grid.replaceChildren()
+  workouts.forEach((workout) => {
     const card = document.createElement('section')
     card.className = 'media-library-card'
-    const groups = workout.muscleGroups?.join(', ') || 'Treino completo'
-    card.innerHTML = `<div><span class="tag">${workout.published ? 'Publicado' : 'Rascunho'}</span><h3></h3><p></p><small></small></div>`
+    card.innerHTML = `<div><span class="tag">${workout.published ? 'Publicado' : 'Rascunho'}</span><h3></h3><p></p><small></small></div><div class="media-library-actions"></div>`
     card.querySelector('h3').textContent = workout.name
     card.querySelector('p').textContent = workout.description || `${workout.goal} · ${workout.level}`
-    card.querySelector('small').textContent = `${groups} · ${workout.duration}`
-    const open = document.createElement('a')
+    card.querySelector('small').textContent = `${workout.muscleGroups} · ${workout.duration} · ${(Number(workout.sizeBytes) / 1024 / 1024).toFixed(1)} MB`
+    const actions = card.querySelector('.media-library-actions')
+    const open = document.createElement('button')
     open.className = 'button button--secondary'
-    open.href = workout.pdfUrl
-    open.target = '_blank'
-    open.rel = 'noreferrer'
-    open.textContent = 'Abrir PDF'
-    card.append(open)
+    open.type = 'button'
+    open.textContent = 'Baixar PDF'
+    open.addEventListener('click', () =>
+      downloadReadyWorkout(workout.id, workout.originalFilename).catch((error) =>
+        showToast(error.message),
+      ),
+    )
+    const remove = document.createElement('button')
+    remove.className = 'button button--secondary'
+    remove.type = 'button'
+    remove.textContent = 'Excluir'
+    remove.addEventListener('click', async () => {
+      if (!(await confirmReadyWorkoutDeletion(workout))) return
+      remove.disabled = true
+      try {
+        await deleteReadyWorkout(workout.id)
+        showToast('PDF excluído da biblioteca.')
+        window.dispatchEvent(new Event('frs:remote-refresh'))
+      } catch (error) {
+        remove.disabled = false
+        showToast(error.message)
+      }
+    })
+    actions.append(open, remove)
     grid.append(card)
   })
-  if (!readyWorkoutLibrary.length) {
+  if (!workouts.length) {
     const empty = document.createElement('p')
-    empty.textContent = 'Nenhum PDF cadastrado em src/data/library.js.'
+    empty.textContent = 'Nenhum PDF enviado. Use o formulário acima para criar a biblioteca.'
     grid.append(empty)
   }
-  panel.append(grid)
-  page.append(panel)
 }
 
 function createExerciseVideoLibraryPanel() {
@@ -343,10 +414,66 @@ function createExerciseVideoLibraryPanel() {
   const panel = document.createElement('article')
   panel.className = 'panel media-library-panel'
   panel.dataset.exerciseVideoLibrary = ''
-  panel.innerHTML = `<div class="panel-heading"><div><span class="eyebrow eyebrow--blue">Biblioteca de MP4</span><h2>Vídeos por grupo muscular</h2><p>Copie os vídeos para <code>public/library/exercises/videos</code> e cadastre nome e caminho em <code>src/data/library.js</code>.</p></div></div>`
-  const groups = document.createElement('div')
-  groups.className = 'video-group-library'
-  videosByMuscleGroup(exerciseVideoLibrary).forEach((group) => {
+  panel.innerHTML = `<div class="panel-heading"><div><span class="eyebrow eyebrow--blue">Biblioteca de MP4</span><h2>Vídeos por grupo muscular</h2><p>Envie e publique os vídeos diretamente pelo painel.</p></div></div><form class="media-upload-form" data-exercise-video-upload><div class="field-grid"><label class="field"><span>Nome do exercício</span><input name="name" required placeholder="Ex.: Supino reto com barra"></label><label class="field"><span>Arquivo MP4</span><input name="video" type="file" accept="video/mp4,.mp4" required></label></div><div class="field-grid field-grid--three"><label class="field"><span>Grupo muscular</span><select name="group" required data-video-muscle-group></select></label><label class="field"><span>Equipamento</span><input name="equipment" placeholder="Ex.: Barra e banco"></label><label class="field"><span>Dificuldade</span><select name="difficulty"><option>Iniciante</option><option selected>Intermediário</option><option>Avançado</option></select></label></div><label class="field"><span>Instruções</span><textarea name="instructions" rows="3" placeholder="Orientações de execução e segurança"></textarea></label><label class="check-field"><input name="published" type="checkbox" value="1"><span>Publicar imediatamente para alunos com acesso ativo</span></label><small>Somente MP4, com no máximo 90 MB.</small><button class="button button--primary" type="submit">Enviar vídeo</button><p role="status" aria-live="polite"></p></form><div class="video-group-library" data-exercise-video-groups></div>`
+  const groupSelect = panel.querySelector('[data-video-muscle-group]')
+  groupSelect.replaceChildren(
+    ...muscleGroups.map((group) => {
+      const option = document.createElement('option')
+      option.value = group.name
+      option.textContent = group.name
+      return option
+    }),
+  )
+  const form = panel.querySelector('form')
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    if (!form.reportValidity()) return
+    const button = form.querySelector('[type="submit"]')
+    const status = form.querySelector('[role="status"]')
+    button.disabled = true
+    button.textContent = 'Enviando vídeo…'
+    status.textContent = ''
+    try {
+      await uploadExerciseVideo(new FormData(form))
+      form.reset()
+      showToast('Vídeo enviado para a biblioteca.')
+      window.dispatchEvent(new Event('frs:remote-refresh'))
+    } catch (error) {
+      status.textContent = error.message
+    } finally {
+      button.disabled = false
+      button.textContent = 'Enviar vídeo'
+    }
+  })
+  page.append(panel)
+  renderExerciseVideoLibrary()
+}
+
+function confirmExerciseVideoDeletion(exercise) {
+  let dialog = document.querySelector('[data-delete-exercise-video]')
+  if (!dialog) {
+    dialog = document.createElement('dialog')
+    dialog.className = 'modal'
+    dialog.dataset.deleteExerciseVideo = ''
+    dialog.innerHTML = `<form method="dialog"><header><div><span class="eyebrow eyebrow--blue">Biblioteca de MP4</span><h2>Excluir vídeo?</h2></div><button class="icon-button" type="submit" value="cancel" aria-label="Fechar">×</button></header><div class="modal-body"><p>O vídeo <strong data-exercise-video-name></strong> será removido da biblioteca e deixará de aparecer para os alunos.</p><p class="password-requirements">Esta ação não pode ser desfeita.</p></div><footer><button class="button button--secondary" type="submit" value="cancel">Cancelar</button><button class="button button--primary" type="submit" value="confirm">Excluir vídeo</button></footer></form>`
+    document.body.append(dialog)
+  }
+  dialog.querySelector('[data-exercise-video-name]').textContent = exercise.name
+  dialog.returnValue = 'cancel'
+  dialog.showModal()
+  return new Promise((resolve) =>
+    dialog.addEventListener('close', () => resolve(dialog.returnValue === 'confirm'), {
+      once: true,
+    }),
+  )
+}
+
+function renderExerciseVideoLibrary() {
+  const groups = document.querySelector('[data-exercise-video-groups]')
+  if (!groups) return
+  const videos = getData().exerciseVideos || []
+  groups.replaceChildren()
+  videosByMuscleGroup(videos).forEach((group) => {
     const section = document.createElement('details')
     section.className = 'video-muscle-group'
     if (group.exercises.length) section.open = true
@@ -356,30 +483,69 @@ function createExerciseVideoLibraryPanel() {
     content.className = 'video-library-grid'
     if (!group.exercises.length) {
       const empty = document.createElement('p')
-      empty.textContent = `Nenhum MP4 cadastrado na pasta ${group.id}.`
+      empty.textContent = 'Nenhum MP4 enviado para este grupo.'
       content.append(empty)
     }
     group.exercises.forEach((exercise) => {
       const card = document.createElement('article')
       card.className = 'video-library-card'
-      const video = document.createElement('video')
-      video.controls = true
-      video.preload = 'metadata'
-      video.playsInline = true
-      video.src = exercise.videoUrl
-      if (exercise.posterUrl) video.poster = exercise.posterUrl
       const title = document.createElement('h3')
       title.textContent = exercise.name
       const meta = document.createElement('p')
-      meta.textContent = `${exercise.equipment} · ${exercise.difficulty}${exercise.published ? ' · publicado' : ' · rascunho'}`
-      card.append(video, title, meta)
+      meta.textContent = `${exercise.equipment || 'Sem equipamento'} · ${exercise.difficulty}${exercise.published ? ' · publicado' : ' · rascunho'}`
+      const instructions = document.createElement('p')
+      instructions.textContent = exercise.instructions || 'Sem instruções adicionais.'
+      const size = document.createElement('small')
+      size.textContent = `${(Number(exercise.sizeBytes) / 1024 / 1024).toFixed(1)} MB`
+      const actions = document.createElement('div')
+      actions.className = 'media-library-actions'
+      const preview = document.createElement('button')
+      preview.className = 'button button--secondary'
+      preview.type = 'button'
+      preview.textContent = 'Carregar vídeo'
+      preview.addEventListener('click', async () => {
+        preview.disabled = true
+        preview.textContent = 'Carregando…'
+        try {
+          const video = document.createElement('video')
+          video.controls = true
+          video.preload = 'metadata'
+          video.playsInline = true
+          video.src = await loadExerciseVideo(exercise.id)
+          video.addEventListener('loadedmetadata', () => video.play().catch(() => {}), {
+            once: true,
+          })
+          card.prepend(video)
+          preview.remove()
+        } catch (error) {
+          preview.disabled = false
+          preview.textContent = 'Carregar vídeo'
+          showToast(error.message)
+        }
+      })
+      const remove = document.createElement('button')
+      remove.className = 'button button--secondary'
+      remove.type = 'button'
+      remove.textContent = 'Excluir'
+      remove.addEventListener('click', async () => {
+        if (!(await confirmExerciseVideoDeletion(exercise))) return
+        remove.disabled = true
+        try {
+          await deleteExerciseVideo(exercise.id)
+          showToast('Vídeo excluído da biblioteca.')
+          window.dispatchEvent(new Event('frs:remote-refresh'))
+        } catch (error) {
+          remove.disabled = false
+          showToast(error.message)
+        }
+      })
+      actions.append(preview, remove)
+      card.append(title, meta, instructions, size, actions)
       content.append(card)
     })
     section.append(summary, content)
     groups.append(section)
   })
-  panel.append(groups)
-  page.append(panel)
 }
 
 function enhanceAssessment() {
@@ -579,6 +745,8 @@ export function initIntegratedPortal() {
   })
   window.addEventListener('frs:data-changed', () => {
     renderOperations()
+    renderReadyWorkoutLibrary()
+    renderExerciseVideoLibrary()
     const select = document.querySelector('[name="exerciseIds"]')
     if (!select) return
     const selected = new Set([...select.selectedOptions].map((o) => o.value))

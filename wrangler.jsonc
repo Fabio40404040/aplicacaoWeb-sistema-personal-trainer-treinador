@@ -12,6 +12,12 @@
       "migrations_dir": "backend/migrations-d1",
     },
   ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "frs-personal-media",
+    },
+  ],
   "env": {
     "production": {
       "d1_databases": [
@@ -20,6 +26,12 @@
           "database_name": "frs-coach",
           "database_id": "d778c3b7-5ab1-4723-8f91-00c42d938e4c",
           "migrations_dir": "backend/migrations-d1",
+        },
+      ],
+      "r2_buckets": [
+        {
+          "binding": "MEDIA",
+          "bucket_name": "frs-personal-media",
         },
       ],
       "vars": {

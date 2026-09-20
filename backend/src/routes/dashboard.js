@@ -1,6 +1,15 @@
 export async function dashboard(db, trainerId) {
-  const [students, exercises, workouts, assessments, checkins, plans, appointments] =
-    await Promise.all([
+  const [
+    students,
+    exercises,
+    workouts,
+    assessments,
+    checkins,
+    plans,
+    appointments,
+    readyWorkouts,
+    exerciseVideos,
+  ] = await Promise.all([
       db.query(
         `SELECT s.id, s.name, s.email, s.goal, s.status, s.created_at AS "createdAt", s.assessment_date AS "assessmentDate",
        s.access_status AS "accessStatus", s.plan_code AS "planCode", s.access_type AS "accessType", s.billing_cycle AS "billingCycle",
@@ -54,6 +63,18 @@ export async function dashboard(db, trainerId) {
        WHERE ap.trainer_id=$1 ORDER BY ap.starts_at`,
         [trainerId],
       ),
+      db.query(
+        `SELECT id,name,goal,level,duration,muscle_groups AS "muscleGroups",description,
+         original_filename AS "originalFilename",size_bytes AS "sizeBytes",published,created_at AS "createdAt"
+         FROM ready_workout_pdfs WHERE trainer_id=$1 ORDER BY created_at DESC`,
+        [trainerId],
+      ),
+      db.query(
+        `SELECT id,name,muscle_group AS "group",equipment,difficulty,instructions,
+         original_filename AS "originalFilename",size_bytes AS "sizeBytes",published,created_at AS "createdAt"
+         FROM exercise_videos WHERE trainer_id=$1 ORDER BY muscle_group,name`,
+        [trainerId],
+      ),
     ])
   return {
     students: students.rows,
@@ -63,5 +84,7 @@ export async function dashboard(db, trainerId) {
     checkins: checkins.rows,
     plans: plans.rows,
     appointments: appointments.rows,
+    readyWorkouts: readyWorkouts.rows,
+    exerciseVideos: exerciseVideos.rows,
   }
 }

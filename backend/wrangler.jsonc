@@ -21,4 +21,10 @@
       "migrations_dir": "migrations-d1",
     },
   ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "frs-personal-media",
+    },
+  ],
 }
