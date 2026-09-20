@@ -15,6 +15,7 @@ dist-ssr
 backend/.dev.vars
 backend/.wrangler
 backend/.wrangler-dist
+.wrangler
 
 # Editor directories and files
 .vscode/*

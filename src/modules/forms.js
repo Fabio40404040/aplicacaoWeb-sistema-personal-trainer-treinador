@@ -1,59 +1,68 @@
-import { createId, getData, updateData } from "./state.js";
-import { showToast } from "./utils.js";
-import { persistRecord, syncRemoteData } from "./api-client.js";
+import { createId, getData, updateData } from './state.js'
+import { showToast } from './utils.js'
+import { persistRecord, syncRemoteData } from './api-client.js'
 
 const editing = {
   student: null,
   workout: null,
   exercise: null,
   appointment: null,
-};
-const openModal = (name) => {
-  const modal = document.querySelector(`[data-modal="${name}"]`);
-  if (!modal.open) modal.showModal();
-};
-function closeModal(form) {
-  form.closest("dialog").close();
-  form.reset();
-  editing[form.dataset.form] = null;
 }
-const formData = (form) => new FormData(form);
-const value = (form, field) =>
-  formData(form).get(field)?.toString().trim() || "";
-const checked = (form, field) => Boolean(formData(form).get(field));
+const openModal = (name) => {
+  const modal = document.querySelector(`[data-modal="${name}"]`)
+  if (!modal.open) modal.showModal()
+}
+function closeModal(form) {
+  form.closest('dialog').close()
+  form.reset()
+  editing[form.dataset.form] = null
+}
+const formData = (form) => new FormData(form)
+const value = (form, field) => formData(form).get(field)?.toString().trim() || ''
+const checked = (form, field) => Boolean(formData(form).get(field))
 
 function saveAndRefresh(collection, record, id) {
   void persistRecord(collection, record, id)
     .then(syncRemoteData)
-    .catch((error) => showToast(error.message));
+    .catch((error) => showToast(error.message))
 }
 async function handleStudent(form) {
   const record = {
-    name: value(form, "name"),
-    email: value(form, "email"),
-    goal: value(form, "goal"),
-    status: value(form, "status"),
-    assessmentDate: value(form, "assessmentDate"),
-  };
-  const editingId = editing.student;
-  await persistRecord("students", record, editingId);
-  await syncRemoteData();
-  showToast(
-    editingId
-      ? "Aluno atualizado com sucesso."
-      : "Aluno cadastrado com sucesso.",
-  );
-  editing.student = null;
+    name: value(form, 'name'),
+    email: value(form, 'email'),
+    goal: value(form, 'goal'),
+    status: value(form, 'status'),
+    assessmentDate: value(form, 'assessmentDate'),
+  }
+  const editingId = editing.student
+  await persistRecord('students', record, editingId)
+  await syncRemoteData()
+  showToast(editingId ? 'Aluno atualizado com sucesso.' : 'Aluno cadastrado com sucesso.')
+  editing.student = null
 }
 function handleWorkout(form) {
-  const exercisePrescriptions = [
-    ...form.querySelectorAll("[data-workout-prescription]"),
-  ].map((row) => {
+  const savedPrescriptions = form.workoutPrescriptionMap
+    ? [...form.workoutPrescriptionMap.values()].sort(
+        (a, b) =>
+          String(a.sessionLabel || 'A').localeCompare(String(b.sessionLabel || 'A')) ||
+          Number(a.position || 0) - Number(b.position || 0),
+      )
+    : [...form.querySelectorAll('[data-workout-prescription]')].map((row) => ({
+        exerciseId: row.dataset.exerciseId,
+        sessionLabel: row.querySelector('[name="prescriptionSession"]').value,
+        sets: row.querySelector('[name="prescriptionSets"]').value,
+        repetitions: row.querySelector('[name="prescriptionRepetitions"]').value.trim(),
+        restSeconds: row.querySelector('[name="prescriptionRestSeconds"]').value,
+        notes: row.querySelector('[name="prescriptionNotes"]').value.trim(),
+      }))
+  if (!savedPrescriptions.length)
+    throw new Error('Escolha pelo menos um exercício para salvar a ficha.')
+  const exercisePrescriptions = savedPrescriptions.map((prescription) => {
     const exercise = getData().exercises.find(
-      (item) => String(item.id) === String(row.dataset.exerciseId),
-    );
+      (item) => String(item.id) === String(prescription.exerciseId),
+    )
     return {
-      exerciseId: row.dataset.exerciseId,
+      exerciseId: prescription.exerciseId,
       name: exercise?.name,
       group: exercise?.group,
       equipment: exercise?.equipment,
@@ -62,257 +71,228 @@ function handleWorkout(form) {
       mediaType: exercise?.mediaType,
       mediaUrl: exercise?.mediaUrl,
       thumbnailUrl: exercise?.thumbnailUrl,
-      sessionLabel: row.querySelector('[name="prescriptionSession"]').value,
-      sets: row.querySelector('[name="prescriptionSets"]').value,
-      repetitions: row
-        .querySelector('[name="prescriptionRepetitions"]')
-        .value.trim(),
-      restSeconds: row.querySelector('[name="prescriptionRestSeconds"]').value,
-      notes: row.querySelector('[name="prescriptionNotes"]').value.trim(),
-    };
-  });
+      sessionLabel: prescription.sessionLabel || 'A',
+      sets: String(prescription.sets || '3'),
+      repetitions: String(prescription.repetitions || '10-12').trim(),
+      restSeconds: String(prescription.restSeconds ?? '60'),
+      notes: String(prescription.notes || '').trim(),
+    }
+  })
   const record = {
-    name: value(form, "name"),
-    student: value(form, "student"),
-    goal: value(form, "goal"),
-    duration: value(form, "duration"),
+    name: value(form, 'name'),
+    student: value(form, 'student'),
+    goal: value(form, 'goal'),
+    duration: value(form, 'duration'),
     exerciseIds: exercisePrescriptions.map((item) => item.exerciseId),
     exercisePrescriptions,
-    published: checked(form, "published"),
+    published: checked(form, 'published'),
     permanentAccess: false,
-  };
+  }
   updateData((d) => {
-    const old = d.workouts.find((w) => w.id === editing.workout);
+    const old = d.workouts.find((w) => w.id === editing.workout)
     if (old)
       Object.assign(old, record, {
-        publishedAt: record.published
-          ? old.publishedAt || new Date().toISOString()
-          : null,
+        publishedAt: record.published ? old.publishedAt || new Date().toISOString() : null,
         exerciseCount: record.exerciseIds.length,
-      });
+      })
     else
       d.workouts.unshift({
-        id: createId("w"),
+        id: createId('w'),
         ...record,
         progress: 0,
         publishedAt: record.published ? new Date().toISOString() : null,
         exerciseCount: record.exerciseIds.length,
-      });
-  });
+      })
+  })
   showToast(
-    record.published
-      ? "Ficha salva e publicada para o aluno."
-      : "Ficha salva como rascunho.",
-  );
-  saveAndRefresh("workouts", record, editing.workout);
-  editing.workout = null;
+    record.published ? 'Ficha salva e publicada para o aluno.' : 'Ficha salva como rascunho.',
+  )
+  saveAndRefresh('workouts', record, editing.workout)
+  editing.workout = null
 }
 function handleExercise(form) {
   const record = {
-    name: value(form, "name"),
-    group: value(form, "group"),
-    equipment: value(form, "equipment"),
-    instructions: value(form, "instructions"),
-    difficulty: value(form, "difficulty"),
-    mediaType: value(form, "mediaType"),
-    mediaUrl: value(form, "mediaUrl"),
-    animationClip: value(form, "animationClip"),
-  };
+    name: value(form, 'name'),
+    group: value(form, 'group'),
+    equipment: value(form, 'equipment'),
+    instructions: value(form, 'instructions'),
+    difficulty: value(form, 'difficulty'),
+    mediaType: value(form, 'mediaType'),
+    mediaUrl: value(form, 'mediaUrl'),
+    animationClip: value(form, 'animationClip'),
+  }
   updateData((d) => {
-    const old = d.exercises.find((e) => e.id === editing.exercise);
-    if (old) Object.assign(old, record);
-    else d.exercises.unshift({ id: createId("e"), ...record });
-  });
+    const old = d.exercises.find((e) => e.id === editing.exercise)
+    if (old) Object.assign(old, record)
+    else d.exercises.unshift({ id: createId('e'), ...record })
+  })
   showToast(
-    editing.exercise
-      ? "Exercício atualizado com sucesso."
-      : "Exercício adicionado com sucesso.",
-  );
-  saveAndRefresh("exercises", record, editing.exercise);
-  editing.exercise = null;
+    editing.exercise ? 'Exercício atualizado com sucesso.' : 'Exercício adicionado com sucesso.',
+  )
+  saveAndRefresh('exercises', record, editing.exercise)
+  editing.exercise = null
 }
 function handleAssessment(form) {
   const r = {
-    student: value(form, "student"),
-    protocol: value(form, "protocol"),
-    weight: value(form, "weight"),
-    height: value(form, "height"),
-    fat: value(form, "fat"),
-    waist: value(form, "waist"),
-    hip: value(form, "hip"),
-    chest: value(form, "chest"),
-    arm: value(form, "arm"),
-    thigh: value(form, "thigh"),
-    calf: value(form, "calf"),
-    bloodPressure: value(form, "bloodPressure"),
-    restingHR: value(form, "restingHR"),
-    restriction: value(form, "restriction"),
-    parq: value(form, "parq"),
-    pushUps: value(form, "pushUps"),
-    plank: value(form, "plank"),
-    sitAndReach: value(form, "sitAndReach"),
-    notes: value(form, "notes"),
-    published: checked(form, "published"),
-  };
+    student: value(form, 'student'),
+    protocol: value(form, 'protocol'),
+    weight: value(form, 'weight'),
+    height: value(form, 'height'),
+    fat: value(form, 'fat'),
+    waist: value(form, 'waist'),
+    hip: value(form, 'hip'),
+    chest: value(form, 'chest'),
+    arm: value(form, 'arm'),
+    thigh: value(form, 'thigh'),
+    calf: value(form, 'calf'),
+    bloodPressure: value(form, 'bloodPressure'),
+    restingHR: value(form, 'restingHR'),
+    restriction: value(form, 'restriction'),
+    parq: value(form, 'parq'),
+    pushUps: value(form, 'pushUps'),
+    plank: value(form, 'plank'),
+    sitAndReach: value(form, 'sitAndReach'),
+    notes: value(form, 'notes'),
+    published: checked(form, 'published'),
+  }
   const h = Number(r.height) / 100,
     hip = Number(r.hip),
-    waist = Number(r.waist);
+    waist = Number(r.waist)
   updateData((d) =>
     d.assessments.unshift({
-      id: createId("a"),
+      id: createId('a'),
       student: r.student,
-      date: new Intl.DateTimeFormat("pt-BR").format(new Date()),
+      date: new Intl.DateTimeFormat('pt-BR').format(new Date()),
       protocol: r.protocol,
       weight: `${r.weight} kg`,
       height: `${r.height} cm`,
-      bmi: h ? (Number(r.weight) / h ** 2).toFixed(1) : "",
+      bmi: h ? (Number(r.weight) / h ** 2).toFixed(1) : '',
       fat: `${r.fat}%`,
       waist: `${r.waist} cm`,
-      hip: r.hip ? `${r.hip} cm` : "",
-      whr: hip ? (waist / hip).toFixed(2) : "",
-      restingHR: r.restingHR ? `${r.restingHR} bpm` : "",
+      hip: r.hip ? `${r.hip} cm` : '',
+      whr: hip ? (waist / hip).toFixed(2) : '',
+      restingHR: r.restingHR ? `${r.restingHR} bpm` : '',
       ...r,
       publishedAt: r.published ? new Date().toISOString() : null,
     }),
-  );
-  saveAndRefresh("assessments", r);
-  showToast(
-    r.published
-      ? "Avaliação salva e publicada."
-      : "Avaliação salva como rascunho.",
-  );
+  )
+  saveAndRefresh('assessments', r)
+  showToast(r.published ? 'Avaliação salva e publicada.' : 'Avaliação salva como rascunho.')
 }
 function handleAppointment(form) {
-  const start = new Date(`${value(form, "date")}T${value(form, "time")}:00`);
-  const duration = Number(value(form, "duration")) || 60;
-  const end = new Date(start.getTime() + duration * 60_000);
+  const start = new Date(`${value(form, 'date')}T${value(form, 'time')}:00`)
+  const duration = Number(value(form, 'duration')) || 60
+  const end = new Date(start.getTime() + duration * 60_000)
   const record = {
-    student: value(form, "student"),
+    student: value(form, 'student'),
     startsAt: start.toISOString(),
     endsAt: end.toISOString(),
-    service: value(form, "service"),
-    location: value(form, "location"),
-    notes: value(form, "notes"),
-    status: value(form, "status"),
-  };
+    service: value(form, 'service'),
+    location: value(form, 'location'),
+    notes: value(form, 'notes'),
+    status: value(form, 'status'),
+  }
   updateData((d) => {
-    d.appointments ||= [];
-    const old = d.appointments.find((item) => item.id === editing.appointment);
-    if (old) Object.assign(old, record);
-    else d.appointments.push({ id: createId("ap"), ...record });
-  });
-  showToast(
-    editing.appointment ? "Atendimento atualizado." : "Atendimento agendado.",
-  );
-  saveAndRefresh("appointments", record, editing.appointment);
-  editing.appointment = null;
+    d.appointments ||= []
+    const old = d.appointments.find((item) => item.id === editing.appointment)
+    if (old) Object.assign(old, record)
+    else d.appointments.push({ id: createId('ap'), ...record })
+  })
+  showToast(editing.appointment ? 'Atendimento atualizado.' : 'Atendimento agendado.')
+  saveAndRefresh('appointments', record, editing.appointment)
+  editing.appointment = null
 }
 function fillForm(type, id) {
   const collection =
-    type === "student"
-      ? "students"
-      : type === "workout"
-        ? "workouts"
-        : type === "appointment"
-          ? "appointments"
-          : "exercises";
-  const record = getData()[collection].find((item) => item.id === id);
-  if (!record) return;
-  editing[type] = id;
-  const form = document.querySelector(`[data-form="${type}"]`);
+    type === 'student'
+      ? 'students'
+      : type === 'workout'
+        ? 'workouts'
+        : type === 'appointment'
+          ? 'appointments'
+          : 'exercises'
+  const record = getData()[collection].find((item) => item.id === id)
+  if (!record) return
+  editing[type] = id
+  const form = document.querySelector(`[data-form="${type}"]`)
   Object.entries(record).forEach(([key, val]) => {
-    const field = form.elements[key];
-    if (!field) return;
+    const field = form.elements[key]
+    if (!field) return
     if (field instanceof RadioNodeList) {
-      [...field].forEach((entry) => {
-        entry.checked = Array.isArray(val)
-          ? val.includes(entry.value)
-          : entry.value === val;
-      });
-    } else if (field.type === "checkbox") field.checked = Boolean(val);
+      ;[...field].forEach((entry) => {
+        entry.checked = Array.isArray(val) ? val.includes(entry.value) : entry.value === val
+      })
+    } else if (field.type === 'checkbox') field.checked = Boolean(val)
     else if (field.multiple) {
-      [...field.options].forEach((o) => {
-        o.selected = (record.exerciseIds || []).includes(o.value);
-      });
-    } else field.value = val ?? "";
-  });
-  if (type === "appointment") {
-    const start = new Date(record.startsAt);
-    const end = new Date(record.endsAt);
-    form.elements.date.value = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
-    form.elements.time.value = `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`;
-    form.elements.duration.value = String(
-      Math.max(30, Math.round((end - start) / 60_000)),
-    );
+      ;[...field.options].forEach((o) => {
+        o.selected = (record.exerciseIds || []).includes(o.value)
+      })
+    } else field.value = val ?? ''
+  })
+  if (type === 'appointment') {
+    const start = new Date(record.startsAt)
+    const end = new Date(record.endsAt)
+    form.elements.date.value = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`
+    form.elements.time.value = `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`
+    form.elements.duration.value = String(Math.max(30, Math.round((end - start) / 60_000)))
   }
-  if (form.elements.published)
-    form.elements.published.checked = Boolean(record.publishedAt);
-  if (type === "student") {
-    form.querySelector("header .eyebrow").textContent = "Editar cadastro";
-    form.querySelector("header h2").textContent = "Editar aluno";
-    form.querySelector('[type="submit"]').textContent = "Salvar alterações";
+  if (form.elements.published) form.elements.published.checked = Boolean(record.publishedAt)
+  if (type === 'student') {
+    form.querySelector('header .eyebrow').textContent = 'Editar cadastro'
+    form.querySelector('header h2').textContent = 'Editar aluno'
+    form.querySelector('[type="submit"]').textContent = 'Salvar alterações'
   }
-  openModal(type);
+  openModal(type)
 }
 export function initForms() {
-  document.querySelectorAll("[data-open-modal]").forEach((b) =>
-    b.addEventListener("click", () => {
-      editing[b.dataset.openModal] = null;
-      if (b.dataset.openModal === "student") {
-        const form = document.querySelector('[data-form="student"]');
-        form.querySelector("header .eyebrow").textContent = "Novo cadastro";
-        form.querySelector("header h2").textContent = "Adicionar aluno";
-        form.querySelector('[type="submit"]').textContent = "Cadastrar aluno";
+  document.querySelectorAll('[data-open-modal]').forEach((b) =>
+    b.addEventListener('click', () => {
+      editing[b.dataset.openModal] = null
+      if (b.dataset.openModal === 'student') {
+        const form = document.querySelector('[data-form="student"]')
+        form.querySelector('header .eyebrow').textContent = 'Novo cadastro'
+        form.querySelector('header h2').textContent = 'Adicionar aluno'
+        form.querySelector('[type="submit"]').textContent = 'Cadastrar aluno'
       }
-      openModal(b.dataset.openModal);
+      openModal(b.dataset.openModal)
     }),
-  );
+  )
   const handlers = {
     student: handleStudent,
     workout: handleWorkout,
     exercise: handleExercise,
     assessment: handleAssessment,
     appointment: handleAppointment,
-  };
+  }
   document
-    .querySelectorAll("[data-close-modal]")
-    .forEach((b) =>
-      b.addEventListener("click", () => closeModal(b.closest("form"))),
-    );
-  document.querySelectorAll("dialog[data-modal]").forEach((m) =>
-    m.addEventListener("cancel", (e) => {
-      e.preventDefault();
-      closeModal(m.querySelector("form"));
+    .querySelectorAll('[data-close-modal]')
+    .forEach((b) => b.addEventListener('click', () => closeModal(b.closest('form'))))
+  document.querySelectorAll('dialog[data-modal]').forEach((m) =>
+    m.addEventListener('cancel', (e) => {
+      e.preventDefault()
+      closeModal(m.querySelector('form'))
     }),
-  );
-  document.querySelectorAll("[data-form]").forEach((form) =>
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      if (!form.reportValidity()) return;
-      const submit = form.querySelector('[type="submit"]');
-      const label = submit.textContent;
-      submit.disabled = true;
+  )
+  document.querySelectorAll('[data-form]').forEach((form) =>
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      if (!form.reportValidity()) return
+      const submit = form.querySelector('[type="submit"]')
+      const label = submit.textContent
+      submit.disabled = true
       try {
-        await handlers[form.dataset.form](form);
-        closeModal(form);
+        await handlers[form.dataset.form](form)
+        closeModal(form)
       } catch (error) {
-        showToast(error.message);
+        showToast(error.message)
       } finally {
-        submit.disabled = false;
-        submit.textContent = label;
+        submit.disabled = false
+        submit.textContent = label
       }
     }),
-  );
-  window.addEventListener("frs:edit-student", (e) =>
-    fillForm("student", e.detail),
-  );
-  window.addEventListener("frs:edit-workout", (e) =>
-    fillForm("workout", e.detail),
-  );
-  window.addEventListener("frs:edit-exercise", (e) =>
-    fillForm("exercise", e.detail),
-  );
-  window.addEventListener("frs:edit-appointment", (e) =>
-    fillForm("appointment", e.detail),
-  );
+  )
+  window.addEventListener('frs:edit-student', (e) => fillForm('student', e.detail))
+  window.addEventListener('frs:edit-workout', (e) => fillForm('workout', e.detail))
+  window.addEventListener('frs:edit-exercise', (e) => fillForm('exercise', e.detail))
+  window.addEventListener('frs:edit-appointment', (e) => fillForm('appointment', e.detail))
 }

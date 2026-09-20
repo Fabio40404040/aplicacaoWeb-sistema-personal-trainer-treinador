@@ -253,6 +253,23 @@
   .page-heading .button {
     width: 100%;
   }
+  .page-heading .workout-create-button {
+    width: fit-content;
+    min-height: 36px;
+    align-self: flex-start;
+    padding: 6px 11px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .media-library-panel .panel-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .media-library-panel .workout-create-button {
+    width: fit-content;
+    align-self: flex-start;
+    white-space: nowrap;
+  }
   .stats-grid,
   .cards-grid,
   .assessment-grid,
