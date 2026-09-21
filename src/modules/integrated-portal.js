@@ -21,7 +21,6 @@ const billingCycleLabels = {
   permanent: 'permanente',
 }
 const consultingPrices = { basic: 4, premium: 6, athlete: 8 }
-const readyWorkoutPrice = 2
 const money = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
@@ -61,15 +60,6 @@ function workoutCatalogGroups(exercises) {
   return groups
 }
 
-function registrationAmount(planCode, billingCycle) {
-  if (planCode === 'ready') return readyWorkoutPrice
-  const monthly = consultingPrices[planCode] || consultingPrices.basic
-  if (billingCycle === 'monthly') return monthly
-  if (billingCycle === 'annual') return monthly * 12 * 0.85
-  if (billingCycle === 'semiannual') return monthly * 6 * 0.9
-  return monthly * 3 * 0.95
-}
-
 function field(label, html) {
   const wrapper = document.createElement('label')
   wrapper.className = 'field'
@@ -92,7 +82,7 @@ function enhanceRegistration() {
   const channel = field('Forma de pagamento', '<select name="paymentChannel"></select>')
   const paymentTitle = document.createElement('span')
   paymentTitle.className = 'registration-payment-title'
-  paymentTitle.textContent = 'Forma de contratação'
+  paymentTitle.textContent = 'Etapas da contratação'
   const paymentArea = document.createElement('section')
   paymentArea.className = 'registration-payment'
   paymentArea.dataset.registrationPayment = ''
@@ -105,55 +95,15 @@ function enhanceRegistration() {
   form.insertBefore(paymentTitle, insertionPoint)
   form.insertBefore(paymentArea, insertionPoint)
 
-  function renderPaymentArea() {
-    const planCode = plan.querySelector('select').value
-    const cycle = billingCycle.querySelector('select').value
-    const amount = registrationAmount(planCode, cycle)
-    const submit = form.querySelector('[type="submit"]')
-    paymentArea.hidden = false
-    paymentArea.replaceChildren()
-
-    const pixDetails = document.createElement('details')
-    pixDetails.className = 'pix-payment-details'
-    pixDetails.innerHTML = `<summary>PIX — liberação automática</summary><div class="pix-payment-content"><p>Ao continuar, o Mercado Pago exibirá o QR Code de ${money.format(amount)}. Após a aprovação, o acesso será liberado automaticamente.</p><div class="pix-placeholder"><span>QR PIX</span><small>Gerado com segurança pelo Mercado Pago</small></div></div>`
-
-    const cardDetails = document.createElement('details')
-    cardDetails.className = 'pix-payment-details'
-    cardDetails.innerHTML = `<summary>Cartão de crédito — liberação após confirmação</summary><div class="pix-payment-content"><strong>Formulário seguro do Mercado Pago</strong><p>Preencha os dados do cadastro acima e abra o formulário protegido. Os dados do cartão não passam pelo servidor da FRS Personal.</p><button class="button button--secondary" type="button" data-open-card-form>Abrir formulário seguro</button></div>`
-
-    paymentArea.append(pixDetails, cardDetails)
-    const select = channel.querySelector('select')
-    pixDetails.addEventListener('toggle', () => {
-      if (!pixDetails.open) return
-      cardDetails.open = false
-      select.value = 'pix'
-      submit.textContent = 'Continuar para pagamento'
-    })
-
-    const selectCard = () => {
-      pixDetails.open = false
-      select.value = 'credit_card'
-      submit.textContent = 'Continuar para pagamento'
-    }
-    cardDetails.addEventListener('toggle', () => {
-      if (cardDetails.open) selectCard()
-    })
-    cardDetails.querySelector('[data-open-card-form]').addEventListener('click', () => {
-      selectCard()
-      if (typeof form.requestSubmit === 'function') form.requestSubmit()
-      else submit.click()
-    })
-    select.value = 'pix'
-    submit.textContent = 'Continuar para pagamento'
-  }
+  paymentArea.innerHTML = `<div class="pix-payment-content"><p><strong>1.</strong> Crie o pré-cadastro com seus dados e o plano escolhido.</p><p><strong>2.</strong> Na próxima tela, escolha PIX ou cartão de crédito.</p><p><strong>3.</strong> O acesso aos treinos será liberado somente após a aprovação do pagamento.</p></div>`
 
   function updateContractOptions() {
     const select = channel.querySelector('select')
     const selectedPlan = plan.querySelector('select').value
-    select.innerHTML =
-      '<option value="pix">PIX — liberação automática</option><option value="credit_card">Cartão de crédito — liberação automática após aprovação</option>'
+    select.innerHTML = '<option value="webapp">Pagamento online após o pré-cadastro</option>'
     channel.hidden = true
     paymentTitle.hidden = false
+    form.querySelector('[type="submit"]').textContent = 'Criar pré-cadastro'
     if (selectedPlan === 'ready') {
       billingCycle.hidden = true
       billingCycle.querySelector('select').value = 'permanent'
@@ -168,10 +118,8 @@ function enhanceRegistration() {
       if (billingCycle.querySelector('select').value === 'permanent')
         billingCycle.querySelector('select').value = 'quarterly'
     }
-    renderPaymentArea()
   }
   plan.querySelector('select').addEventListener('change', updateContractOptions)
-  billingCycle.querySelector('select').addEventListener('change', renderPaymentArea)
   const requestedPlan = new URLSearchParams(location.hash.split('?')[1] || '').get('plan')
   if ([...plan.querySelector('select').options].some((option) => option.value === requestedPlan))
     plan.querySelector('select').value = requestedPlan

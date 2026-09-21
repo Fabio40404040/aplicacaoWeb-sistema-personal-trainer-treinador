@@ -3,7 +3,6 @@ import { openSecureCardForm } from "./mercado-pago-card.js";
 import { findExerciseVideo } from "../data/library.js";
 
 const TOKEN_KEY = "frs-student-token";
-const CARD_PENDING_KEY = "frs-student-card-registration-pending";
 const API_URL = import.meta.env.VITE_API_URL || "";
 async function studentRequest(path, data) {
   const token = sessionStorage.getItem(TOKEN_KEY);
@@ -78,7 +77,7 @@ function renderLocked(container, data, onRefresh) {
   if (billingCycleLabel(data.access))
     addLine(plan, billingCycleLabel(data.access));
   const messages = {
-    pending: "Aguardando a confirmação do pagamento e a liberação do personal.",
+    pending: "Pré-cadastro ativo. Aguardando a confirmação do pagamento.",
     paused: "Seu acesso está pausado. Fale com o personal.",
     cancelled: "Seu acesso foi cancelado. Fale com o personal.",
   };
@@ -476,12 +475,12 @@ export function initStudentAccess() {
       );
       if (paymentMessage) {
         sessionStorage.removeItem("frs-student-payment-message");
-        status.textContent = `Sua conta foi criada. ${paymentMessage}`;
+        status.textContent = paymentMessage;
       } else {
         status.textContent = data.access.active
           ? "Seu acompanhamento está ativo e sincronizado com o personal."
           : data.access.paymentStatus === "pending"
-            ? "Seu cadastro está aguardando liberação. A situação será atualizada automaticamente."
+            ? "Seu pré-cadastro está ativo. Conclua o pagamento para liberar o acesso."
             : "Seu acompanhamento está aguardando liberação.";
       }
       if (data.access.active) renderPortal(container, data);
@@ -490,80 +489,18 @@ export function initStudentAccess() {
       if (current === generation) status.textContent = error.message;
     }
   }
-  async function openRegisteredCardForm(form, status) {
-    status.textContent = "Abrindo o formulário seguro do cartão…";
-    try {
-      await openSecureCardForm(studentRequest, {
-        onApproved() {
-          form.reset();
-          delete form.dataset.studentRegistered;
-          sessionStorage.removeItem(CARD_PENDING_KEY);
-          sessionStorage.setItem(
-            "frs-student-payment-message",
-            "Pagamento confirmado. Seu cadastro foi concluído e o acesso está liberado.",
-          );
-          location.hash = "#painel-aluno";
-          loadPanel();
-        },
-      });
-      status.textContent =
-        "Pagamento ainda não confirmado. Seu cadastro só será concluído após a aprovação do cartão.";
-    } catch (error) {
-      const localHint = ["localhost", "127.0.0.1"].includes(
-        location.hostname,
-      )
-        ? " Para testar no computador, configure MERCADO_PAGO_ACCESS_TOKEN em backend/.dev.vars e reinicie o projeto."
-        : "";
-      status.textContent = `Seu pré-cadastro foi reservado, mas o formulário não pôde ser aberto. Nenhuma conta foi liberada. ${error.message}${localHint}`;
-    }
-  }
   document.querySelectorAll("[data-student-form]").forEach((form) => {
-    if (
-      form.dataset.studentForm === "register" &&
-      sessionStorage.getItem(TOKEN_KEY) &&
-      sessionStorage.getItem(CARD_PENDING_KEY)
-    ) {
-      form.dataset.studentRegistered = "true";
-      form.querySelector('[type="submit"]').textContent =
-        "Abrir formulário seguro";
-    }
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const status = form.querySelector('[role="status"]'),
         button = form.querySelector('[type="submit"]'),
         label = button.textContent.trim();
-      if (
-        form.dataset.studentForm === "register" &&
-        form.dataset.studentRegistered === "true"
-      ) {
-        button.disabled = true;
-        await openRegisteredCardForm(form, status);
-        button.disabled = false;
-        button.textContent = "Abrir formulário seguro";
-        return;
-      }
       if (!form.reportValidity()) return;
       button.disabled = true;
       status.textContent = "Aguarde…";
       try {
         const data = Object.fromEntries(new FormData(form)),
           action = form.dataset.studentForm;
-        if (
-          action === "register" &&
-          data.paymentChannel === "credit_card" &&
-          sessionStorage.getItem(TOKEN_KEY)
-        ) {
-          const currentStudent = await studentRequest("me").catch(() => null);
-          if (
-            currentStudent?.email?.toLowerCase() === data.email.toLowerCase() &&
-            currentStudent.access?.paymentStatus === "pending"
-          ) {
-            form.dataset.studentRegistered = "true";
-            sessionStorage.setItem(CARD_PENDING_KEY, "true");
-            await openRegisteredCardForm(form, status);
-            return;
-          }
-        }
         if (action === "reset")
           data.token = new URLSearchParams(
             location.hash.split("?")[1] || "",
@@ -581,21 +518,14 @@ export function initStudentAccess() {
         if (!result?.token)
           throw new Error("O servidor não retornou uma sessão válida.");
         sessionStorage.setItem(TOKEN_KEY, result.token);
-        if (action === "login")
-          sessionStorage.removeItem(CARD_PENDING_KEY);
-        if (action === "register" && data.paymentChannel === "credit_card") {
-          form.dataset.studentRegistered = "true";
-          sessionStorage.setItem(CARD_PENDING_KEY, "true");
-          await openRegisteredCardForm(form, status);
-          return;
-        }
         if (action === "register") {
-          sessionStorage.removeItem(CARD_PENDING_KEY);
-          status.textContent = "Abrindo o PIX seguro do Mercado Pago…";
-          const checkout = await studentRequest("payments/checkout", {
-            method: "pix",
-          });
-          window.location.assign(checkout.checkoutUrl);
+          form.reset();
+          sessionStorage.setItem(
+            "frs-student-payment-message",
+            "Pré-cadastro criado. Escolha PIX ou cartão para concluir a contratação.",
+          );
+          location.hash = "#painel-aluno";
+          loadPanel();
           return;
         }
         form.reset();
@@ -605,10 +535,7 @@ export function initStudentAccess() {
         status.textContent = error.message;
       } finally {
         button.disabled = false;
-        button.textContent =
-          form.dataset.studentRegistered === "true"
-            ? "Abrir formulário seguro"
-            : label;
+        button.textContent = label;
       }
     });
   });
@@ -617,7 +544,6 @@ export function initStudentAccess() {
     .addEventListener("click", () => {
       generation++;
       sessionStorage.removeItem(TOKEN_KEY);
-      sessionStorage.removeItem(CARD_PENDING_KEY);
       document.querySelector("[data-student-name]").textContent =
         "Área do Aluno";
       location.hash = "#entrar-aluno";
