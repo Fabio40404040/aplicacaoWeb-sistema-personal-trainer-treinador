@@ -174,6 +174,9 @@ export async function createPixPayment(db, accountId, env) {
   const apiUrl = String(
     env.PUBLIC_API_URL || 'https://frs-coach-api.fabioribeirodev.workers.dev',
   ).replace(/\/$/u, '')
+  const testMode =
+    String(env.MERCADO_PAGO_PUBLIC_KEY || '').startsWith('TEST-') ||
+    String(env.MERCADO_PAGO_ACCESS_TOKEN || '').startsWith('TEST-')
   try {
     const payment = await mercadoPago('/v1/payments', env, {
       method: 'POST',
@@ -182,7 +185,9 @@ export async function createPixPayment(db, accountId, env) {
         transaction_amount: amountCents / 100,
         description: `${row.planName} — FRS Personal`,
         payment_method_id: 'pix',
-        payer: { email: row.email },
+        payer: testMode
+          ? { email: 'test_user_br@testuser.com', first_name: 'APRO' }
+          : { email: row.email, first_name: row.name },
         external_reference: intentId,
         ...(env.MERCADO_PAGO_WEBHOOK_SECRET
           ? { notification_url: `${apiUrl}/api/payments/mercadopago/webhook` }
