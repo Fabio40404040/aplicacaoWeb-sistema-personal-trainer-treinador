@@ -194,6 +194,36 @@
   font-size: 0.7rem;
   font-weight: 500;
 }
+.card-brand-field {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid #d9e5ed;
+  border-radius: 12px;
+  background: #fff;
+  color: #233953;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.card-brand-result {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 8px 10px;
+  border: 1px solid #c8d2e1;
+  border-radius: 10px;
+  color: #526477;
+}
+.card-brand-result img {
+  width: 42px;
+  max-height: 27px;
+  object-fit: contain;
+}
+.card-brand-result strong {
+  font-size: 0.78rem;
+}
 .card-document-grid {
   grid-template-columns: 120px minmax(0, 1fr);
 }
