@@ -3,6 +3,7 @@ import { openSecureCardForm } from "./mercado-pago-card.js";
 import { findExerciseVideo } from "../data/library.js";
 
 const TOKEN_KEY = "frs-student-token";
+const CARD_PENDING_KEY = "frs-student-card-registration-pending";
 const API_URL = import.meta.env.VITE_API_URL || "";
 async function studentRequest(path, data) {
   const token = sessionStorage.getItem(TOKEN_KEY);
@@ -425,18 +426,76 @@ export function initStudentAccess() {
       if (current === generation) status.textContent = error.message;
     }
   }
-  document.querySelectorAll("[data-student-form]").forEach((form) =>
+  async function openRegisteredCardForm(form, status) {
+    status.textContent = "Abrindo o formulário seguro do cartão…";
+    try {
+      await openSecureCardForm(studentRequest, {
+        onApproved() {
+          form.reset();
+          delete form.dataset.studentRegistered;
+          sessionStorage.removeItem(CARD_PENDING_KEY);
+          location.hash = "#painel-aluno";
+          loadPanel();
+        },
+      });
+      status.textContent =
+        "Conta criada. Conclua o pagamento no formulário seguro.";
+    } catch (error) {
+      const localHint = ["localhost", "127.0.0.1"].includes(
+        location.hostname,
+      )
+        ? " Para testar no computador, configure MERCADO_PAGO_ACCESS_TOKEN em backend/.dev.vars e reinicie o projeto."
+        : "";
+      status.textContent = `Sua conta foi criada, mas o formulário não pôde ser aberto. ${error.message}${localHint}`;
+    }
+  }
+  document.querySelectorAll("[data-student-form]").forEach((form) => {
+    if (
+      form.dataset.studentForm === "register" &&
+      sessionStorage.getItem(TOKEN_KEY) &&
+      sessionStorage.getItem(CARD_PENDING_KEY)
+    ) {
+      form.dataset.studentRegistered = "true";
+      form.querySelector('[type="submit"]').textContent =
+        "Abrir formulário seguro";
+    }
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      if (!form.reportValidity()) return;
       const status = form.querySelector('[role="status"]'),
         button = form.querySelector('[type="submit"]'),
         label = button.textContent.trim();
+      if (
+        form.dataset.studentForm === "register" &&
+        form.dataset.studentRegistered === "true"
+      ) {
+        button.disabled = true;
+        await openRegisteredCardForm(form, status);
+        button.disabled = false;
+        button.textContent = "Abrir formulário seguro";
+        return;
+      }
+      if (!form.reportValidity()) return;
       button.disabled = true;
       status.textContent = "Aguarde…";
       try {
         const data = Object.fromEntries(new FormData(form)),
           action = form.dataset.studentForm;
+        if (
+          action === "register" &&
+          data.paymentChannel === "credit_card" &&
+          sessionStorage.getItem(TOKEN_KEY)
+        ) {
+          const currentStudent = await studentRequest("me").catch(() => null);
+          if (
+            currentStudent?.email?.toLowerCase() === data.email.toLowerCase() &&
+            currentStudent.access?.paymentStatus === "pending"
+          ) {
+            form.dataset.studentRegistered = "true";
+            sessionStorage.setItem(CARD_PENDING_KEY, "true");
+            await openRegisteredCardForm(form, status);
+            return;
+          }
+        }
         if (action === "reset")
           data.token = new URLSearchParams(
             location.hash.split("?")[1] || "",
@@ -454,21 +513,13 @@ export function initStudentAccess() {
         if (!result?.token)
           throw new Error("O servidor não retornou uma sessão válida.");
         sessionStorage.setItem(TOKEN_KEY, result.token);
+        if (action === "login")
+          sessionStorage.removeItem(CARD_PENDING_KEY);
         if (action === "register" && data.paymentChannel === "credit_card") {
-          status.textContent = "Abrindo o formulário seguro do cartão…";
-          form.reset();
-          location.hash = "#painel-aluno";
-          try {
-            await openSecureCardForm(studentRequest, { onApproved: loadPanel });
-            return;
-          } catch (error) {
-            sessionStorage.setItem(
-              "frs-student-payment-message",
-              error.message,
-            );
-            await loadPanel();
-            return;
-          }
+          form.dataset.studentRegistered = "true";
+          sessionStorage.setItem(CARD_PENDING_KEY, "true");
+          await openRegisteredCardForm(form, status);
+          return;
         }
         form.reset();
         status.textContent = "";
@@ -477,15 +528,19 @@ export function initStudentAccess() {
         status.textContent = error.message;
       } finally {
         button.disabled = false;
-        button.textContent = label;
+        button.textContent =
+          form.dataset.studentRegistered === "true"
+            ? "Abrir formulário seguro"
+            : label;
       }
-    }),
-  );
+    });
+  });
   document
     .querySelector("[data-student-logout]")
     .addEventListener("click", () => {
       generation++;
       sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(CARD_PENDING_KEY);
       document.querySelector("[data-student-name]").textContent =
         "Área do Aluno";
       location.hash = "#entrar-aluno";
