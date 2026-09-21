@@ -250,9 +250,9 @@ export function initForms() {
       editing[b.dataset.openModal] = null
       if (b.dataset.openModal === 'student') {
         const form = document.querySelector('[data-form="student"]')
-        form.querySelector('header .eyebrow').textContent = 'Novo cadastro'
-        form.querySelector('header h2').textContent = 'Adicionar aluno'
-        form.querySelector('[type="submit"]').textContent = 'Cadastrar aluno'
+        form.querySelector('header .eyebrow').textContent = 'Cadastro manual'
+        form.querySelector('header h2').textContent = 'Adicionar aluno presencial'
+        form.querySelector('[type="submit"]').textContent = 'Adicionar aluno presencial'
       }
       openModal(b.dataset.openModal)
     }),

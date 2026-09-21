@@ -92,17 +92,30 @@ function renderStudents() {
           ? 'status--active'
           : 'status--paused',
       )
+      const isPresentialPending =
+        !student.accountId &&
+        (student.accessStatus !== 'active' || student.paymentStatus !== 'paid')
       const manage = document.createElement('button')
-      manage.className = 'icon-button'
+      manage.className = isPresentialPending
+        ? 'button button--primary student-release-button'
+        : 'icon-button'
       manage.type = 'button'
       manage.dataset.action = 'access'
-      manage.title = 'Plano, pagamento e acesso'
+      manage.title = isPresentialPending
+        ? 'Confirmar pagamento presencial e liberar acesso'
+        : 'Plano, pagamento e acesso'
       manage.setAttribute(
         'aria-label',
-        student.accessStatus === 'active' ? 'Gerenciar plano e acesso' : 'Liberar acesso do aluno',
+        isPresentialPending
+          ? `Liberar aluno presencial ${student.name}`
+          : 'Gerenciar plano e acesso',
       )
-      manage.textContent = student.accessStatus === 'active' ? '✓' : '🔓'
-      row.querySelector('.row-actions').prepend(manage)
+      manage.textContent = isPresentialPending ? 'Liberar presencial' : '✓'
+      if (student.accountId && student.paymentStatus !== 'paid') {
+        manage.hidden = true
+      } else {
+        row.querySelector('.row-actions').prepend(manage)
+      }
       return row
     }),
   )

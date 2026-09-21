@@ -858,6 +858,13 @@ td {
   align-items: center;
   gap: 2px;
 }
+.student-release-button {
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
 .toolbar {
   display: flex;
   justify-content: space-between;

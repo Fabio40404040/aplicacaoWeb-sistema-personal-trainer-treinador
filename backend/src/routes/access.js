@@ -31,6 +31,14 @@ function expiryFor(plan, requested, billingCycle) {
 }
 
 export async function updateStudentAccess(db, trainerId, studentId, body) {
+  const currentStudent = (
+    await db.query(
+      `SELECT account_id AS "accountId", payment_status AS "paymentStatus"
+       FROM students WHERE id=$2 AND trainer_id=$1`,
+      [trainerId, studentId],
+    )
+  ).rows[0]
+  if (!currentStudent) return { error: 'Aluno não encontrado.', status: 404 }
   const planCode = String(body?.planCode || 'basic')
   const plan = (
     await db.query(
@@ -49,6 +57,13 @@ export async function updateStudentAccess(db, trainerId, studentId, body) {
     : 'paid'
   const paymentMethod = String(body?.paymentMethod || 'manual')
   const active = accessStatus === 'active' && paymentStatus === 'paid'
+  if (active && currentStudent.accountId && currentStudent.paymentStatus !== 'paid') {
+    return {
+      error:
+        'Este aluno se cadastrou pelo WebApp. A liberação ocorrerá automaticamente após a confirmação do Mercado Pago.',
+      status: 409,
+    }
+  }
   const expiresAt = active ? expiryFor(plan, body?.expiresAt, billingCycle) : null
   const updated = (
     await db.query(

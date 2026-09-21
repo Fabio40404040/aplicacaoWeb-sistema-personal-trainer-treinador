@@ -1066,10 +1066,15 @@ function renderOperations() {
   }
   pending.slice(0, 6).forEach((student) => {
     const item = document.createElement('p')
+    if (student.accountId) {
+      item.textContent = `${student.name} · pagamento online pendente · a liberação será automática após a confirmação do Mercado Pago.`
+      content.append(item)
+      return
+    }
     const release = document.createElement('button')
     release.className = 'link-button'
     release.type = 'button'
-    release.textContent = 'Confirmar pagamento e liberar'
+    release.textContent = 'Confirmar pagamento presencial e liberar'
     release.addEventListener('click', async () => {
       if (
         !window.confirm(
@@ -1092,7 +1097,7 @@ function renderOperations() {
       } catch (error) {
         showToast(error.message)
         release.disabled = false
-        release.textContent = 'Confirmar pagamento e liberar'
+        release.textContent = 'Confirmar pagamento presencial e liberar'
       }
     })
     const button = document.createElement('button')
