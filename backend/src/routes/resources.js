@@ -12,7 +12,7 @@ const configs = {
       b.name,
       b.email,
       b.goal,
-      b.status || "Ativo",
+      "Pausado",
       b.assessmentDate || null,
     ],
   },
