@@ -18,7 +18,7 @@ export async function dashboard(db, trainerId) {
        s.payment_method AS "paymentMethod", s.account_id AS "accountId",
        COALESCE((SELECT name FROM workouts WHERE student_id=s.id AND trainer_id=s.trainer_id ORDER BY created_at DESC LIMIT 1),'Aguardando ficha') AS workout,
        CASE WHEN s.account_id IS NOT NULL AND s.payment_status='pending' THEN 'Pré-cadastro aguardando pagamento'
-            WHEN s.account_id IS NOT NULL THEN 'Cadastro pelo aplicativo' ELSE 'Cadastro pelo personal' END AS activity
+            WHEN s.account_id IS NOT NULL THEN 'Cadastro pelo aplicativo' ELSE 'Aluno presencial — liberação manual' END AS activity
        FROM students s WHERE s.trainer_id=$1 ORDER BY s.created_at DESC`,
       [trainerId],
     ),
