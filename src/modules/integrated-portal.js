@@ -84,7 +84,7 @@ function enhanceRegistration() {
   const password = form.querySelector('input[name="password"]')?.closest('label')
   const plan = field(
     'Plano desejado',
-    `<select name="planCode"><option value="ready">Treinos Prontos — acesso permanente</option><option value="basic" selected>Consultoria Básica</option><option value="premium">Consultoria Premium</option><option value="athlete">Performance Atleta</option></select>`,
+    `<select name="planCode"><option value="ready">Treinos Prontos — R$ 2,00 — acesso permanente</option><option value="basic" selected>Consultoria Básica</option><option value="premium">Consultoria Premium</option><option value="athlete">Performance Atleta</option></select>`,
   )
   const billingCycle = field(
     'Período da consultoria',
