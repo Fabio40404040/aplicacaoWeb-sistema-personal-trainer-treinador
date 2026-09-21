@@ -12,7 +12,6 @@ import { exerciseCatalog } from '../data/exercises.js'
 import { exerciseVideoLibrary, muscleGroups } from '../data/library.js'
 import { showToast } from './utils.js'
 import { createWhatsappUrl, planNames } from './whatsapp.js'
-import { createPixQrCode } from './pix.js'
 
 const billingCycleLabels = {
   monthly: 'mensal',
@@ -116,7 +115,7 @@ function enhanceRegistration() {
 
     const pixDetails = document.createElement('details')
     pixDetails.className = 'pix-payment-details'
-    pixDetails.innerHTML = `<summary>PIX — liberação após confirmação</summary><div class="pix-payment-content"><p>Pague ${money.format(amount)} usando a chave PIX <strong>fabiogisel7@gmail.com</strong>.</p><div class="pix-placeholder"><span>QR PIX</span><small>Gerando QR Code…</small></div></div>`
+    pixDetails.innerHTML = `<summary>PIX — liberação automática</summary><div class="pix-payment-content"><p>Ao continuar, o Mercado Pago exibirá o QR Code de ${money.format(amount)}. Após a aprovação, o acesso será liberado automaticamente.</p><div class="pix-placeholder"><span>QR PIX</span><small>Gerado com segurança pelo Mercado Pago</small></div></div>`
 
     const cardDetails = document.createElement('details')
     cardDetails.className = 'pix-payment-details'
@@ -124,41 +123,11 @@ function enhanceRegistration() {
 
     paymentArea.append(pixDetails, cardDetails)
     const select = channel.querySelector('select')
-    const pixContent = pixDetails.querySelector('.pix-payment-content')
-    let pixLoaded = false
-
-    pixDetails.addEventListener('toggle', async () => {
+    pixDetails.addEventListener('toggle', () => {
       if (!pixDetails.open) return
       cardDetails.open = false
       select.value = 'pix'
       submit.textContent = 'Continuar para pagamento'
-      if (pixLoaded) return
-      pixLoaded = true
-      try {
-        const { payload, imageUrl } = await createPixQrCode(amount)
-        const placeholder = pixContent.querySelector('.pix-placeholder')
-        const image = document.createElement('img')
-        image.className = 'pix-qr-code'
-        image.src = imageUrl
-        image.alt = `QR Code PIX de ${money.format(amount)} para fabiogisel7@gmail.com`
-        placeholder.replaceWith(image)
-        const copy = document.createElement('button')
-        copy.className = 'button button--secondary'
-        copy.type = 'button'
-        copy.textContent = 'Copiar código PIX'
-        copy.addEventListener('click', async () => {
-          try {
-            await navigator.clipboard.writeText(payload)
-            copy.textContent = 'Código PIX copiado'
-          } catch {
-            copy.textContent = 'Selecione o QR Code para pagar'
-          }
-        })
-        pixContent.append(copy)
-      } catch {
-        pixContent.querySelector('.pix-placeholder').innerHTML =
-          '<span>PIX</span><small>Use a chave fabiogisel7@gmail.com</small>'
-      }
     })
 
     const selectCard = () => {
@@ -182,7 +151,7 @@ function enhanceRegistration() {
     const select = channel.querySelector('select')
     const selectedPlan = plan.querySelector('select').value
     select.innerHTML =
-      '<option value="pix">PIX — liberação após confirmação</option><option value="credit_card">Cartão de crédito — liberação após confirmação</option>'
+      '<option value="pix">PIX — liberação automática</option><option value="credit_card">Cartão de crédito — liberação automática após aprovação</option>'
     channel.hidden = true
     paymentTitle.hidden = false
     if (selectedPlan === 'ready') {

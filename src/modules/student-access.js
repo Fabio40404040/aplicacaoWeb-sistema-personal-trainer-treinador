@@ -72,7 +72,7 @@ const billingCycleLabels = {
 function billingCycleLabel(access) {
   return billingCycleLabels[access.billingCycle] || "";
 }
-function renderLocked(container, data) {
+function renderLocked(container, data, onRefresh) {
   const plan = article("Plano e acesso");
   addLine(plan, data.access.planName, true);
   if (billingCycleLabel(data.access))
@@ -84,6 +84,70 @@ function renderLocked(container, data) {
   };
   addLine(plan, messages[data.access.status] || "Aguardando liberação.");
   container.replaceChildren(plan);
+
+  if (data.access.paymentStatus !== "paid") {
+    const payment = article("Concluir pagamento");
+    addLine(
+      payment,
+      "Seu pré-cadastro está salvo. Escolha uma forma de pagamento ou atualize a situação caso já tenha pago.",
+    );
+    const actions = element("div", "student-payment-actions");
+    const pix = element("button", "button button--primary", "Pagar com PIX");
+    const card = element(
+      "button",
+      "button button--primary",
+      "Pagar com cartão",
+    );
+    const refresh = element(
+      "button",
+      "button button--secondary",
+      "Atualizar situação",
+    );
+    const paymentStatus = element("p", "student-payment-status");
+    pix.type = card.type = refresh.type = "button";
+    pix.addEventListener("click", async () => {
+      pix.disabled = true;
+      paymentStatus.textContent = "Preparando o PIX seguro do Mercado Pago…";
+      try {
+        const checkout = await studentRequest("payments/checkout", {
+          method: "pix",
+        });
+        window.location.assign(checkout.checkoutUrl);
+      } catch (error) {
+        paymentStatus.textContent = error.message;
+        pix.disabled = false;
+      }
+    });
+    card.addEventListener("click", async () => {
+      card.disabled = true;
+      paymentStatus.textContent = "Abrindo o pagamento seguro…";
+      try {
+        await openSecureCardForm(studentRequest, {
+          onApproved() {
+            sessionStorage.setItem(
+              "frs-student-payment-message",
+              "Pagamento confirmado. Seu cadastro foi concluído e o acesso está liberado.",
+            );
+            window.setTimeout(onRefresh, 1300);
+          },
+        });
+        paymentStatus.textContent =
+          "Conclua o pagamento no formulário protegido do Mercado Pago.";
+      } catch (error) {
+        paymentStatus.textContent = error.message;
+      } finally {
+        card.disabled = false;
+      }
+    });
+    refresh.addEventListener("click", async () => {
+      refresh.disabled = true;
+      paymentStatus.textContent = "Consultando o Mercado Pago…";
+      await onRefresh();
+    });
+    actions.append(pix, card, refresh);
+    payment.append(actions, paymentStatus);
+    container.append(payment);
+  }
   [
     "Ficha de treino",
     "Exercícios",
@@ -405,16 +469,6 @@ export function initStudentAccess() {
     try {
       const data = await studentRequest("me");
       if (current !== generation) return;
-      if (!data.access.active && data.access.paymentStatus !== "paid") {
-        location.hash = "#cadastro-aluno";
-        const registrationStatus = document.querySelector(
-          '[data-student-form="register"] [role="status"]',
-        );
-        if (registrationStatus)
-          registrationStatus.textContent =
-            "Seu pagamento ainda não foi confirmado. A conta e o painel só serão liberados após a aprovação.";
-        return;
-      }
       document.querySelector("[data-student-name]").textContent =
         `Olá, ${data.name}`;
       const paymentMessage = sessionStorage.getItem(
@@ -431,7 +485,7 @@ export function initStudentAccess() {
             : "Seu acompanhamento está aguardando liberação.";
       }
       if (data.access.active) renderPortal(container, data);
-      else renderLocked(container, data);
+      else renderLocked(container, data, loadPanel);
     } catch (error) {
       if (current === generation) status.textContent = error.message;
     }
@@ -536,10 +590,12 @@ export function initStudentAccess() {
           return;
         }
         if (action === "register") {
-          sessionStorage.removeItem(TOKEN_KEY);
           sessionStorage.removeItem(CARD_PENDING_KEY);
-          status.textContent =
-            "Pagamento ainda não confirmado. Seu cadastro será concluído somente depois que o PIX for confirmado pelo personal.";
+          status.textContent = "Abrindo o PIX seguro do Mercado Pago…";
+          const checkout = await studentRequest("payments/checkout", {
+            method: "pix",
+          });
+          window.location.assign(checkout.checkoutUrl);
           return;
         }
         form.reset();

@@ -131,11 +131,6 @@ export async function studentAuth(request, env, db, action) {
     account = result.rows[0]
     if (!account || !(await verifyPassword(password, account.password_hash)))
       return { error: 'E-mail ou senha incorretos.', status: 401 }
-    if (account.paymentStatus !== 'paid')
-      return {
-        error: 'Seu cadastro ainda não foi concluído. Volte ao cadastro e confirme o pagamento.',
-        status: 403,
-      }
   }
   return {
     data: {
@@ -145,7 +140,7 @@ export async function studentAuth(request, env, db, action) {
         'student',
       ),
       user: { id: account.id, name: account.name, email: account.email },
-      registrationStatus: action === 'register' ? 'awaiting_payment' : 'complete',
+      registrationStatus: account.paymentStatus === 'paid' ? 'complete' : 'awaiting_payment',
     },
     status: action === 'register' ? 201 : 200,
   }
