@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { DatabaseSync } from 'node:sqlite'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { withDb } from '../src/lib/db.js'
 import { createResource, updateResource, deleteResource } from '../src/routes/resources.js'
 import { dashboard } from '../src/routes/dashboard.js'
@@ -9,16 +9,8 @@ import { personalRecovery } from '../src/routes/personal-recovery.js'
 
 // SQLite contract check; the live Wrangler registration test covers D1 itself.
 const sqlite = new DatabaseSync(':memory:')
-for (const file of [
-  '001_initial.sql',
-  '002_student_accounts.sql',
-  '003_password_recovery.sql',
-  '004_physical_assessment.sql',
-  '005_personal_password_recovery.sql',
-  '006_integrated_student_portal.sql',
-  '007_consulting_periods.sql',
-  '008_payments_appointments.sql',
-]) {
+const migrationsDirectory = new URL('../migrations-d1/', import.meta.url)
+for (const file of readdirSync(migrationsDirectory).filter((name) => name.endsWith('.sql')).sort()) {
   sqlite.exec(readFileSync(new URL(`../migrations-d1/${file}`, import.meta.url), 'utf8'))
 }
 const binding = {
@@ -100,7 +92,7 @@ await withDb({ DB: binding }, async (db) => {
       email: 'bad@example.invalid',
       goal: 'Força',
     }),
-    undefined,
+    null,
   )
   await updateResource(db, 'workouts', trainer.id, workout.id, {
     student: 'Aluno',

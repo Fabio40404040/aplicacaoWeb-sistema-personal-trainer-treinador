@@ -12,7 +12,6 @@
     "EMAIL_FROM": "fabiogisel7@gmail.com",
     "BREVO_FROM_NAME": "FRS Personal Trainer",
     "SESSION_TTL_SECONDS": "43200",
-    "MERCADO_PAGO_PUBLIC_KEY": "APP_USR-2a58ba5d-d4ee-4cc5-bc2a-d8e1b86aee70",
   },
   "d1_databases": [
     {

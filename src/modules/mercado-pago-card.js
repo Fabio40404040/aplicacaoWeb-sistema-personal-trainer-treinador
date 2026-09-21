@@ -1,3 +1,5 @@
+import mercadoPagoLogo from '../assets/mercado-pago-logo.png'
+
 let sdkPromise
 let cardForm
 
@@ -25,7 +27,7 @@ function createDialog() {
   dialog = document.createElement('dialog')
   dialog.className = 'modal card-payment-dialog'
   dialog.dataset.cardPaymentDialog = ''
-  dialog.innerHTML = `<div class="card-payment-shell"><header><div><span class="eyebrow eyebrow--blue">Pagamento protegido</span><h2>Cartão de crédito</h2></div><button class="icon-button" type="button" data-card-close aria-label="Fechar">×</button></header><div class="modal-body"><p data-card-description></p><div data-card-loading>Carregando campos seguros do Mercado Pago…</div><form id="mp-card-form" class="secure-card-form"><label class="field"><span>Número do cartão</span><div id="mp-card-number" class="mp-secure-field"></div></label><div class="field-grid"><label class="field"><span>Validade</span><div id="mp-expiration-date" class="mp-secure-field"></div></label><label class="field"><span>CVV</span><div id="mp-security-code" class="mp-secure-field"></div></label></div><label class="field"><span>Nome impresso no cartão</span><input id="mp-cardholder-name" autocomplete="cc-name" required></label><label class="field"><span>E-mail do titular</span><input id="mp-cardholder-email" type="email" autocomplete="email" required></label><div class="field-grid"><label class="field"><span>Banco emissor</span><select id="mp-issuer" required></select></label><label class="field"><span>Parcelas</span><select id="mp-installments" required></select></label></div><div class="field-grid"><label class="field"><span>Documento</span><select id="mp-identification-type" required></select></label><label class="field"><span>Número do documento</span><input id="mp-identification-number" inputmode="numeric" required></label></div><button id="mp-card-submit" class="button button--primary" type="submit">Pagar com segurança</button><progress class="card-payment-progress" value="0">Processando…</progress><p role="status" aria-live="polite"></p></form><small class="card-security-note">Número, validade e CVV são protegidos e tokenizados diretamente pelo Mercado Pago. A FRS Personal não recebe nem armazena esses dados.</small></div></div>`
+  dialog.innerHTML = `<div class="card-payment-shell"><header><div><span class="eyebrow eyebrow--blue">Checkout seguro</span><h2>Pagamento com cartão</h2></div><button class="icon-button" type="button" data-card-close aria-label="Fechar">×</button></header><div class="modal-body"><div class="mercado-pago-brand"><img src="${mercadoPagoLogo}" alt="Mercado Pago"><span>Pagamento processado com segurança</span></div><section class="card-order-summary" aria-label="Resumo da compra"><div><span>Plano selecionado</span><strong data-card-description></strong></div><strong data-card-amount></strong></section><div data-card-loading>Carregando campos seguros do Mercado Pago…</div><form id="mp-card-form" class="secure-card-form"><label class="field card-number-field"><span>Número do cartão</span><div id="mp-card-number" class="mp-secure-field"></div></label><div class="field-grid card-meta-grid"><label class="field"><span>Validade</span><div id="mp-expiration-date" class="mp-secure-field"></div></label><label class="field"><span>CVV</span><div id="mp-security-code" class="mp-secure-field"></div></label></div><div class="field-grid card-payment-options"><label class="field installments-field"><span>Como deseja parcelar?</span><select id="mp-installments" required><option value="">Informe o cartão primeiro</option></select><small>As opções são calculadas pelo Mercado Pago.</small></label><label class="field"><span>Banco emissor</span><select id="mp-issuer" required></select></label></div><label class="field"><span>Nome impresso no cartão</span><input id="mp-cardholder-name" autocomplete="cc-name" required></label><label class="field"><span>E-mail do titular</span><input id="mp-cardholder-email" type="email" autocomplete="email" required></label><div class="field-grid card-document-grid"><label class="field"><span>Tipo</span><select id="mp-identification-type" required></select></label><label class="field"><span>CPF do titular</span><input id="mp-identification-number" inputmode="numeric" autocomplete="off" required></label></div><button id="mp-card-submit" class="button button--primary card-pay-button" type="submit">Pagar com segurança</button><progress class="card-payment-progress" value="0">Processando…</progress><p role="status" aria-live="polite"></p></form><small class="card-security-note"><strong>Seus dados estão protegidos.</strong> Número, validade e CVV são tokenizados diretamente pelo Mercado Pago e não ficam armazenados na FRS Personal.</small></div></div>`
   document.body.append(dialog)
   return dialog
 }
@@ -48,8 +50,12 @@ export async function openSecureCardForm(request, { onApproved } = {}) {
   const status = form.querySelector('[role="status"]')
   const submit = form.querySelector('#mp-card-submit')
   const progress = form.querySelector('.card-payment-progress')
-  dialog.querySelector('[data-card-description]').textContent =
-    `${config.description} · R$ ${Number(config.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+  const formattedAmount = Number(config.amount).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  })
+  dialog.querySelector('[data-card-description]').textContent = config.description
+  dialog.querySelector('[data-card-amount]').textContent = formattedAmount
   form.querySelector('#mp-cardholder-email').value = config.payerEmail
   status.textContent = ''
   submit.disabled = false

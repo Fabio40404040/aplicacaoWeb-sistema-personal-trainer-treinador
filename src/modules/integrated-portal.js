@@ -21,8 +21,8 @@ const billingCycleLabels = {
   annual: 'anual',
   permanent: 'permanente',
 }
-const consultingPrices = { basic: 149, premium: 249, athlete: 399 }
-const readyWorkoutPrice = 99
+const consultingPrices = { basic: 4, premium: 6, athlete: 8 }
+const readyWorkoutPrice = 2
 const money = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',

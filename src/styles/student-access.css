@@ -80,26 +80,128 @@
   padding: 15px;
 }
 .card-payment-dialog {
-  width: min(94vw, 640px);
+  width: min(94vw, 560px);
+  max-height: 92dvh;
+  border-radius: 20px;
+  background: #f8fafc;
+}
+.card-payment-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: 92dvh;
 }
 .card-payment-shell header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 24px;
+  padding: 16px 20px;
   border-bottom: 1px solid #e1e7f0;
+  background: #fff;
+}
+.card-payment-shell header h2 {
+  margin: 3px 0 0;
+  font-size: 1.25rem;
+}
+.card-payment-dialog .modal-body {
+  gap: 14px;
+  padding: 18px 20px 20px;
+  overscroll-behavior: contain;
+}
+.mercado-pago-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 48px;
+  padding: 9px 12px;
+  border: 1px solid #d9e5ed;
+  border-radius: 12px;
+  background: #fff;
+  color: #526477;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.mercado-pago-brand img {
+  display: block;
+  width: 116px;
+  height: auto;
+}
+.card-order-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 13px 15px;
+  border-radius: 12px;
+  background: #eaf7ff;
+  color: #10263f;
+}
+.card-order-summary div {
+  display: grid;
+  gap: 2px;
+}
+.card-order-summary span {
+  color: #60758b;
+  font-size: 0.72rem;
+}
+.card-order-summary > strong {
+  flex: 0 0 auto;
+  color: #007eb5;
+  font-size: 1.08rem;
 }
 .secure-card-form {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 .mp-secure-field {
+  width: 100%;
+  height: 48px;
   min-height: 48px;
-  padding: 13px 14px;
+  padding: 0;
+  overflow: hidden;
   border: 1px solid #c8d2e1;
   border-radius: 10px;
   background: #fff;
+}
+.mp-secure-field iframe {
+  display: block;
+  width: 100% !important;
+  height: 46px !important;
+}
+.secure-card-form .field-grid {
+  gap: 12px;
+}
+.secure-card-form .field input,
+.secure-card-form .field select {
+  min-height: 48px;
+  border-radius: 10px;
+  background: #fff;
+}
+.installments-field {
+  padding: 10px;
+  border: 1px solid #8dd8f8;
+  border-radius: 12px;
+  background: #effaff;
+}
+.installments-field select {
+  border-color: #009ee3;
+  color: #10263f;
+  font-weight: 800;
+}
+.installments-field small {
+  color: #527089;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+.card-document-grid {
+  grid-template-columns: 120px minmax(0, 1fr);
+}
+.card-pay-button {
+  min-height: 50px;
+  margin-top: 2px;
+  background: #009ee3;
+  box-shadow: 0 8px 20px rgba(0, 158, 227, 0.22);
 }
 .card-payment-progress {
   width: 100%;
@@ -107,9 +209,44 @@
 }
 .card-security-note {
   display: block;
-  margin-top: 14px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: #edf8f2;
   color: #66728a;
+  font-size: 0.75rem;
   line-height: 1.45;
+}
+.card-security-note strong {
+  color: #147a47;
+}
+@media (max-width: 640px) {
+  .card-payment-dialog {
+    width: min(96vw, 560px);
+    max-height: 94dvh;
+  }
+  .card-payment-shell {
+    max-height: 94dvh;
+  }
+  .card-payment-shell header,
+  .card-payment-dialog .modal-body {
+    padding-inline: 15px;
+  }
+  .mercado-pago-brand {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .mercado-pago-brand img {
+    width: 108px;
+  }
+  .secure-card-form .card-meta-grid,
+  .secure-card-form .card-payment-options,
+  .secure-card-form .card-document-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .card-order-summary {
+    align-items: flex-start;
+  }
 }
 .password-control {
   position: relative;
