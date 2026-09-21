@@ -1,5 +1,6 @@
 import { downloadWorkoutPdf } from "./workout-pdf.js";
 import { openSecureCardForm } from "./mercado-pago-card.js";
+import { createQrCodeImage } from "./pix.js";
 import { findExerciseVideo } from "../data/library.js";
 
 const TOKEN_KEY = "frs-student-token";
@@ -91,7 +92,11 @@ function renderLocked(container, data, onRefresh) {
       "Seu pré-cadastro está salvo. Escolha uma forma de pagamento ou atualize a situação caso já tenha pago.",
     );
     const actions = element("div", "student-payment-actions");
-    const pix = element("button", "button button--primary", "Pagar com PIX");
+    const pix = element(
+      "button",
+      "button button--primary",
+      "Gerar QR Code PIX",
+    );
     const card = element(
       "button",
       "button button--primary",
@@ -103,15 +108,49 @@ function renderLocked(container, data, onRefresh) {
       "Atualizar situação",
     );
     const paymentStatus = element("p", "student-payment-status");
+    const pixCheckout = element("div", "student-pix-checkout");
     pix.type = card.type = refresh.type = "button";
     pix.addEventListener("click", async () => {
       pix.disabled = true;
       paymentStatus.textContent = "Preparando o PIX seguro do Mercado Pago…";
       try {
-        const checkout = await studentRequest("payments/checkout", {
-          method: "pix",
+        const checkout = await studentRequest("payments/pix", {});
+        const image = element("img", "pix-qr-code");
+        image.src = checkout.qrCodeBase64
+          ? `data:image/png;base64,${checkout.qrCodeBase64}`
+          : await createQrCodeImage(checkout.qrCode);
+        image.alt = "QR Code PIX gerado pelo Mercado Pago";
+        const value = Number(checkout.amount).toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
         });
-        window.location.assign(checkout.checkoutUrl);
+        const title = element(
+          "strong",
+          "",
+          `PIX Mercado Pago — ${value}`,
+        );
+        const instructions = element(
+          "p",
+          "",
+          "Escaneie o QR Code ou copie o código PIX. O acesso será liberado automaticamente após a aprovação.",
+        );
+        const copy = element(
+          "button",
+          "button button--secondary",
+          "Copiar código PIX",
+        );
+        copy.type = "button";
+        copy.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(checkout.qrCode);
+            copy.textContent = "Código PIX copiado";
+          } catch {
+            copy.textContent = "Não foi possível copiar";
+          }
+        });
+        pixCheckout.replaceChildren(title, instructions, image, copy);
+        paymentStatus.textContent =
+          "Aguardando o pagamento. A situação será consultada automaticamente.";
       } catch (error) {
         paymentStatus.textContent = error.message;
         pix.disabled = false;
@@ -144,7 +183,7 @@ function renderLocked(container, data, onRefresh) {
       await onRefresh();
     });
     actions.append(pix, card, refresh);
-    payment.append(actions, paymentStatus);
+    payment.append(actions, paymentStatus, pixCheckout);
     container.append(payment);
   }
   [

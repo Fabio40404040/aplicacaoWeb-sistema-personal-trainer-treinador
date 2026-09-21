@@ -22,6 +22,7 @@ import {
   cardPaymentConfig,
   createCardPayment,
   createCheckout,
+  createPixPayment,
   mercadoPagoWebhook,
   reconcileStudentPayments,
 } from "./routes/payments.js";
@@ -94,6 +95,8 @@ async function handle(request, env) {
         return createCheckout(db, session.sub, env, await readJson(request));
       if (request.method === "GET" && route === "student/payments/card-config")
         return cardPaymentConfig(db, session.sub, env);
+      if (request.method === "POST" && route === "student/payments/pix")
+        return createPixPayment(db, session.sub, env);
       if (request.method === "POST" && route === "student/payments/card")
         return createCardPayment(db, session.sub, env, await readJson(request));
       if (

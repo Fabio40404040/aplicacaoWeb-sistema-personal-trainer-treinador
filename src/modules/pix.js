@@ -57,11 +57,15 @@ export async function createPixQrCode(amount = 99) {
   if (!payload) return { payload: '', imageUrl: '' }
   return {
     payload,
-    imageUrl: await QRCode.toDataURL(payload, {
-      width: 220,
-      margin: 1,
-      errorCorrectionLevel: 'M',
-      color: { dark: '#0e1b32', light: '#ffffff' },
-    }),
+    imageUrl: await createQrCodeImage(payload),
   }
+}
+
+export function createQrCodeImage(payload) {
+  return QRCode.toDataURL(payload, {
+    width: 220,
+    margin: 1,
+    errorCorrectionLevel: 'M',
+    color: { dark: '#0e1b32', light: '#ffffff' },
+  })
 }

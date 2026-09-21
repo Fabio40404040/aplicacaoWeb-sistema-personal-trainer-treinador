@@ -406,6 +406,23 @@
 .student-payment-status:not(:empty) {
   margin-top: 12px;
 }
+.student-pix-checkout:not(:empty) {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fff;
+  color: #243244;
+  text-align: center;
+}
+.student-pix-checkout p {
+  color: #526477;
+}
+.student-pix-checkout .button {
+  width: min(100%, 280px);
+}
 .student-workout {
   display: grid;
   gap: 12px;

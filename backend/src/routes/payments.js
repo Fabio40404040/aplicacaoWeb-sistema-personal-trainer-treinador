@@ -157,6 +157,65 @@ export async function cardPaymentConfig(db, accountId, env) {
   }
 }
 
+export async function createPixPayment(db, accountId, env) {
+  if (!env.MERCADO_PAGO_ACCESS_TOKEN)
+    return { error: 'O pagamento por PIX aguarda configuração do Mercado Pago.', status: 503 }
+  const row = await paymentAccount(db, accountId)
+  if (!row) return { error: 'Plano ou pré-cadastro não encontrado.', status: 404 }
+  if (row.accessType !== 'permanent' && !BILLING_CYCLES[row.billingCycle])
+    row.billingCycle = 'quarterly'
+  const amountCents = amountFor(row, row.billingCycle)
+  const intentId = crypto.randomUUID().replaceAll('-', '')
+  await db.query(
+    `INSERT INTO payment_intents (id,trainer_id,student_id,plan_code,billing_cycle,amount_cents,method)
+     VALUES ($1,$2,$3,$4,$5,$6,'pix')`,
+    [intentId, row.trainerId, row.studentId, row.planCode, row.billingCycle, amountCents],
+  )
+  const apiUrl = String(
+    env.PUBLIC_API_URL || 'https://frs-coach-api.fabioribeirodev.workers.dev',
+  ).replace(/\/$/u, '')
+  try {
+    const payment = await mercadoPago('/v1/payments', env, {
+      method: 'POST',
+      headers: { 'X-Idempotency-Key': intentId },
+      body: JSON.stringify({
+        transaction_amount: amountCents / 100,
+        description: `${row.planName} — FRS Personal`,
+        payment_method_id: 'pix',
+        payer: { email: row.email },
+        external_reference: intentId,
+        ...(env.MERCADO_PAGO_WEBHOOK_SECRET
+          ? { notification_url: `${apiUrl}/api/payments/mercadopago/webhook` }
+          : {}),
+        metadata: { intent_id: intentId, student_id: row.studentId, plan_code: row.planCode },
+      }),
+    })
+    const transaction = payment.point_of_interaction?.transaction_data || {}
+    if (!transaction.qr_code)
+      throw new Error('O Mercado Pago não retornou o QR Code do PIX.')
+    await db.query(
+      `UPDATE payment_intents SET provider_reference=$2,status=$3,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,
+      [intentId, String(payment.id || ''), String(payment.status || 'pending')],
+    )
+    return {
+      data: {
+        status: String(payment.status || 'pending'),
+        paymentId: String(payment.id || ''),
+        amount: (amountCents / 100).toFixed(2),
+        qrCode: String(transaction.qr_code),
+        qrCodeBase64: String(transaction.qr_code_base64 || ''),
+        ticketUrl: String(transaction.ticket_url || ''),
+      },
+    }
+  } catch (error) {
+    await db.query(
+      `UPDATE payment_intents SET status='failed',updated_at=CURRENT_TIMESTAMP WHERE id=$1`,
+      [intentId],
+    )
+    return { error: error.message, status: 502 }
+  }
+}
+
 export async function createCardPayment(db, accountId, env, body) {
   if (!env.MERCADO_PAGO_ACCESS_TOKEN)
     return { error: 'O pagamento por cartão aguarda configuração do Mercado Pago.', status: 503 }
