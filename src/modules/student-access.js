@@ -405,6 +405,16 @@ export function initStudentAccess() {
     try {
       const data = await studentRequest("me");
       if (current !== generation) return;
+      if (!data.access.active && data.access.paymentStatus !== "paid") {
+        location.hash = "#cadastro-aluno";
+        const registrationStatus = document.querySelector(
+          '[data-student-form="register"] [role="status"]',
+        );
+        if (registrationStatus)
+          registrationStatus.textContent =
+            "Seu pagamento ainda não foi confirmado. A conta e o painel só serão liberados após a aprovação.";
+        return;
+      }
       document.querySelector("[data-student-name]").textContent =
         `Olá, ${data.name}`;
       const paymentMessage = sessionStorage.getItem(
@@ -434,19 +444,23 @@ export function initStudentAccess() {
           form.reset();
           delete form.dataset.studentRegistered;
           sessionStorage.removeItem(CARD_PENDING_KEY);
+          sessionStorage.setItem(
+            "frs-student-payment-message",
+            "Pagamento confirmado. Seu cadastro foi concluído e o acesso está liberado.",
+          );
           location.hash = "#painel-aluno";
           loadPanel();
         },
       });
       status.textContent =
-        "Conta criada. Conclua o pagamento no formulário seguro.";
+        "Pagamento ainda não confirmado. Seu cadastro só será concluído após a aprovação do cartão.";
     } catch (error) {
       const localHint = ["localhost", "127.0.0.1"].includes(
         location.hostname,
       )
         ? " Para testar no computador, configure MERCADO_PAGO_ACCESS_TOKEN em backend/.dev.vars e reinicie o projeto."
         : "";
-      status.textContent = `Sua conta foi criada, mas o formulário não pôde ser aberto. ${error.message}${localHint}`;
+      status.textContent = `Seu pré-cadastro foi reservado, mas o formulário não pôde ser aberto. Nenhuma conta foi liberada. ${error.message}${localHint}`;
     }
   }
   document.querySelectorAll("[data-student-form]").forEach((form) => {
@@ -519,6 +533,13 @@ export function initStudentAccess() {
           form.dataset.studentRegistered = "true";
           sessionStorage.setItem(CARD_PENDING_KEY, "true");
           await openRegisteredCardForm(form, status);
+          return;
+        }
+        if (action === "register") {
+          sessionStorage.removeItem(TOKEN_KEY);
+          sessionStorage.removeItem(CARD_PENDING_KEY);
+          status.textContent =
+            "Pagamento ainda não confirmado. Seu cadastro será concluído somente depois que o PIX for confirmado pelo personal.";
           return;
         }
         form.reset();

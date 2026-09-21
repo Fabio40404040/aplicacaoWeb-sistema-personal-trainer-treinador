@@ -131,7 +131,7 @@ function enhanceRegistration() {
       if (!pixDetails.open) return
       cardDetails.open = false
       select.value = 'pix'
-      submit.textContent = 'Cadastrar como aluno'
+      submit.textContent = 'Continuar para pagamento'
       if (pixLoaded) return
       pixLoaded = true
       try {
@@ -164,7 +164,7 @@ function enhanceRegistration() {
     const selectCard = () => {
       pixDetails.open = false
       select.value = 'credit_card'
-      submit.textContent = 'Cadastrar como aluno'
+      submit.textContent = 'Continuar para pagamento'
     }
     cardDetails.addEventListener('toggle', () => {
       if (cardDetails.open) selectCard()
@@ -175,7 +175,7 @@ function enhanceRegistration() {
       else submit.click()
     })
     select.value = 'pix'
-    submit.textContent = 'Cadastrar como aluno'
+    submit.textContent = 'Continuar para pagamento'
   }
 
   function updateContractOptions() {

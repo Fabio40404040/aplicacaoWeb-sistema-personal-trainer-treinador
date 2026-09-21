@@ -58,47 +58,84 @@ export async function studentAuth(request, env, db, action) {
       ],
     )
     account = result.rows[0]
-    if (!account)
-      return {
-        error: 'Não foi possível cadastrar este e-mail. Tente entrar na sua conta.',
-        status: 409,
-      }
-    try {
-      const student = (
+    let resumedPendingRegistration = false
+    if (!account) {
+      const existing = (
         await db.query(
-          `INSERT INTO students (trainer_id, name, email, goal, status, account_id, access_status, plan_code,
-             access_type, payment_status, payment_method, billing_cycle)
-           VALUES ($1,$2,$3,'A definir','Pausado',$4,'pending',$5,$6,'pending',$7,$8)
-           RETURNING id`,
-          [
-            trainer.id,
-            account.name,
-            account.email,
-            account.id,
-            planCode,
-            accessType,
-            paymentChannel,
-            billingCycle,
-          ],
+          `SELECT a.id,a.name,a.email,a.password_hash,a.auth_version AS "authVersion",
+             s.plan_code AS "planCode",s.billing_cycle AS "billingCycle",s.payment_status AS "paymentStatus"
+           FROM student_accounts a LEFT JOIN students s ON s.id=a.student_id
+           WHERE lower(a.email)=lower($1) LIMIT 1`,
+          [email.trim()],
         )
       ).rows[0]
-      await db.query('UPDATE student_accounts SET student_id=$2 WHERE id=$1', [
-        account.id,
-        student.id,
+      if (!existing || !(await verifyPassword(password, existing.password_hash)))
+        return { error: 'Este e-mail já está em uso. Confira a senha informada.', status: 409 }
+      if (existing.paymentStatus === 'paid')
+        return { error: 'Este e-mail já possui cadastro. Entre na sua conta.', status: 409 }
+      if (existing.planCode !== planCode || existing.billingCycle !== billingCycle)
+        return {
+          error: 'Existe um pagamento pendente para outro plano. Conclua essa contratação ou fale com o personal.',
+          status: 409,
+        }
+      await db.batch([
+        {
+          sql: `UPDATE student_accounts SET requested_payment_channel=$2 WHERE id=$1`,
+          values: [existing.id, paymentChannel],
+        },
+        {
+          sql: `UPDATE students SET payment_method=$2,updated_at=CURRENT_TIMESTAMP WHERE account_id=$1 AND payment_status='pending'`,
+          values: [existing.id, paymentChannel],
+        },
       ])
-    } catch (error) {
-      await db.query('DELETE FROM student_accounts WHERE id=$1', [account.id])
-      throw error
+      account = existing
+      resumedPendingRegistration = true
+    }
+    if (!resumedPendingRegistration) {
+      try {
+        const student = (
+          await db.query(
+            `INSERT INTO students (trainer_id, name, email, goal, status, account_id, access_status, plan_code,
+               access_type, payment_status, payment_method, billing_cycle)
+             VALUES ($1,$2,$3,'A definir','Pausado',$4,'pending',$5,$6,'pending',$7,$8)
+             RETURNING id`,
+            [
+              trainer.id,
+              account.name,
+              account.email,
+              account.id,
+              planCode,
+              accessType,
+              paymentChannel,
+              billingCycle,
+            ],
+          )
+        ).rows[0]
+        await db.query('UPDATE student_accounts SET student_id=$2 WHERE id=$1', [
+          account.id,
+          student.id,
+        ])
+      } catch (error) {
+        await db.query('DELETE FROM student_accounts WHERE id=$1', [account.id])
+        throw error
+      }
     }
   } else {
     const result = await db.query(
-      `SELECT id, name, email, password_hash, auth_version AS "authVersion"
-       FROM student_accounts WHERE lower(email)=lower($1) LIMIT 1`,
+      `SELECT a.id,a.name,a.email,a.password_hash,a.auth_version AS "authVersion",
+         s.payment_status AS "paymentStatus"
+       FROM student_accounts a LEFT JOIN students s ON s.id=a.student_id
+       WHERE lower(a.email)=lower($1) LIMIT 1`,
       [email.trim()],
     )
     account = result.rows[0]
     if (!account || !(await verifyPassword(password, account.password_hash)))
       return { error: 'E-mail ou senha incorretos.', status: 401 }
+    if (account.paymentStatus !== 'paid')
+      return {
+        error: 'Seu cadastro ainda não foi concluído. Volte ao cadastro e confirme o pagamento.',
+        status: 403,
+      }
   }
   return {
     data: {
@@ -108,6 +145,7 @@ export async function studentAuth(request, env, db, action) {
         'student',
       ),
       user: { id: account.id, name: account.name, email: account.email },
+      registrationStatus: action === 'register' ? 'awaiting_payment' : 'complete',
     },
     status: action === 'register' ? 201 : 200,
   }
