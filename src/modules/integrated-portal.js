@@ -628,7 +628,7 @@ function openReadyProgramDialog(program = null) {
   form.elements.durationWeeks.value = Number.parseInt(program?.duration, 10) || 12
   form.elements.description.value = program?.description || ''
   form.elements.colorTheme.value = program?.colorTheme || 'red'
-  form.elements.published.checked = Boolean(program?.published)
+  form.elements.published.checked = program ? Boolean(program.published) : true
   let prescriptions
   try {
     prescriptions =
@@ -789,7 +789,39 @@ function renderReadyWorkoutLibrary() {
       showToast('Treino pronto excluído.')
       window.dispatchEvent(new Event('frs:remote-refresh'))
     })
-    actions.append(pdf, edit, remove)
+    const toggle = document.createElement('button')
+    toggle.className = program.published ? 'button button--secondary' : 'button button--primary'
+    toggle.type = 'button'
+    toggle.textContent = program.published ? 'Despublicar' : 'Publicar para os alunos'
+    toggle.addEventListener('click', async () => {
+      toggle.disabled = true
+      try {
+        await persistReadyProgram(
+          {
+            name: program.name,
+            goal: program.goal,
+            level: program.level,
+            duration: program.duration,
+            description: program.description,
+            colorTheme: program.colorTheme,
+            published: !program.published,
+            exercisePrescriptions: program.exercisePrescriptions,
+          },
+          program.id,
+        )
+        showToast(
+          program.published
+            ? 'Treino pronto voltou para rascunho.'
+            : 'Treino pronto publicado. Já aparece na área do aluno.',
+        )
+        window.dispatchEvent(new Event('frs:remote-refresh'))
+      } catch (error) {
+        showToast(error.message)
+      } finally {
+        toggle.disabled = false
+      }
+    })
+    actions.append(toggle, pdf, edit, remove)
     grid.append(card)
   })
   if (!programs.length) {
