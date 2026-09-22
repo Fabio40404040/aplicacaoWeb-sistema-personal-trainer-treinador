@@ -81,10 +81,14 @@ async function handle(request, env) {
       return { error: "Use sua conta de aluno.", status: 403 };
     return withDb(env, async (db) => {
       if (request.method === "GET" && route === "student/me") {
-        await reconcileStudentPayments(db, session.sub, env);
+        const reconcileResult = await reconcileStudentPayments(
+          db,
+          session.sub,
+          env,
+        );
         const data = await studentPortal(db, session.sub, session.version);
         return data
-          ? { data }
+          ? { data: { ...data, _reconcileDebug: reconcileResult } } // DIAGNÓSTICO TEMPORÁRIO — remover depois
           : { error: "Conta não encontrada.", status: 401 };
       }
       if (request.method === "POST" && route === "student/checkins")
@@ -230,16 +234,15 @@ async function handle(request, env) {
     const [resource, id] = segments;
     if (request.method === "GET" && !id)
       return { data: await listResource(db, resource, session.sub) };
-    if (request.method === "POST" && !id)
-      return {
-        data: await createResource(
-          db,
-          resource,
-          session.sub,
-          await readJson(request),
-        ),
-        status: 201,
-      };
+    if (request.method === "POST" && !id) {
+      const created = await createResource(
+        db,
+        resource,
+        session.sub,
+        await readJson(request),
+      );
+      return created?.error ? created : { data: created, status: 201 };
+    }
     if (request.method === "PUT" && id)
       return {
         data: await updateResource(

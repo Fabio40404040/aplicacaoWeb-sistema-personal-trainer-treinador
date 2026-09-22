@@ -27,6 +27,7 @@ function saveAndRefresh(collection, record, id) {
     .catch((error) => showToast(error.message))
 }
 async function handleStudent(form) {
+  const editingId = editing.student
   const record = {
     name: value(form, 'name'),
     email: value(form, 'email'),
@@ -34,10 +35,16 @@ async function handleStudent(form) {
     status: value(form, 'status'),
     assessmentDate: value(form, 'assessmentDate'),
   }
-  const editingId = editing.student
+  if (!editingId) record.password = value(form, 'password')
   await persistRecord('students', record, editingId)
   await syncRemoteData()
-  showToast(editingId ? 'Aluno atualizado com sucesso.' : 'Aluno cadastrado com sucesso.')
+  showToast(
+    editingId
+      ? 'Aluno atualizado com sucesso.'
+      : record.password
+        ? 'Aluno cadastrado com acesso liberado para login.'
+        : 'Aluno cadastrado com sucesso.',
+  )
   editing.student = null
 }
 function handleWorkout(form) {
@@ -89,7 +96,7 @@ function handleWorkout(form) {
     permanentAccess: false,
   }
   updateData((d) => {
-    const old = d.workouts.find((w) => String(w.id) === String(editing.workout))
+    const old = d.workouts.find((w) => w.id === editing.workout)
     if (old)
       Object.assign(old, record, {
         publishedAt: record.published ? old.publishedAt || new Date().toISOString() : null,
@@ -122,7 +129,7 @@ function handleExercise(form) {
     animationClip: value(form, 'animationClip'),
   }
   updateData((d) => {
-    const old = d.exercises.find((e) => String(e.id) === String(editing.exercise))
+    const old = d.exercises.find((e) => e.id === editing.exercise)
     if (old) Object.assign(old, record)
     else d.exercises.unshift({ id: createId('e'), ...record })
   })
@@ -194,7 +201,7 @@ function handleAppointment(form) {
   }
   updateData((d) => {
     d.appointments ||= []
-    const old = d.appointments.find((item) => String(item.id) === String(editing.appointment))
+    const old = d.appointments.find((item) => item.id === editing.appointment)
     if (old) Object.assign(old, record)
     else d.appointments.push({ id: createId('ap'), ...record })
   })
@@ -211,7 +218,7 @@ function fillForm(type, id) {
         : type === 'appointment'
           ? 'appointments'
           : 'exercises'
-  const record = getData()[collection].find((item) => String(item.id) === String(id))
+  const record = getData()[collection].find((item) => item.id === id)
   if (!record) return
   editing[type] = id
   const form = document.querySelector(`[data-form="${type}"]`)
@@ -241,6 +248,11 @@ function fillForm(type, id) {
     form.querySelector('header .eyebrow').textContent = 'Editar cadastro'
     form.querySelector('header h2').textContent = 'Editar aluno'
     form.querySelector('[type="submit"]').textContent = 'Salvar alterações'
+    const passwordField = form.querySelector('[data-student-password-field]')
+    if (passwordField) {
+      passwordField.hidden = true
+      form.elements.password.value = ''
+    }
   }
   openModal(type)
 }
@@ -253,6 +265,11 @@ export function initForms() {
         form.querySelector('header .eyebrow').textContent = 'Cadastro manual'
         form.querySelector('header h2').textContent = 'Adicionar aluno presencial'
         form.querySelector('[type="submit"]').textContent = 'Adicionar aluno presencial'
+        const passwordField = form.querySelector('[data-student-password-field]')
+        if (passwordField) {
+          passwordField.hidden = false
+          form.elements.password.value = ''
+        }
       }
       openModal(b.dataset.openModal)
     }),

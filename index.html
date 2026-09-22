@@ -1958,6 +1958,30 @@
               name="assessmentDate"
               type="date"
           /></label>
+          <div data-student-password-field>
+            <label class="field"
+              ><span>Senha de acesso (opcional)</span
+              ><input
+                name="password"
+                type="text"
+                autocomplete="new-password"
+                aria-describedby="student-manual-password-requirements"
+                minlength="8"
+                maxlength="128"
+                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s])\S{8,128}"
+                title="Use no mínimo 8 caracteres, com letra maiúscula, letra minúscula, número e caractere especial."
+                placeholder="Deixe em branco se o aluno for se cadastrar depois"
+            /></label>
+            <p
+              class="password-requirements"
+              id="student-manual-password-requirements"
+            >
+              Preencha para o aluno já entrar no portal com esse e-mail e
+              senha (útil se ele esqueceu o celular na consulta). Depois é só
+              você repassar o e-mail e a senha para ele. Se deixar em branco,
+              o aluno poderá se cadastrar sozinho depois.
+            </p>
+          </div>
         </div>
         <footer>
           <button

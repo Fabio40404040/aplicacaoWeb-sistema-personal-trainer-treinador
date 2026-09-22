@@ -1,3 +1,5 @@
+import { hashPassword, isStrongPassword } from "../lib/session.js";
+
 const configs = {
   students: {
     select: `SELECT id,name,email,goal,status,assessment_date AS "assessmentDate", access_status AS "accessStatus",
@@ -204,6 +206,41 @@ export async function createResource(db, resource, trainerId, body) {
     return row;
   }
   const config = configs[resource];
+  if (resource === "students") {
+    const password = typeof body.password === "string" ? body.password.trim() : "";
+    if (password && !isStrongPassword(password))
+      return {
+        error:
+          "A senha deve ter no mínimo 8 caracteres, com maiúscula, minúscula, número e caractere especial.",
+        status: 400,
+      };
+    const student = (
+      await db.query(config.insert, [trainerId, ...config.values(body)])
+    ).rows[0];
+    if (student && password) {
+      const account = (
+        await db.query(
+          `INSERT INTO student_accounts (name,email,password_hash,trainer_id,student_id,requested_plan_code,requested_payment_channel,requested_billing_cycle)
+           VALUES ($1,$2,$3,$4,$5,'basic','presencial','quarterly') ON CONFLICT DO NOTHING
+           RETURNING id`,
+          [student.name, student.email, await hashPassword(password), trainerId, student.id],
+        )
+      ).rows[0];
+      if (!account) {
+        await db.query("DELETE FROM students WHERE id=$1", [student.id]);
+        return {
+          error:
+            "Este e-mail já está em uso por outro aluno. Use outro e-mail ou cadastre sem senha.",
+          status: 409,
+        };
+      }
+      await db.query("UPDATE students SET account_id=$1 WHERE id=$2", [
+        account.id,
+        student.id,
+      ]);
+    }
+    return student;
+  }
   return config
     ? (await db.query(config.insert, [trainerId, ...config.values(body)]))
         .rows[0]
