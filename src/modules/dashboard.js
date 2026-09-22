@@ -92,25 +92,26 @@ function renderStudents() {
           ? 'status--active'
           : 'status--paused',
       )
-      const isPresentialPending =
-        !student.accountId &&
-        (student.accessStatus !== 'active' || student.paymentStatus !== 'paid')
+      // Mesmo botão, bem visível, pra qualquer aluno ainda não liberado —
+      // não importa se foi cadastrado presencialmente ou se ele mesmo se
+      // cadastrou pelo site. Antes só o presencial ganhava um botão grande;
+      // o do WebApp ficava só com um "✓" pequeno, fácil de não perceber.
+      const needsRelease =
+        student.accessStatus !== 'active' || student.paymentStatus !== 'paid'
       const manage = document.createElement('button')
-      manage.className = isPresentialPending
+      manage.className = needsRelease
         ? 'button button--primary student-release-button'
         : 'icon-button'
       manage.type = 'button'
       manage.dataset.action = 'access'
-      manage.title = isPresentialPending
-        ? 'Confirmar pagamento presencial e liberar acesso'
+      manage.title = needsRelease
+        ? 'Confirmar pagamento e liberar acesso'
         : 'Plano, pagamento e acesso'
       manage.setAttribute(
         'aria-label',
-        isPresentialPending
-          ? `Liberar aluno presencial ${student.name}`
-          : 'Gerenciar plano e acesso',
+        needsRelease ? `Liberar acesso de ${student.name}` : 'Gerenciar plano e acesso',
       )
-      manage.textContent = isPresentialPending ? 'Liberar presencial' : '✓'
+      manage.textContent = needsRelease ? 'Liberar acesso' : '✓'
       row.querySelector('.row-actions').prepend(manage)
       return row
     }),
