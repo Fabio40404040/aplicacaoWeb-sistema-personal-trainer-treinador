@@ -63,6 +63,14 @@ function fitText(value, maxChars, baseSize, minSize = 8) {
   return { text: content, size };
 }
 
+// Estimativa simples da largura do texto (Helvetica bold ~0.62 do corpo da
+// fonte por caractere) pra centralizar um rótulo num ponto x, em vez de um
+// x fixo que fica torto dependendo do tamanho do texto.
+function centeredX(value, size, targetCenterX, factor = 0.62) {
+  const width = ascii(value).length * size * factor;
+  return targetCenterX - width / 2;
+}
+
 function text(commands, value, x, top, size = 10, options = {}) {
   const font = options.bold ? "F2" : "F1";
   const color = options.color || COLORS.ink;
@@ -300,8 +308,11 @@ function drawExerciseCard(commands, exercise, top, number) {
     },
   );
   circle(commands, 520, top + 76, 31, COLORS.white, COLORS.ink);
-  text(commands, "INTERVALO", 492, top + 55, 7, { bold: true });
-  text(commands, `${Number(exercise.restSeconds) || 0}s`, 505, top + 70, 12, {
+  text(commands, "INTERVALO", centeredX("INTERVALO", 7, 520), top + 55, 7, {
+    bold: true,
+  });
+  const restLabel = `${Number(exercise.restSeconds) || 0}s`;
+  text(commands, restLabel, centeredX(restLabel, 12, 520), top + 70, 12, {
     bold: true,
   });
   const note = exercise.notes || exercise.instructions;
