@@ -26,6 +26,30 @@ function saveAndRefresh(collection, record, id) {
     .then(syncRemoteData)
     .catch((error) => showToast(error.message))
 }
+function generatePassword() {
+  const lower = 'abcdefghijkmnopqrstuvwxyz'
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+  const digits = '23456789'
+  const specials = '@#$%&*!?'
+  const random = (max) => crypto.getRandomValues(new Uint32Array(1))[0] % max
+  const pick = (set) => set[random(set.length)]
+  const every = lower + upper + digits + specials
+  const characters = [pick(lower), pick(upper), pick(digits), pick(specials)]
+  while (characters.length < 12) characters.push(pick(every))
+  for (let index = characters.length - 1; index > 0; index -= 1) {
+    const swap = random(index + 1)
+    ;[characters[index], characters[swap]] = [characters[swap], characters[index]]
+  }
+  return characters.join('')
+}
+function toggleStudentPassword(form, enabled) {
+  const wrapper = form.querySelector('[data-student-password-field]')
+  const field = form.elements.password
+  if (!wrapper || !field) return
+  wrapper.hidden = !enabled
+  field.disabled = !enabled
+  field.value = ''
+}
 async function handleStudent(form) {
   const editingId = editing.student
   const record = {
@@ -42,7 +66,7 @@ async function handleStudent(form) {
     editingId
       ? 'Aluno atualizado com sucesso.'
       : record.password
-        ? 'Aluno cadastrado com acesso liberado para login.'
+        ? `Aluno cadastrado! Ele já entra com ${record.email} e a senha definida.`
         : 'Aluno cadastrado com sucesso.',
   )
   editing.student = null
@@ -248,11 +272,7 @@ function fillForm(type, id) {
     form.querySelector('header .eyebrow').textContent = 'Editar cadastro'
     form.querySelector('header h2').textContent = 'Editar aluno'
     form.querySelector('[type="submit"]').textContent = 'Salvar alterações'
-    const passwordField = form.querySelector('[data-student-password-field]')
-    if (passwordField) {
-      passwordField.hidden = true
-      form.elements.password.value = ''
-    }
+    toggleStudentPassword(form, false)
   }
   openModal(type)
 }
@@ -265,13 +285,17 @@ export function initForms() {
         form.querySelector('header .eyebrow').textContent = 'Cadastro manual'
         form.querySelector('header h2').textContent = 'Adicionar aluno presencial'
         form.querySelector('[type="submit"]').textContent = 'Adicionar aluno presencial'
-        const passwordField = form.querySelector('[data-student-password-field]')
-        if (passwordField) {
-          passwordField.hidden = false
-          form.elements.password.value = ''
-        }
+        toggleStudentPassword(form, true)
       }
       openModal(b.dataset.openModal)
+    }),
+  )
+  document.querySelectorAll('[data-generate-password]').forEach((button) =>
+    button.addEventListener('click', () => {
+      const field = button.closest('form').elements.password
+      field.value = generatePassword()
+      field.focus()
+      field.select()
     }),
   )
   const handlers = {

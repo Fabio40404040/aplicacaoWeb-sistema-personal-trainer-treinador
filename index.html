@@ -1960,26 +1960,33 @@
           /></label>
           <div data-student-password-field>
             <label class="field"
-              ><span>Senha de acesso (opcional)</span
+              ><span>Senha de acesso do aluno</span
               ><input
                 name="password"
                 type="text"
-                autocomplete="new-password"
+                autocomplete="off"
                 aria-describedby="student-manual-password-requirements"
+                required
                 minlength="8"
                 maxlength="128"
                 pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s])\S{8,128}"
                 title="Use no mínimo 8 caracteres, com letra maiúscula, letra minúscula, número e caractere especial."
-                placeholder="Deixe em branco se o aluno for se cadastrar depois"
+                placeholder="Ex.: Treino@2026"
             /></label>
+            <button
+              class="button button--secondary"
+              type="button"
+              data-generate-password
+            >
+              Gerar senha automática
+            </button>
             <p
               class="password-requirements"
               id="student-manual-password-requirements"
             >
-              Preencha para o aluno já entrar no portal com esse e-mail e
-              senha (útil se ele esqueceu o celular na consulta). Depois é só
-              você repassar o e-mail e a senha para ele. Se deixar em branco,
-              o aluno poderá se cadastrar sozinho depois.
+              O aluno entra no portal com o e-mail acima e esta senha — anote
+              e entregue para ele. Mínimo de 8 caracteres, com letra
+              maiúscula, minúscula, número e caractere especial.
             </p>
           </div>
         </div>
