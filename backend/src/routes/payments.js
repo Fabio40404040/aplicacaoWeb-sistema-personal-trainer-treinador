@@ -18,6 +18,16 @@ function expiryFor(plan, billingCycle) {
   return result.toISOString()
 }
 
+function mercadoPagoErrorDetail(data) {
+  const causeDetail = Array.isArray(data?.cause)
+    ? data.cause
+        .map((item) => item?.description || item?.code)
+        .filter(Boolean)
+        .join('; ')
+    : ''
+  return causeDetail || data?.message || data?.error || ''
+}
+
 async function mercadoPago(path, env, options = {}) {
   if (!env.MERCADO_PAGO_ACCESS_TOKEN)
     throw new Error('O Mercado Pago ainda não foi configurado pelo personal.')
@@ -32,7 +42,12 @@ async function mercadoPago(path, env, options = {}) {
   const data = await response.json().catch(() => ({}))
   if (!response.ok) {
     console.error('Mercado Pago:', response.status, data)
-    throw new Error('Não foi possível iniciar o pagamento. Tente novamente.')
+    const detail = mercadoPagoErrorDetail(data)
+    throw new Error(
+      detail
+        ? `Não foi possível iniciar o pagamento: ${detail}`
+        : 'Não foi possível iniciar o pagamento. Tente novamente.',
+    )
   }
   return data
 }
