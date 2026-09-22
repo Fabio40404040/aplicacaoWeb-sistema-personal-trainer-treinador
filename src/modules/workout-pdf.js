@@ -446,3 +446,47 @@ export function downloadWorkoutPdf(workout, studentName) {
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(link.href), 30_000);
 }
+
+// Mostra a ficha num visualizador embutido na própria página, sem oferecer
+// o botão de salvar/baixar do navegador (o "toolbar=0" remove o ícone de
+// download do leitor de PDF nativo do Chrome/Edge). Isso não impede 100% a
+// cópia — um usuário decidido sempre consegue tirar print ou usar "imprimir
+// em PDF" do sistema — mas tira o "baixar com um clique" da tela do aluno.
+export function previewWorkoutPdf(workout, studentName) {
+  const blob = new Blob([buildWorkoutPdfBytes(workout, studentName)], {
+    type: "application/pdf",
+  });
+  const url = URL.createObjectURL(blob);
+  const dialog = document.createElement("dialog");
+  dialog.className = "workout-pdf-preview";
+  Object.assign(dialog.style, {
+    width: "min(880px, 96vw)",
+    height: "min(90vh, 1000px)",
+    padding: "0",
+    border: "none",
+    borderRadius: "12px",
+    overflow: "hidden",
+  });
+  dialog.innerHTML = `
+    <div style="display:flex;flex-direction:column;height:100%;">
+      <header style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #e2e2e2;">
+        <strong>Ficha de treino</strong>
+        <button type="button" class="icon-button" data-close-pdf-preview aria-label="Fechar">×</button>
+      </header>
+      <iframe src="${url}#toolbar=0&navpanes=0" style="flex:1;border:0;" title="Ficha de treino em PDF"></iframe>
+    </div>
+  `;
+  document.body.append(dialog);
+  const cleanup = () => {
+    URL.revokeObjectURL(url);
+    dialog.remove();
+  };
+  dialog.addEventListener("close", cleanup);
+  dialog
+    .querySelector("[data-close-pdf-preview]")
+    .addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+  dialog.showModal();
+}

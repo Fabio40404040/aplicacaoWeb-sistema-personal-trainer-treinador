@@ -1,4 +1,4 @@
-import { downloadWorkoutPdf } from "./workout-pdf.js";
+import { previewWorkoutPdf } from "./workout-pdf.js";
 import { openSecureCardForm } from "./mercado-pago-card.js";
 import { createQrCodeImage } from "./pix.js";
 import { findExerciseVideo } from "../data/library.js";
@@ -61,6 +61,16 @@ function article(title) {
 }
 function addLine(parent, text, strong = false) {
   parent.append(element(strong ? "strong" : "p", "", text));
+}
+// Reduz o "baixar com um clique": tira o ícone de download dos controles
+// nativos do navegador e bloqueia o menu de clique-direito sobre o vídeo.
+// Não é uma proteção definitiva (sempre dá para gravar a tela ou usar as
+// ferramentas de desenvolvedor), mas evita o caminho fácil.
+function hardenVideo(video) {
+  video.setAttribute("controlsList", "nodownload noremoteplayback");
+  video.disablePictureInPicture = true;
+  video.addEventListener("contextmenu", (event) => event.preventDefault());
+  return video;
 }
 const billingCycleLabels = {
   monthly: "Plano mensal · 30 dias",
@@ -216,7 +226,7 @@ function appendExerciseMedia(parent, exercise, uploadedVideo) {
       load.disabled = true;
       load.textContent = "Carregando vídeo…";
       try {
-        const video = element("video", "student-exercise-video");
+        const video = hardenVideo(element("video", "student-exercise-video"));
         video.controls = true;
         video.preload = "metadata";
         video.playsInline = true;
@@ -247,7 +257,7 @@ function appendExerciseMedia(parent, exercise, uploadedVideo) {
     return;
   }
   if (mediaType === "video") {
-    const video = element("video", "student-exercise-video");
+    const video = hardenVideo(element("video", "student-exercise-video"));
     video.controls = true;
     video.preload = "metadata";
     video.playsInline = true;
@@ -324,11 +334,11 @@ function renderReadyWorkoutLibrary(container, data) {
     const open = element(
       "button",
       "button button--secondary",
-      "Baixar PDF completo",
+      "Ver ficha completa",
     );
     open.type = "button";
     open.addEventListener("click", () =>
-      downloadWorkoutPdf({ ...workout, readyProgram: true }, "Treino Pronto"),
+      previewWorkoutPdf({ ...workout, readyProgram: true }, "Treino Pronto"),
     );
     block.append(open);
     appendExerciseGroups(
@@ -368,11 +378,11 @@ function renderPortal(container, data) {
       const download = element(
         "button",
         "button button--secondary",
-        "Baixar PDF personalizado",
+        "Ver ficha personalizada",
       );
       download.type = "button";
       download.addEventListener("click", () =>
-        downloadWorkoutPdf(workout, data.name),
+        previewWorkoutPdf(workout, data.name),
       );
       workoutBlock.append(download);
       if (!workout.exercises.length)
