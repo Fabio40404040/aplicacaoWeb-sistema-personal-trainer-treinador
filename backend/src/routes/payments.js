@@ -389,7 +389,7 @@ async function approvePayment(db, intent, payment, paymentId) {
     {
       sql: `INSERT INTO payments (trainer_id,student_id,plan_code,amount_cents,status,method,provider,provider_reference,paid_at,billing_cycle)
        VALUES ($1,$2,$3,$4,'paid',$5,'mercadopago',$6,CURRENT_TIMESTAMP,$7)
-       ON CONFLICT(provider_reference) DO NOTHING`,
+       ON CONFLICT(provider_reference) WHERE provider_reference IS NOT NULL DO NOTHING`,
       values: [
         intent.trainer_id,
         intent.student_id,
