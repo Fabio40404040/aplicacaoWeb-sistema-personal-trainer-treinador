@@ -426,7 +426,7 @@ async function officialPaymentForIntent(intent, env) {
 }
 
 export async function reconcileStudentPayments(db, accountId, env) {
-  if (!env.MERCADO_PAGO_ACCESS_TOKEN) return { checked: false, updated: false }
+  if (!env.MERCADO_PAGO_ACCESS_TOKEN) return { checked: false, updated: false, errors: [] }
   const intents = (
     await db.query(
       `SELECT i.*, p.access_type AS "accessType" FROM payment_intents i
@@ -438,10 +438,17 @@ export async function reconcileStudentPayments(db, accountId, env) {
     )
   ).rows
   let updated = false
+  // DIAGNÓSTICO TEMPORÁRIO — remover depois de confirmar a liberação automática.
+  const errors = []
   for (const intent of intents) {
     try {
       const payment = await officialPaymentForIntent(intent, env)
-      if (!payment) continue
+      if (!payment) {
+        errors.push(
+          `intent ${intent.id} (ref ${intent.provider_reference || '—'}): pagamento não encontrado no Mercado Pago`,
+        )
+        continue
+      }
       if (payment.status === 'approved') {
         await approvePayment(db, intent, payment, String(payment.id || ''))
         updated = true
@@ -452,15 +459,19 @@ export async function reconcileStudentPayments(db, accountId, env) {
       )
         ? payment.status
         : 'pending'
+      errors.push(
+        `intent ${intent.id} (ref ${intent.provider_reference || '—'}): status do Mercado Pago = ${payment.status}`,
+      )
       await db.query(
         `UPDATE payment_intents SET status=$2,provider_reference=$3,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,
         [intent.id, status, String(payment.id || intent.provider_reference || '')],
       )
     } catch (error) {
       console.error('Não foi possível reconciliar o pagamento.', intent.id, error)
+      errors.push(`intent ${intent.id} (ref ${intent.provider_reference || '—'}): ${error.message}`)
     }
   }
-  return { checked: true, updated }
+  return { checked: true, updated, errors }
 }
 
 export async function mercadoPagoWebhook(request, env, db) {

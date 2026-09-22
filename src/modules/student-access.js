@@ -522,6 +522,10 @@ export function initStudentAccess() {
             ? "Seu pré-cadastro está ativo. Conclua o pagamento para liberar o acesso."
             : "Seu acompanhamento está aguardando liberação.";
       }
+      // DIAGNÓSTICO TEMPORÁRIO — remover depois de confirmar a liberação automática.
+      if (data._reconcileDebug?.errors?.length) {
+        status.textContent += ` [debug: ${data._reconcileDebug.errors.join(" | ")}]`;
+      }
       if (data.access.active) renderPortal(container, data);
       else renderLocked(container, data, loadPanel);
     } catch (error) {

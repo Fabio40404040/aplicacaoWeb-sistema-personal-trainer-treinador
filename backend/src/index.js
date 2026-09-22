@@ -81,10 +81,14 @@ async function handle(request, env) {
       return { error: "Use sua conta de aluno.", status: 403 };
     return withDb(env, async (db) => {
       if (request.method === "GET" && route === "student/me") {
-        await reconcileStudentPayments(db, session.sub, env);
+        const reconcileResult = await reconcileStudentPayments(
+          db,
+          session.sub,
+          env,
+        );
         const data = await studentPortal(db, session.sub, session.version);
         return data
-          ? { data }
+          ? { data: { ...data, _reconcileDebug: reconcileResult } } // DIAGNÓSTICO TEMPORÁRIO — remover depois
           : { error: "Conta não encontrada.", status: 401 };
       }
       if (request.method === "POST" && route === "student/checkins")
