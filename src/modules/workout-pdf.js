@@ -148,7 +148,10 @@ function drawHeader(commands, workout, studentName, continuation = false) {
   });
   rect(commands, 25, 80, 545, 54, COLORS.panel, COLORS.line);
   text(commands, "ALUNO", 39, 92, 7, { bold: true, color: COLORS.muted });
-  const alunoFit = fitText(studentName, 30, 13, 9);
+  // Orçamento de caracteres calibrado para o espaço real até a coluna
+  // PROGRAMA (x=255), pra nomes compridos nunca mais invadirem o campo
+  // vizinho.
+  const alunoFit = fitText(studentName, 22, 13, 7);
   text(commands, alunoFit.text, 39, 105, alunoFit.size, { bold: true });
   text(commands, "PROGRAMA", 255, 92, 7, { bold: true, color: COLORS.muted });
   const programFit = fitText(workout.name, 27, 11, 8);
@@ -399,30 +402,28 @@ function buildPages(workout, studentName) {
   return pages;
 }
 
-// Marca d'água "FRS-PERSONAL" repetida na diagonal, desenhada por cima de
-// tudo com transparência real (ExtGState /GS1), então aparece mesmo sobre
-// os cartões coloridos dos exercícios.
+// Marca d'água "FRS-PERSONAL" em textura pequena e bem sutil, repetida em
+// grade por cima de tudo (transparência real via ExtGState /GS1). Usar
+// muitos carimbos pequenos e bem apagados, em vez de poucos grandes,
+// evita que um deles caia bem em cima de um número/círculo e "estrague"
+// visualmente aquele ponto específico — o efeito fica uniforme na página
+// inteira. Evita a faixa do cabeçalho (título, nome, programa) e do
+// rodapé, pra nunca cruzar com esse texto fino.
 function drawWatermark(commands) {
   const label = escapePdf("FRS-PERSONAL");
-  const angle = (35 * Math.PI) / 180;
+  const angle = (30 * Math.PI) / 180;
   const cos = Math.cos(angle).toFixed(4);
   const sin = Math.sin(angle).toFixed(4);
-  // Evita a faixa do cabeçalho (título, nome e programa) e do rodapé, pra
-  // não desenhar a marca d'água em cima de texto fino e "embaralhar" as
-  // letras. A fonte menor (26) também reduz o tamanho de cada carimbo.
-  const positions = [
-    [70, 60],
-    [320, 60],
-    [70, 290],
-    [320, 290],
-    [70, 520],
-    [320, 520],
-  ];
-  commands.push("q /GS1 gs 0.45 0.45 0.45 rg");
-  positions.forEach(([x, y]) => {
-    commands.push(
-      `BT /F2 26 Tf ${cos} ${sin} ${-sin} ${cos} ${x} ${y} Tm (${label}) Tj ET`,
-    );
+  const cols = [40, 210, 380, 550];
+  const rows = [60, 190, 320, 450, 580];
+  commands.push("q /GS1 gs 0.5 0.5 0.5 rg");
+  rows.forEach((y, rowIndex) => {
+    const offsetX = rowIndex % 2 === 0 ? 0 : 95;
+    cols.forEach((x) => {
+      commands.push(
+        `BT /F2 12 Tf ${cos} ${sin} ${-sin} ${cos} ${x + offsetX} ${y} Tm (${label}) Tj ET`,
+      );
+    });
   });
   commands.push("Q");
 }
@@ -448,7 +449,7 @@ function pdfDocument(pages) {
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
   objects[boldFontId] =
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>";
-  objects[watermarkGsId] = "<< /Type /ExtGState /ca 0.14 /CA 0.14 >>";
+  objects[watermarkGsId] = "<< /Type /ExtGState /ca 0.09 /CA 0.09 >>";
   let output = "%PDF-1.4\n";
   const offsets = [0];
   for (let id = 1; id < objects.length; id += 1) {
