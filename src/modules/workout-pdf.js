@@ -132,17 +132,16 @@ function drawExerciseFigure(commands, x, top, number) {
 
 function drawHeader(commands, workout, studentName, continuation = false) {
   rect(commands, 25, 20, 545, 52, COLORS.blue);
-  text(
-    commands,
-    continuation ? "FICHA DE TREINO - CONTINUACAO" : "FICHA DE TREINO",
-    42,
-    31,
+  const titleFit = fitText(
+    continuation ? "FICHA DE TREINO (CONT.)" : "FICHA DE TREINO",
+    24,
     22,
-    {
-      bold: true,
-      color: COLORS.white,
-    },
+    14,
   );
+  text(commands, titleFit.text, 42, 31, titleFit.size, {
+    bold: true,
+    color: COLORS.white,
+  });
   text(commands, "FRS PERSONAL TRAINER", 414, 37, 9, {
     bold: true,
     color: COLORS.white,
@@ -152,7 +151,8 @@ function drawHeader(commands, workout, studentName, continuation = false) {
   const alunoFit = fitText(studentName, 30, 13, 9);
   text(commands, alunoFit.text, 39, 105, alunoFit.size, { bold: true });
   text(commands, "PROGRAMA", 255, 92, 7, { bold: true, color: COLORS.muted });
-  text(commands, truncate(workout.name, 27), 255, 105, 11, { bold: true });
+  const programFit = fitText(workout.name, 27, 11, 8);
+  text(commands, programFit.text, 255, 105, programFit.size, { bold: true });
   text(commands, "OBJETIVO / DURACAO", 430, 92, 7, {
     bold: true,
     color: COLORS.muted,
@@ -407,18 +407,21 @@ function drawWatermark(commands) {
   const angle = (35 * Math.PI) / 180;
   const cos = Math.cos(angle).toFixed(4);
   const sin = Math.sin(angle).toFixed(4);
+  // Evita a faixa do cabeçalho (título, nome e programa) e do rodapé, pra
+  // não desenhar a marca d'água em cima de texto fino e "embaralhar" as
+  // letras. A fonte menor (26) também reduz o tamanho de cada carimbo.
   const positions = [
-    [60, 90],
-    [280, 230],
-    [60, 380],
-    [300, 520],
-    [60, 660],
-    [280, 770],
+    [70, 60],
+    [320, 60],
+    [70, 290],
+    [320, 290],
+    [70, 520],
+    [320, 520],
   ];
   commands.push("q /GS1 gs 0.45 0.45 0.45 rg");
   positions.forEach(([x, y]) => {
     commands.push(
-      `BT /F2 40 Tf ${cos} ${sin} ${-sin} ${cos} ${x} ${y} Tm (${label}) Tj ET`,
+      `BT /F2 26 Tf ${cos} ${sin} ${-sin} ${cos} ${x} ${y} Tm (${label}) Tj ET`,
     );
   });
   commands.push("Q");
