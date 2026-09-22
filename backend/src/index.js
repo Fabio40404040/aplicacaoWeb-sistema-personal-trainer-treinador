@@ -40,6 +40,13 @@ import {
   uploadExerciseVideo,
 } from "./routes/exercise-videos.js";
 import {
+  deleteExerciseGif,
+  listExerciseGifs,
+  studentExerciseGifFile,
+  trainerExerciseGifFile,
+  uploadExerciseGif,
+} from "./routes/exercise-gifs.js";
+import {
   createReadyProgram,
   deleteReadyProgram,
   updateReadyProgram,
@@ -115,6 +122,18 @@ async function handle(request, env) {
         segments[3] === "file"
       )
         return studentExerciseVideoFile(env, db, session.sub, segments[2]);
+      if (
+        request.method === "GET" &&
+        segments[1] === "exercise-gifs" &&
+        (segments[3] === "file" || segments[3] === "frame")
+      )
+        return studentExerciseGifFile(
+          env,
+          db,
+          session.sub,
+          segments[2],
+          segments[3],
+        );
       return { error: "Rota não encontrada.", status: 404 };
     });
   }
@@ -231,6 +250,32 @@ async function handle(request, env) {
       segments[2] === "file"
     )
       return trainerExerciseVideoFile(env, db, session.sub, segments[1]);
+    if (request.method === "GET" && route === "exercise-gifs")
+      return { data: await listExerciseGifs(db, session.sub) };
+    if (request.method === "POST" && route === "exercise-gifs") {
+      const result = await uploadExerciseGif(request, env, db, session.sub);
+      return result?.error ? result : { data: result, status: 201 };
+    }
+    if (
+      request.method === "DELETE" &&
+      segments[0] === "exercise-gifs" &&
+      segments[1]
+    ) {
+      const result = await deleteExerciseGif(env, db, session.sub, segments[1]);
+      return result?.error ? result : { data: null, status: 204 };
+    }
+    if (
+      request.method === "GET" &&
+      segments[0] === "exercise-gifs" &&
+      (segments[2] === "file" || segments[2] === "frame")
+    )
+      return trainerExerciseGifFile(
+        env,
+        db,
+        session.sub,
+        segments[1],
+        segments[2],
+      );
     const [resource, id] = segments;
     if (request.method === "GET" && !id)
       return { data: await listResource(db, resource, session.sub) };

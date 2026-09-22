@@ -1,6 +1,7 @@
 import { createId, getData, updateData } from './state.js'
 import { showToast } from './utils.js'
 import { persistRecord, syncRemoteData } from './api-client.js'
+import { setExerciseGifField } from './exercise-gifs.js'
 
 const editing = {
   student: null,
@@ -151,6 +152,7 @@ function handleExercise(form) {
     mediaType: value(form, 'mediaType'),
     mediaUrl: value(form, 'mediaUrl'),
     animationClip: value(form, 'animationClip'),
+    gifId: value(form, 'gifId'),
   }
   updateData((d) => {
     const old = d.exercises.find((e) => e.id === editing.exercise)
@@ -268,6 +270,7 @@ function fillForm(type, id) {
     form.elements.duration.value = String(Math.max(30, Math.round((end - start) / 60_000)))
   }
   if (form.elements.published) form.elements.published.checked = Boolean(record.publishedAt)
+  if (type === 'exercise') setExerciseGifField(form, record.gifId)
   if (type === 'student') {
     form.querySelector('header .eyebrow').textContent = 'Editar cadastro'
     form.querySelector('header h2').textContent = 'Editar aluno'
@@ -280,6 +283,10 @@ export function initForms() {
   document.querySelectorAll('[data-open-modal]').forEach((b) =>
     b.addEventListener('click', () => {
       editing[b.dataset.openModal] = null
+      if (b.dataset.openModal === 'exercise') {
+        const form = document.querySelector('[data-form="exercise"]')
+        if (form) setExerciseGifField(form, '')
+      }
       if (b.dataset.openModal === 'student') {
         const form = document.querySelector('[data-form="student"]')
         form.querySelector('header .eyebrow').textContent = 'Cadastro manual'

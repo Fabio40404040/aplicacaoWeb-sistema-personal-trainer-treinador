@@ -2,6 +2,7 @@ import { getData, updateData } from './state.js'
 import { formatDate, initials, showToast } from './utils.js'
 import { removeRecord } from './api-client.js'
 import { downloadWorkoutPdf } from './workout-pdf.js'
+import { applyExerciseGifThumb, exerciseGifStatus } from './exercise-gifs.js'
 
 const cloneTemplate = (id) => document.getElementById(id).content.firstElementChild.cloneNode(true)
 const billingCycleLabels = {
@@ -163,6 +164,7 @@ function renderWorkouts() {
   )
   document.querySelector('[data-workouts-empty]').hidden = workouts.length > 0
 }
+const openExerciseFolders = new Set()
 function renderExercises() {
   const legGroups = ['Glúteos', 'Quadríceps', 'Posteriores de coxa', 'Panturrilhas']
   const query = document
@@ -175,16 +177,62 @@ function renderExercises() {
       e.name.toLocaleLowerCase('pt-BR').includes(query) &&
       (group === 'all' || e.group === group || (group === 'Pernas' && legGroups.includes(e.group))),
   )
-  document.querySelector('[data-exercises-list]').replaceChildren(
-    ...filtered.map((e) => {
-      const item = cloneTemplate('exercise-item-template')
-      item.dataset.id = e.id
-      item.querySelector('h3').textContent = e.name
-      item.querySelector('p').textContent =
-        `${e.equipment} · ${e.difficulty || 'Intermediário'} · ${e.mediaUrl ? 'mídia cadastrada' : 'sem mídia'}`
-      item.querySelector('.tag').textContent = e.group
-      return item
-    }),
+  const list = document.querySelector('[data-exercises-list]')
+  list.querySelectorAll('.exercise-folder').forEach((folder) => {
+    if (folder.open) openExerciseFolders.add(folder.dataset.group)
+    else openExerciseFolders.delete(folder.dataset.group)
+  })
+  const filterOptions = [...document.querySelector('[data-exercise-filter]').options]
+    .map((option) => option.value)
+    .filter((value) => value !== 'all')
+  const folderName = (exercise) =>
+    legGroups.includes(exercise.group) && filterOptions.includes('Pernas')
+      ? 'Pernas'
+      : exercise.group || 'Sem grupo'
+  const folders = new Map()
+  filtered.forEach((exercise) => {
+    const name = folderName(exercise)
+    if (!folders.has(name)) folders.set(name, [])
+    folders.get(name).push(exercise)
+  })
+  const position = (name) => {
+    const index = filterOptions.indexOf(name)
+    return index === -1 ? filterOptions.length : index
+  }
+  const expandAll = Boolean(query) || group !== 'all'
+  list.replaceChildren(
+    ...[...folders.entries()]
+      .sort(([a], [b]) => position(a) - position(b) || a.localeCompare(b, 'pt-BR'))
+      .map(([name, exercises]) => {
+        const folder = document.createElement('details')
+        folder.className = 'exercise-folder'
+        folder.dataset.group = name
+        folder.open = expandAll || openExerciseFolders.has(name)
+        const summary = document.createElement('summary')
+        const label = document.createElement('span')
+        label.className = 'exercise-folder-name'
+        label.textContent = name
+        const count = document.createElement('span')
+        count.className = 'exercise-folder-count'
+        count.textContent = `${exercises.length} ${exercises.length === 1 ? 'exercício' : 'exercícios'}`
+        summary.append(label, count)
+        const body = document.createElement('div')
+        body.className = 'exercise-folder-body'
+        body.append(
+          ...exercises.map((e) => {
+            const item = cloneTemplate('exercise-item-template')
+            item.dataset.id = e.id
+            item.querySelector('h3').textContent = e.name
+            item.querySelector('p').textContent =
+              `${e.equipment} · ${e.difficulty || 'Intermediário'} · ${exerciseGifStatus(e)}`
+            item.querySelector('.tag').textContent = e.group
+            applyExerciseGifThumb(item, e)
+            return item
+          }),
+        )
+        folder.append(summary, body)
+        return folder
+      }),
   )
   document.querySelector('[data-exercises-empty]').hidden = filtered.length > 0
 }

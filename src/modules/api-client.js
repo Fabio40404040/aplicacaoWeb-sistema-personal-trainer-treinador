@@ -138,6 +138,47 @@ export async function loadExerciseVideo(id) {
   }
   return URL.createObjectURL(await response.blob());
 }
+export function uploadExerciseGif(formData) {
+  return request("/exercise-gifs", {
+    method: "POST",
+    body: formData,
+    timeoutMs: 180000,
+  });
+}
+export function deleteExerciseGif(id) {
+  return request(`/exercise-gifs/${id}`, { method: "DELETE" });
+}
+// Os GIFs saem de uma rota autenticada, entao nao dao para usar direto no src
+// da imagem: baixamos com o token e guardamos o endereco temporario em cache
+// para nao baixar o mesmo arquivo varias vezes na mesma tela.
+const exerciseGifUrls = new Map();
+export function loadExerciseGif(id, kind = "file") {
+  const cacheKey = `${id}:${kind}`;
+  if (exerciseGifUrls.has(cacheKey)) return exerciseGifUrls.get(cacheKey);
+  const pending = (async () => {
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    const response = await fetch(`${API_URL}/api/exercise-gifs/${id}/${kind}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => null);
+      throw new Error(result?.error || "Não foi possível carregar o GIF.");
+    }
+    return URL.createObjectURL(await response.blob());
+  })();
+  pending.catch(() => exerciseGifUrls.delete(cacheKey));
+  exerciseGifUrls.set(cacheKey, pending);
+  return pending;
+}
+export function forgetExerciseGif(id) {
+  ["file", "frame"].forEach((kind) => {
+    const cacheKey = `${id}:${kind}`;
+    const pending = exerciseGifUrls.get(cacheKey);
+    if (!pending) return;
+    exerciseGifUrls.delete(cacheKey);
+    void pending.then(URL.revokeObjectURL).catch(() => {});
+  });
+}
 export async function syncRemoteData() {
   if (!sessionStorage.getItem(TOKEN_KEY)) return;
   try {

@@ -12,6 +12,7 @@ import { initPasswordControls } from './modules/password-controls.js'
 import { initPersonalTestAccess } from './modules/personal-test-access.js'
 import { initCredentialSeparation } from './modules/credential-separation.js'
 import { initIntegratedPortal } from './modules/integrated-portal.js'
+import { initExerciseGifs } from './modules/exercise-gifs.js'
 import { initPwa } from './modules/pwa.js'
 
 function initialize(name, initializer) {
@@ -33,6 +34,7 @@ initialize('acesso de teste do personal', initPersonalTestAccess)
 initialize('autenticação do personal', initAuth)
 initialize('navegação', initNavigation)
 initialize('portal integrado', initIntegratedPortal)
+initialize('biblioteca de GIFs', initExerciseGifs)
 initialize('painel', initDashboard)
 initialize('formulários', initForms)
 initialize('atalhos', initShortcuts)

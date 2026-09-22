@@ -1,4 +1,19 @@
+// A biblioteca de GIFs depende da migracao 015. Enquanto ela nao for aplicada
+// no banco (por exemplo logo apos um deploy), o painel continua funcionando
+// sem os GIFs em vez de quebrar inteiro.
+async function gifSchemaReady(db) {
+  try {
+    await db.query("SELECT 1 FROM exercise_gifs LIMIT 1");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function dashboard(db, trainerId) {
+  const withGifs = await gifSchemaReady(db);
+  const gifColumn = withGifs ? ',gif_id AS "gifId"' : "";
+  const gifJson = withGifs ? "'gifId',e.gif_id," : "";
   const [
     students,
     exercises,
@@ -10,6 +25,7 @@ export async function dashboard(db, trainerId) {
     readyWorkouts,
     readyPrograms,
     exerciseVideos,
+    exerciseGifs,
   ] = await Promise.all([
     db.query(
       `SELECT s.id, s.name, s.email, s.goal, s.status, s.created_at AS "createdAt", s.assessment_date AS "assessmentDate",
@@ -25,7 +41,7 @@ export async function dashboard(db, trainerId) {
     db.query(
       `SELECT id, name, muscle_group AS "group", equipment, instructions, difficulty,
        media_type AS "mediaType", media_url AS "mediaUrl", thumbnail_url AS "thumbnailUrl",
-       animation_clip AS "animationClip", is_active AS "isActive"
+       animation_clip AS "animationClip", is_active AS "isActive"${gifColumn}
        FROM exercises WHERE trainer_id=$1 ORDER BY created_at DESC`,
       [trainerId],
     ),
@@ -37,7 +53,7 @@ export async function dashboard(db, trainerId) {
        COALESCE((SELECT json_group_array(json_object(
          'exerciseId',e.id,'name',e.name,'group',e.muscle_group,'equipment',e.equipment,
          'instructions',e.instructions,'difficulty',e.difficulty,'mediaType',e.media_type,
-         'mediaUrl',e.media_url,'thumbnailUrl',e.thumbnail_url,'position',we.position,
+         'mediaUrl',e.media_url,'thumbnailUrl',e.thumbnail_url,${gifJson}'position',we.position,
          'sets',we.sets,'repetitions',we.repetitions,'restSeconds',we.rest_seconds,'notes',we.notes,
          'sessionLabel',we.session_label
        )) FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id
@@ -84,7 +100,8 @@ export async function dashboard(db, trainerId) {
          p.published,p.created_at AS "createdAt",
          COALESCE((SELECT json_group_array(json_object(
            'exerciseId',e.id,'name',e.name,'group',e.muscle_group,'equipment',e.equipment,
-           'instructions',e.instructions,'difficulty',e.difficulty,'position',r.position,
+           'instructions',e.instructions,'difficulty',e.difficulty,'mediaType',e.media_type,
+           'mediaUrl',e.media_url,'thumbnailUrl',e.thumbnail_url,${gifJson}'position',r.position,
            'sets',r.sets,'repetitions',r.repetitions,'restSeconds',r.rest_seconds,
            'notes',r.notes,'sessionLabel',r.session_label
          )) FROM ready_program_exercises r JOIN exercises e ON e.id=r.exercise_id
@@ -98,6 +115,14 @@ export async function dashboard(db, trainerId) {
          FROM exercise_videos WHERE trainer_id=$1 ORDER BY muscle_group,name`,
       [trainerId],
     ),
+    withGifs
+      ? db.query(
+          `SELECT id,name,muscle_group AS "group",original_filename AS "originalFilename",
+             size_bytes AS "sizeBytes",created_at AS "createdAt"
+             FROM exercise_gifs WHERE trainer_id=$1 ORDER BY muscle_group,name`,
+          [trainerId],
+        )
+      : { rows: [] },
   ]);
   return {
     students: students.rows,
@@ -110,5 +135,6 @@ export async function dashboard(db, trainerId) {
     readyWorkouts: readyWorkouts.rows,
     readyPrograms: readyPrograms.rows,
     exerciseVideos: exerciseVideos.rows,
+    exerciseGifs: exerciseGifs.rows,
   };
 }

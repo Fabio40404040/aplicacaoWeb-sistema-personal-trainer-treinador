@@ -27,7 +27,21 @@ function hasCurrentAccess(student) {
   );
 }
 
+// Mesma protecao do painel: sem a migracao 015 aplicada, a area do aluno
+// segue funcionando, apenas sem os GIFs.
+async function gifSchemaReady(db) {
+  try {
+    await db.query("SELECT 1 FROM exercise_gifs LIMIT 1");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function studentPortal(db, accountId, version) {
+  const withGifs = await gifSchemaReady(db);
+  const gifJson = withGifs ? "'gifId',e.gif_id," : "";
+  const gifColumn = withGifs ? 'e.gif_id AS "gifId",' : "";
   const account = (
     await db.query(
       `SELECT a.id, a.name, a.email, a.auth_version AS "authVersion",
@@ -79,7 +93,8 @@ export async function studentPortal(db, accountId, version) {
          p.created_at AS "createdAt",
          COALESCE((SELECT json_group_array(json_object(
            'exerciseId',e.id,'name',e.name,'group',e.muscle_group,'equipment',e.equipment,
-           'instructions',e.instructions,'difficulty',e.difficulty,'position',r.position,
+           'instructions',e.instructions,'difficulty',e.difficulty,'mediaType',e.media_type,
+           'mediaUrl',e.media_url,'thumbnailUrl',e.thumbnail_url,${gifJson}'position',r.position,
            'sets',r.sets,'repetitions',r.repetitions,'restSeconds',r.rest_seconds,
            'notes',r.notes,'sessionLabel',r.session_label
          )) FROM ready_program_exercises r JOIN exercises e ON e.id=r.exercise_id
@@ -124,6 +139,7 @@ export async function studentPortal(db, accountId, version) {
           `SELECT e.id, e.name, e.muscle_group AS "group", e.equipment, e.instructions,
              e.difficulty, e.media_type AS "mediaType", e.media_url AS "mediaUrl",
              e.thumbnail_url AS "thumbnailUrl", e.animation_clip AS "animationClip",
+             ${gifColumn}
              we.position, we.sets, we.repetitions, we.rest_seconds AS "restSeconds", we.notes,
              we.session_label AS "sessionLabel"
            FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id
