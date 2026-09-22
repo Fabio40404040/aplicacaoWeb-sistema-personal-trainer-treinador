@@ -111,11 +111,7 @@ function renderStudents() {
           : 'Gerenciar plano e acesso',
       )
       manage.textContent = isPresentialPending ? 'Liberar presencial' : '✓'
-      if (student.accountId && student.paymentStatus !== 'paid') {
-        manage.hidden = true
-      } else {
-        row.querySelector('.row-actions').prepend(manage)
-      }
+      row.querySelector('.row-actions').prepend(manage)
       return row
     }),
   )
