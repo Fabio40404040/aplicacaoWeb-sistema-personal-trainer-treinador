@@ -52,6 +52,17 @@ function truncate(value, length) {
     : content;
 }
 
+// Em vez de cortar o nome do aluno com "...", diminui a fonte quando o nome
+// é mais comprido do que o espaço reservado — assim o nome completo sempre
+// aparece por inteiro na ficha.
+function fitText(value, maxChars, baseSize, minSize = 8) {
+  const content = ascii(value).trim();
+  if (!content) return { text: "", size: baseSize };
+  const ratio = content.length / maxChars;
+  const size = ratio > 1 ? Math.max(minSize, baseSize / ratio) : baseSize;
+  return { text: content, size };
+}
+
 function text(commands, value, x, top, size = 10, options = {}) {
   const font = options.bold ? "F2" : "F1";
   const color = options.color || COLORS.ink;
@@ -138,7 +149,8 @@ function drawHeader(commands, workout, studentName, continuation = false) {
   });
   rect(commands, 25, 80, 545, 54, COLORS.panel, COLORS.line);
   text(commands, "ALUNO", 39, 92, 7, { bold: true, color: COLORS.muted });
-  text(commands, truncate(studentName, 28), 39, 105, 13, { bold: true });
+  const alunoFit = fitText(studentName, 30, 13, 9);
+  text(commands, alunoFit.text, 39, 105, alunoFit.size, { bold: true });
   text(commands, "PROGRAMA", 255, 92, 7, { bold: true, color: COLORS.muted });
   text(commands, truncate(workout.name, 27), 255, 105, 11, { bold: true });
   text(commands, "OBJETIVO / DURACAO", 430, 92, 7, {
@@ -203,7 +215,8 @@ function drawCover(workout, studentName) {
       color: COLORS.cyan,
     },
   );
-  text(commands, truncate(studentName, 35).toUpperCase(), 42, 614, 22, {
+  const coverNameFit = fitText(studentName.toUpperCase(), 44, 22, 12);
+  text(commands, coverNameFit.text, 42, 614, coverNameFit.size, {
     bold: true,
     color: COLORS.white,
   });
@@ -380,8 +393,34 @@ function buildPages(workout, studentName) {
     text(page, `Pagina ${index + 1} de ${pages.length}`, 515, 824, 7, {
       color: COLORS.muted,
     });
+    drawWatermark(page);
   });
   return pages;
+}
+
+// Marca d'água "FRS-PERSONAL" repetida na diagonal, desenhada por cima de
+// tudo com transparência real (ExtGState /GS1), então aparece mesmo sobre
+// os cartões coloridos dos exercícios.
+function drawWatermark(commands) {
+  const label = escapePdf("FRS-PERSONAL");
+  const angle = (35 * Math.PI) / 180;
+  const cos = Math.cos(angle).toFixed(4);
+  const sin = Math.sin(angle).toFixed(4);
+  const positions = [
+    [60, 90],
+    [280, 230],
+    [60, 380],
+    [300, 520],
+    [60, 660],
+    [280, 770],
+  ];
+  commands.push("q /GS1 gs 0.45 0.45 0.45 rg");
+  positions.forEach(([x, y]) => {
+    commands.push(
+      `BT /F2 40 Tf ${cos} ${sin} ${-sin} ${cos} ${x} ${y} Tm (${label}) Tj ET`,
+    );
+  });
+  commands.push("Q");
 }
 
 function pdfDocument(pages) {
@@ -389,6 +428,7 @@ function pdfDocument(pages) {
   const pageIds = pages.map((_, index) => 3 + index * 2);
   const regularFontId = 3 + pages.length * 2;
   const boldFontId = regularFontId + 1;
+  const watermarkGsId = boldFontId + 1;
   objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
   objects[2] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`;
   pages.forEach((pageCommands, index) => {
@@ -396,7 +436,7 @@ function pdfDocument(pages) {
     const contentId = pageId + 1;
     const commands = pageCommands.join("\n");
     objects[pageId] =
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 ${regularFontId} 0 R /F2 ${boldFontId} 0 R >> >> /Contents ${contentId} 0 R >>`;
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 ${regularFontId} 0 R /F2 ${boldFontId} 0 R >> /ExtGState << /GS1 ${watermarkGsId} 0 R >> >> /Contents ${contentId} 0 R >>`;
     objects[contentId] =
       `<< /Length ${new TextEncoder().encode(commands).length} >>\nstream\n${commands}\nendstream`;
   });
@@ -404,6 +444,7 @@ function pdfDocument(pages) {
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
   objects[boldFontId] =
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>";
+  objects[watermarkGsId] = "<< /Type /ExtGState /ca 0.14 /CA 0.14 >>";
   let output = "%PDF-1.4\n";
   const offsets = [0];
   for (let id = 1; id < objects.length; id += 1) {

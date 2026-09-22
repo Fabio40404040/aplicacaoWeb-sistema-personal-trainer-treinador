@@ -1,4 +1,4 @@
-import { previewWorkoutPdf } from "./workout-pdf.js";
+import { downloadWorkoutPdf } from "./workout-pdf.js";
 import { openSecureCardForm } from "./mercado-pago-card.js";
 import { createQrCodeImage } from "./pix.js";
 import { findExerciseVideo } from "../data/library.js";
@@ -338,11 +338,11 @@ function renderReadyWorkoutLibrary(container, data) {
     const open = element(
       "button",
       "button button--secondary",
-      "Ver ficha completa",
+      "Baixar PDF completo",
     );
     open.type = "button";
     open.addEventListener("click", () =>
-      previewWorkoutPdf({ ...workout, readyProgram: true }, "Treino Pronto"),
+      downloadWorkoutPdf({ ...workout, readyProgram: true }, "Treino Pronto"),
     );
     block.append(open);
     appendExerciseGroups(
@@ -382,11 +382,11 @@ function renderPortal(container, data) {
       const download = element(
         "button",
         "button button--secondary",
-        "Ver ficha personalizada",
+        "Baixar PDF personalizado",
       );
       download.type = "button";
       download.addEventListener("click", () =>
-        previewWorkoutPdf(workout, data.name),
+        downloadWorkoutPdf(workout, data.name),
       );
       workoutBlock.append(download);
       if (!workout.exercises.length)
