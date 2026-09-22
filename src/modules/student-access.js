@@ -89,7 +89,7 @@ function renderLocked(container, data, onRefresh) {
     const payment = article("Concluir pagamento");
     addLine(
       payment,
-      "Seu pré-cadastro está salvo. Escolha uma forma de pagamento ou atualize a situação caso já tenha pago.",
+      "Seu pré-cadastro está salvo. Escolha uma forma de pagamento abaixo.",
     );
     const actions = element("div", "student-payment-actions");
     const pix = element(
@@ -102,14 +102,9 @@ function renderLocked(container, data, onRefresh) {
       "button button--primary",
       "Pagar com cartão",
     );
-    const refresh = element(
-      "button",
-      "button button--secondary",
-      "Atualizar situação",
-    );
     const paymentStatus = element("p", "student-payment-status");
     const pixCheckout = element("div", "student-pix-checkout");
-    pix.type = card.type = refresh.type = "button";
+    pix.type = card.type = "button";
     pix.addEventListener("click", async () => {
       pix.disabled = true;
       paymentStatus.textContent = "Preparando o PIX seguro do Mercado Pago…";
@@ -177,12 +172,7 @@ function renderLocked(container, data, onRefresh) {
         card.disabled = false;
       }
     });
-    refresh.addEventListener("click", async () => {
-      refresh.disabled = true;
-      paymentStatus.textContent = "Consultando o Mercado Pago…";
-      await onRefresh();
-    });
-    actions.append(pix, card, refresh);
+    actions.append(pix, card);
     payment.append(actions, paymentStatus, pixCheckout);
     container.append(payment);
   }
@@ -492,6 +482,7 @@ function applyPlanFromHash() {
 }
 export function initStudentAccess() {
   let generation = 0;
+  let hasLoadedOnce = false;
   async function loadPanel() {
     applyPlanFromHash();
     const current = ++generation;
@@ -499,7 +490,7 @@ export function initStudentAccess() {
     const status = document.querySelector("[data-student-panel-status]"),
       container = document.querySelector(".student-access-features");
     document.querySelector("[data-student-name]").textContent = "Área do Aluno";
-    status.textContent = "Carregando seu acompanhamento…";
+    if (!hasLoadedOnce) status.textContent = "Carregando seu acompanhamento…";
     if (!sessionStorage.getItem(TOKEN_KEY)) {
       location.hash = "#entrar-aluno";
       return;
@@ -507,6 +498,7 @@ export function initStudentAccess() {
     try {
       const data = await studentRequest("me");
       if (current !== generation) return;
+      hasLoadedOnce = true;
       document.querySelector("[data-student-name]").textContent =
         `Olá, ${data.name}`;
       const paymentMessage = sessionStorage.getItem(
@@ -587,14 +579,21 @@ export function initStudentAccess() {
         "Área do Aluno";
       location.hash = "#entrar-aluno";
     });
+  let lastAutoLoadAt = 0;
+  function loadPanelThrottled() {
+    const now = Date.now();
+    if (now - lastAutoLoadAt < 5000) return;
+    lastAutoLoadAt = now;
+    loadPanel();
+  }
   window.addEventListener("hashchange", loadPanel);
-  window.addEventListener("focus", loadPanel);
+  window.addEventListener("focus", loadPanelThrottled);
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) loadPanel();
+    if (!document.hidden) loadPanelThrottled();
   });
   window.setInterval(() => {
     if (!document.hidden && location.hash.split("?")[0] === "#painel-aluno")
-      loadPanel();
+      loadPanelThrottled();
   }, 30000);
   loadPanel();
 }
