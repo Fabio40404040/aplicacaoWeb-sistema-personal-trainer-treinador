@@ -89,7 +89,7 @@ function handleWorkout(form) {
     permanentAccess: false,
   }
   updateData((d) => {
-    const old = d.workouts.find((w) => w.id === editing.workout)
+    const old = d.workouts.find((w) => String(w.id) === String(editing.workout))
     if (old)
       Object.assign(old, record, {
         publishedAt: record.published ? old.publishedAt || new Date().toISOString() : null,
@@ -122,7 +122,7 @@ function handleExercise(form) {
     animationClip: value(form, 'animationClip'),
   }
   updateData((d) => {
-    const old = d.exercises.find((e) => e.id === editing.exercise)
+    const old = d.exercises.find((e) => String(e.id) === String(editing.exercise))
     if (old) Object.assign(old, record)
     else d.exercises.unshift({ id: createId('e'), ...record })
   })
@@ -194,7 +194,7 @@ function handleAppointment(form) {
   }
   updateData((d) => {
     d.appointments ||= []
-    const old = d.appointments.find((item) => item.id === editing.appointment)
+    const old = d.appointments.find((item) => String(item.id) === String(editing.appointment))
     if (old) Object.assign(old, record)
     else d.appointments.push({ id: createId('ap'), ...record })
   })
@@ -211,7 +211,7 @@ function fillForm(type, id) {
         : type === 'appointment'
           ? 'appointments'
           : 'exercises'
-  const record = getData()[collection].find((item) => item.id === id)
+  const record = getData()[collection].find((item) => String(item.id) === String(id))
   if (!record) return
   editing[type] = id
   const form = document.querySelector(`[data-form="${type}"]`)

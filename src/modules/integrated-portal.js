@@ -992,7 +992,9 @@ function createAccessDialog() {
     }
   })
   window.addEventListener('frs:manage-access', (event) => {
-    const student = getData().students.find((item) => item.id === event.detail)
+    const student = getData().students.find(
+      (item) => String(item.id) === String(event.detail),
+    )
     if (!student) return
     const form = dialog.querySelector('form')
     form.dataset.studentId = student.id
@@ -1139,7 +1141,9 @@ export function initIntegratedPortal() {
   createOperationsPanel()
   renderOperations()
   window.addEventListener('frs:edit-workout', (event) => {
-    const workout = getData().workouts.find((item) => item.id === event.detail)
+    const workout = getData().workouts.find(
+      (item) => String(item.id) === String(event.detail),
+    )
     if (!workout) return
     if (!Array.isArray(workout.exerciseIds))
       try {
