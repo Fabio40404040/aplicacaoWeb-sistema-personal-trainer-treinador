@@ -342,7 +342,7 @@ function renderReadyWorkoutLibrary(container, data) {
     );
     open.type = "button";
     open.addEventListener("click", () =>
-      downloadWorkoutPdf({ ...workout, readyProgram: true }, "Treino Pronto"),
+      downloadWorkoutPdf({ ...workout, readyProgram: true }, data.name),
     );
     block.append(open);
     appendExerciseGroups(
