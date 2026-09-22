@@ -448,16 +448,55 @@
   margin-top: 4px;
 }
 .student-muscle-group {
-  display: grid;
-  gap: 10px;
+  display: block;
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid #40546e;
 }
-.student-muscle-group h3 {
+.student-muscle-group summary {
   margin: 0;
   color: #dce9f8;
   font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #18283b;
+  border: 1px solid #40546e;
+  user-select: none;
+}
+.student-muscle-group summary::-webkit-details-marker {
+  display: none;
+}
+.student-muscle-group summary::before {
+  content: "📁";
+  font-size: 1.05rem;
+}
+.student-muscle-group[open] > summary::before {
+  content: "📂";
+}
+.student-muscle-group summary::after {
+  content: "";
+  margin-left: auto;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #8ea3bd;
+  border-bottom: 2px solid #8ea3bd;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+.student-muscle-group[open] > summary::after {
+  transform: rotate(45deg);
+}
+.student-muscle-group summary:hover {
+  border-color: #5c7396;
+}
+.student-muscle-group > ol {
+  margin-top: 12px;
 }
 .student-exercise-video {
   width: min(100%, 520px);

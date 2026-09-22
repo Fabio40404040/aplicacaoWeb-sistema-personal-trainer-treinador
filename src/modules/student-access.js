@@ -287,14 +287,18 @@ function appendExerciseGroups(parent, exercises, uploadedVideos = []) {
   });
   [...sessions.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .forEach(([session, items]) => {
-      const section = element("section", "student-muscle-group");
+    .forEach(([session, items], index) => {
+      const section = element("details", "student-muscle-group");
+      section.open = index === 0;
       const groups = [
         ...new Set(items.map((exercise) => exercise.group).filter(Boolean)),
       ];
-      section.append(
-        element("h3", "", `Treino ${session} — ${groups.join(" / ")}`),
+      const summary = element(
+        "summary",
+        "",
+        `Treino ${session} — ${groups.join(" / ")}`,
       );
+      section.append(summary);
       const list = element("ol");
       items.forEach((exercise) => {
         const item = element("li");
