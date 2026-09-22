@@ -232,7 +232,9 @@ export async function createPixPayment(db, accountId, env) {
       `UPDATE payment_intents SET status='failed',updated_at=CURRENT_TIMESTAMP WHERE id=$1`,
       [intentId],
     )
-    return { error: error.message, status: 502 }
+    // DIAGNÓSTICO TEMPORÁRIO — remover depois de confirmar as chaves em produção.
+    const debugTag = `[debug testMode=${testMode} pub=${String(env.MERCADO_PAGO_PUBLIC_KEY || '(vazio)').slice(0, 9)} tok=${String(env.MERCADO_PAGO_ACCESS_TOKEN || '(vazio)').slice(0, 9)}]`
+    return { error: `${error.message} ${debugTag}`, status: 502 }
   }
 }
 
