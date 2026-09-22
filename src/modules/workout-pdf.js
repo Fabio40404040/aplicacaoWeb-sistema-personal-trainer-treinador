@@ -378,11 +378,12 @@ function buildPages(workout, studentName) {
     top += 136;
   });
   pages.push(commands);
+  const footerName = ascii(studentName).trim() || "Aluno(a)";
   pages.forEach((page, index) => {
     line(page, 25, 818, 570, 818);
     text(
       page,
-      "FRS Personal Trainer - Prescricao individual de treinamento",
+      `FRS Personal Trainer - Aluno(a): ${footerName}`,
       25,
       824,
       7,
