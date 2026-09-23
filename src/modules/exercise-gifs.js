@@ -1,5 +1,5 @@
 import { getData } from './state.js'
-import { askConfirm, askText, showToast } from './utils.js'
+import { askConfirm, askText, exerciseGroups, showToast } from './utils.js'
 import {
   createMuscleGroup,
   deleteExerciseGif,
@@ -140,9 +140,15 @@ function sameFamily(gifGroup, exerciseGroup) {
   return LEG_GROUPS.includes(gifGroup) && LEG_GROUPS.includes(exerciseGroup)
 }
 
+// Um exercício pode ter vários grupos ("Glúteos, Quadríceps"): o GIF entra
+// na lista se for da família de qualquer um deles.
 export function gifsForGroup(group) {
   const gifs = getData().exerciseGifs || []
-  const family = gifs.filter((gif) => sameFamily(gif.group, group))
+  const groups = exerciseGroups({ group })
+  if (!groups.length) return gifs
+  const family = gifs.filter((gif) =>
+    groups.some((name) => sameFamily(gif.group, name)),
+  )
   return family.length ? family : gifs
 }
 
@@ -427,7 +433,14 @@ export function openGifPicker(exercise) {
     const dropzone = dialog.querySelector('[data-gif-picker-drop]')
     const receive = async (files) => {
       try {
-        await sendGifFolder(files, uploadStatus, uploadBar, exercise?.group)
+        // Arquivo solto (sem pasta de origem) vai para o primeiro grupo
+        // marcado no exercício — nunca para a lista "A, B" inteira.
+        const fallback = exerciseGroups(exercise)[0] || ''
+        if (!fallback && ![...files].some((file) => file.webkitRelativePath))
+          throw new Error(
+            'Marque o grupo muscular do exercício antes de enviar o GIF — é nessa pasta que ele fica guardado.',
+          )
+        await sendGifFolder(files, uploadStatus, uploadBar, fallback)
         available = gifsForGroup(exercise?.group)
         render()
       } catch (error) {
@@ -507,7 +520,9 @@ export function openGifPicker(exercise) {
       )
       hint.textContent = list.length
         ? `${list.length} GIF(s) disponíveis${exercise?.group ? ` para ${exercise.group}` : ''}. Clique no que mostrar o movimento certo.`
-        : 'Nenhum GIF enviado ainda. Use "Enviar pasta de GIFs" na página de Exercícios.'
+        : search.value.trim()
+          ? 'Nenhum GIF com esse nome. Tente outra palavra.'
+          : 'Não encontrei GIFs na biblioteca. Envie do computador aqui em cima — ou, se você já tinha GIFs, recarregue a página (F5) e confira se o servidor está rodando.'
     }
 
     dialog.addEventListener('close', onClose)
@@ -525,6 +540,16 @@ export function openGifPicker(exercise) {
     uploadBar.hidden = true
     render()
     dialog.showModal()
+    // Se a lista local veio vazia (ex.: a página abriu antes do servidor
+    // responder), busca de novo antes de dizer que não há GIF nenhum.
+    if (!(getData().exerciseGifs || []).length) {
+      hint.textContent = 'Carregando a biblioteca de GIFs…'
+      void syncRemoteData().then(() => {
+        if (settled) return
+        available = gifsForGroup(exercise?.group)
+        render()
+      })
+    }
   })
 }
 
@@ -533,9 +558,14 @@ export function openGifPicker(exercise) {
 /* ------------------------------------------------------------------ */
 
 function currentExerciseFromForm(form) {
+  // O grupo muscular agora são caixas de marcar: `.value` de uma lista de
+  // caixas volta sempre vazio, então lemos as marcadas uma a uma.
+  const checked = [...form.querySelectorAll('input[name="group"]:checked')].map(
+    (input) => input.value,
+  )
   return {
     name: form.elements.name?.value || '',
-    group: form.elements.group?.value || '',
+    group: checked.join(', '),
     gifId: form.elements.gifId?.value || '',
   }
 }

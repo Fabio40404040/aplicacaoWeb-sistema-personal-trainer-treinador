@@ -223,7 +223,7 @@ function videoPickerSelect(exercise) {
   )
   // O grupo do próprio exercício vem primeiro, que é onde você vai olhar.
   groups.sort((a, b) => {
-    const mine = (name) => (name === exercise.group ? 0 : 1)
+    const mine = (name) => (exerciseGroups(exercise).includes(name) ? 0 : 1)
     return mine(a) - mine(b)
   })
   groups.forEach((groupName) => {
