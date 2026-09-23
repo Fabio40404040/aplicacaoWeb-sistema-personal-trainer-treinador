@@ -64,7 +64,21 @@ export async function uploadExerciseGif(request, env, db, trainerId) {
       [trainerId, file.name],
     )
   ).rows[0];
-  if (existing) return { ...existing, alreadyStored: true };
+  if (existing) {
+    // Mesmo arquivo reenviado de propósito para outra pasta (ex.: os GIFs de
+    // encolhimento que tinham caído em Costas e agora vão para Trapézio):
+    // em vez de ignorar, muda o GIF de pasta. Só quando o navegador pede
+    // ("move=1"), para um arquivo solto não mudar de grupo sem querer.
+    const wantsMove = String(form.get("move") || "") === "1";
+    if (wantsMove && existing.group !== group) {
+      await db.query(
+        "UPDATE exercise_gifs SET muscle_group=$1 WHERE id=$2 AND trainer_id=$3",
+        [group, existing.id, trainerId],
+      );
+      return { ...existing, group, alreadyStored: true, moved: true };
+    }
+    return { ...existing, alreadyStored: true };
+  }
 
   const bytes = await file.arrayBuffer();
   if (!isGif(bytes))

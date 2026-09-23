@@ -52,10 +52,66 @@ function normalized(value) {
     .replace(/\s+/gu, ' ')
 }
 
-export function groupFromFolder(folderName) {
+const wordsOf = (value) =>
+  accentless(value)
+    .replace(/[^a-z0-9]+/gu, ' ')
+    .trim()
+
+// Pastas criadas por você (ex.: Trapézio) têm prioridade sobre a tabela
+// acima — senão "Trapezio" cairia em Costas. Pastas suas que são só outro
+// nome de um grupo do catálogo (ex.: "Panturrilha" x "Panturrilhas") ficam
+// de fora, para não separar o que já estava junto.
+function customGroupFor(text) {
+  const words = ` ${wordsOf(text)} `
+  if (!words.trim()) return ''
+  const catalog = FOLDER_GROUPS.map(([, group]) => wordsOf(group))
+  const found = (getData().customGroups || []).find((item) => {
+    const key = wordsOf(item.name)
+    if (!key || catalog.some((name) => name.startsWith(key) || key.startsWith(name)))
+      return false
+    return words.includes(` ${key} `)
+  })
+  return found ? found.name : ''
+}
+
+export function groupFromFolder(folderName, { custom = true } = {}) {
   const plain = accentless(folderName)
+  if (custom) {
+    const own = customGroupFor(folderName)
+    if (own) return own
+  }
   const match = FOLDER_GROUPS.find(([pattern]) => pattern.test(plain))
   return match ? match[1] : ''
+}
+
+// Grupos para escolher na mão: os do filtro da biblioteca + as suas pastas.
+function allGroupNames() {
+  const names = [
+    ...(document.querySelector('[data-exercise-filter]')?.options || []),
+  ]
+    .map((option) => option.value)
+    .filter((value) => value && value !== 'all')
+  if (!names.length) names.push(...FOLDER_GROUPS.map(([, group]) => group))
+  ;(getData().customGroups || []).forEach((item) => {
+    if (!names.includes(item.name)) names.push(item.name)
+  })
+  return names
+}
+
+function paintLooseGroups() {
+  const select = document.querySelector('[data-gif-loose-group]')
+  if (!select) return
+  const selected = select.value
+  const names = allGroupNames()
+  select.replaceChildren(
+    ...names.map((group) => {
+      const option = document.createElement('option')
+      option.value = group
+      option.textContent = group
+      return option
+    }),
+  )
+  if (names.includes(selected)) select.value = selected
 }
 
 function nameFromFile(filename) {
@@ -583,17 +639,20 @@ export async function filesFromDrop(dataTransfer) {
   return collected
 }
 
-async function sendOneGif(file, group) {
+async function sendOneGif(file, group, move = false) {
   const payload = new FormData()
   payload.append('gif', file)
   payload.append('name', nameFromFile(file.name))
   payload.append('group', group)
+  if (move) payload.append('move', '1')
   const frame = await firstFrameBlob(file)
   if (frame) payload.append('frame', frame, 'frame.jpg')
   return uploadExerciseGif(payload)
 }
 
-async function sendGifFolder(files, status, bar, fallbackGroup = '') {
+// forceGroup: usado pelo botão "Enviar GIFs aqui" de cada pasta — tudo vai
+// para aquela pasta, não importa o nome da pasta de origem.
+async function sendGifFolder(files, status, bar, fallbackGroup = '', forceGroup = '') {
   const recebidos = [...files]
   const chosen = recebidos.filter(
     (file) =>
@@ -612,11 +671,12 @@ async function sendGifFolder(files, status, bar, fallbackGroup = '') {
   }
   let enviados = 0
   let repetidos = 0
+  let movidos = 0
   const falhas = []
   let concluidos = 0
   const paint = () => {
     bar.value = concluidos
-    status.textContent = `Enviando ${concluidos} de ${chosen.length}… (${enviados} novos, ${repetidos} já existiam${falhas.length ? `, ${falhas.length} com erro` : ''})`
+    status.textContent = `Enviando ${concluidos} de ${chosen.length}… (${enviados} novos, ${movidos} mudados de pasta, ${repetidos} já existiam${falhas.length ? `, ${falhas.length} com erro` : ''})`
   }
   bar.max = chosen.length
   bar.value = 0
@@ -628,15 +688,19 @@ async function sendGifFolder(files, status, bar, fallbackGroup = '') {
     while (queue.length) {
       const file = queue.shift()
       const folder = (file.webkitRelativePath || '').split('/').slice(-2, -1)[0]
+      // Grupo escolhido de propósito (botão da pasta ou nome da pasta de
+      // origem): se o GIF já existe em outra pasta, ele é mudado para esta.
+      const explicit = forceGroup || groupFromFolder(folder)
       const group =
-        groupFromFolder(folder) || groupFromFolder(file.name) || fallbackGroup
+        explicit || groupFromFolder(file.name, { custom: false }) || fallbackGroup
       try {
         if (!group)
           throw new Error(
             'escolha o grupo muscular ao lado antes de enviar arquivos soltos',
           )
-        const saved = await sendOneGif(file, group)
-        if (saved?.alreadyStored) repetidos += 1
+        const saved = await sendOneGif(file, group, Boolean(explicit))
+        if (saved?.moved) movidos += 1
+        else if (saved?.alreadyStored) repetidos += 1
         else enviados += 1
       } catch (error) {
         falhas.push(`${file.name}: ${error.message}`)
@@ -649,9 +713,11 @@ async function sendGifFolder(files, status, bar, fallbackGroup = '') {
 
   await syncRemoteData()
   bar.hidden = true
-  status.textContent = `Pronto: ${enviados} GIF(s) enviados, ${repetidos} já estavam na biblioteca${falhas.length ? `, ${falhas.length} não subiram` : ''}.`
+  status.textContent = `Pronto: ${enviados} GIF(s) enviados, ${movidos} mudados de pasta, ${repetidos} já estavam na biblioteca${falhas.length ? `, ${falhas.length} não subiram` : ''}.`
   if (falhas.length) console.warn('GIFs com erro:', falhas)
-  showToast(`Biblioteca de GIFs atualizada (${enviados} novos).`)
+  showToast(
+    `Biblioteca de GIFs atualizada (${enviados} novos${movidos ? `, ${movidos} mudados de pasta` : ''}${repetidos ? `, ${repetidos} já estavam lá` : ''}).`,
+  )
 }
 
 function createGifLibraryPanel() {
@@ -699,22 +765,9 @@ function createGifLibraryPanel() {
   const status = panel.querySelector('[data-gif-status]')
   const bar = panel.querySelector('[data-gif-progress]')
   const looseGroup = panel.querySelector('[data-gif-loose-group]')
-  const filterGroups = [
-    ...(document.querySelector('[data-exercise-filter]')?.options || []),
-  ]
-    .map((option) => option.value)
-    .filter((value) => value && value !== 'all')
-  looseGroup.replaceChildren(
-    ...(filterGroups.length
-      ? filterGroups
-      : FOLDER_GROUPS.map(([, group]) => group)
-    ).map((group) => {
-      const option = document.createElement('option')
-      option.value = group
-      option.textContent = group
-      return option
-    }),
-  )
+  // Refeito a cada atualização (frs:data-changed), para uma pasta nova como
+  // Trapézio aparecer aqui sem precisar recarregar a página.
+  paintLooseGroups()
   const handle = async (input) => {
     if (!input.files?.length) return
     const files = input.files
@@ -771,17 +824,22 @@ function createGifLibraryPanel() {
       const payload = new FormData()
       payload.append('gif', file)
       payload.append('name', singleForm.elements.name.value.trim())
-      payload.append('group', singleForm.elements.group.value)
+      const chosenGroup = singleForm.elements.group.value
+      payload.append('group', chosenGroup)
+      payload.append('move', '1')
       const frame = await firstFrameBlob(file)
       if (frame) payload.append('frame', frame, 'frame.jpg')
       const saved = await uploadExerciseGif(payload)
       await syncRemoteData()
       renderGifLibrary()
       singleForm.reset()
+      paintLooseGroups()
       showToast(
-        saved?.alreadyStored
-          ? 'Esse arquivo já estava na biblioteca.'
-          : 'GIF enviado para a biblioteca.',
+        saved?.moved
+          ? `Esse GIF já estava na biblioteca — foi mudado para ${chosenGroup}.`
+          : saved?.alreadyStored
+            ? 'Esse arquivo já estava na biblioteca.'
+            : 'GIF enviado para a biblioteca.',
       )
     } catch (error) {
       single.textContent = error.message
@@ -859,6 +917,49 @@ async function removeGifGroup(group, lista, ownedGroup) {
   )
 }
 
+// Botão "Enviar GIFs aqui" no cabeçalho de cada pasta: escolhe os arquivos
+// e todos vão para esta pasta. Se algum já estava em outra pasta (mesmo
+// nome de arquivo), ele é mudado para cá em vez de ser ignorado.
+function gifUploadHereButton(group) {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'button button--secondary folder-add-button'
+  button.textContent = '+ Enviar GIFs aqui'
+  button.title = `Enviar arquivos .gif para a pasta ${group}`
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.gif,image/gif'
+  input.multiple = true
+  input.hidden = true
+  input.addEventListener('click', (event) => event.stopPropagation())
+  input.addEventListener('change', async () => {
+    if (!input.files?.length) return
+    const files = [...input.files]
+    input.value = ''
+    const status = document.querySelector('[data-gif-status]')
+    const bar = document.querySelector('[data-gif-progress]')
+    if (!status || !bar) return
+    button.disabled = true
+    try {
+      await sendGifFolder(files, status, bar, group, group)
+      renderGifLibrary()
+    } catch (error) {
+      bar.hidden = true
+      status.textContent = error.message
+    } finally {
+      button.disabled = false
+    }
+  })
+  button.addEventListener('click', (event) => {
+    // Dentro do <summary>: sem isso o clique abriria/fecharia a pasta.
+    event.preventDefault()
+    event.stopPropagation()
+    input.click()
+  })
+  button.append(input)
+  return button
+}
+
 function renderGifLibrary() {
   const holder = document.querySelector('[data-gif-groups]')
   if (!holder) return
@@ -866,7 +967,8 @@ function renderGifLibrary() {
   const exercises = getData().exercises || []
   const usados = new Set(exercises.map((item) => item.gifId).filter(Boolean))
   holder.replaceChildren()
-  if (!gifs.length) {
+  const custom = getData().customGroups || []
+  if (!gifs.length && !custom.length) {
     const empty = document.createElement('p')
     empty.className = 'password-requirements'
     empty.textContent =
@@ -875,6 +977,9 @@ function renderGifLibrary() {
     return
   }
   const grupos = new Map()
+  // Pastas criadas por você aparecem mesmo vazias, para poder enviar GIFs
+  // direto nelas (igual à biblioteca de exercícios).
+  custom.forEach((item) => grupos.set(item.name, []))
   gifs.forEach((gif) => {
     if (!grupos.has(gif.group)) grupos.set(gif.group, [])
     grupos.get(gif.group).push(gif)
@@ -910,9 +1015,15 @@ function renderGifLibrary() {
         event.stopPropagation()
         void removeGifGroup(group, lista, ownedGroup)
       })
-      summary.append(name, count, folderAddButton(group), wipe)
+      summary.append(name, count, gifUploadHereButton(group), folderAddButton(group), wipe)
       const body = document.createElement('div')
       body.className = 'gif-grid gif-grid--library'
+      if (!lista.length) {
+        const hint = document.createElement('p')
+        hint.className = 'password-requirements'
+        hint.textContent = `Pasta vazia. Use “Enviar GIFs aqui” para colocar GIFs em ${group}.`
+        body.append(hint)
+      }
       body.append(
         ...lista.map((gif) => {
           const card = document.createElement('div')
@@ -972,6 +1083,7 @@ export function initExerciseGifs() {
   // syncRemoteData troca o estado e dispara frs:data-changed, entao um
   // ouvinte so ja cobre o envio em lote e o refresh remoto.
   window.addEventListener('frs:data-changed', () => {
+    paintLooseGroups()
     renderGifLibrary()
     refreshExerciseGifField()
   })
