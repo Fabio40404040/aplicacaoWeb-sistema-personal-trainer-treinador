@@ -1880,6 +1880,41 @@ td {
 .modal.gif-picker {
   width: min(94vw, 900px);
 }
+/* Miniatura clicável nas pastas (biblioteca de exercícios) */
+.exercise-glyph--clickable {
+  cursor: pointer;
+}
+.exercise-glyph--clickable:hover {
+  outline: 2px solid var(--blue-700);
+  outline-offset: 1px;
+}
+/* GIF ampliado (clique na miniatura, em qualquer pasta) */
+.modal.gif-lightbox {
+  width: min(92vw, 640px);
+  padding: 0;
+  border: 0;
+}
+.gif-lightbox header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+  font-weight: 700;
+}
+.gif-lightbox-body {
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: var(--blue-50);
+}
+.gif-lightbox-image {
+  width: 100%;
+  max-height: min(70vh, 560px);
+  object-fit: contain;
+  border-radius: 10px;
+}
 .gif-picker form {
   width: 100%;
   max-width: 100%;
@@ -1983,4 +2018,72 @@ td {
   margin-top: 8px;
   padding: 6px 12px;
   font-size: 0.76rem;
+}
+
+/* Mídia do exercício dentro do montador de treino ------------------- */
+.prescription-media {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+.prescription-media-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--blue-50);
+  margin-bottom: 8px;
+}
+.prescription-media-tab {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: 7px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.prescription-media-tab.is-active {
+  background: #fff;
+  color: var(--ink, inherit);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.prescription-media-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.prescription-media-thumb {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--blue-50);
+}
+.prescription-media-empty {
+  font-size: 0.78rem;
+  color: var(--muted);
+  flex: none;
+}
+.prescription-media-button {
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+.prescription-media-select {
+  flex: 1 1 140px;
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: inherit;
 }

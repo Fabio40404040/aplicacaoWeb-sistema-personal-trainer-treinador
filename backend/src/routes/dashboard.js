@@ -19,11 +19,26 @@ async function gifSchemaReady(db) {
   }
 }
 
+// O vínculo com o MP4 chegou na migração 017.
+async function videoLinkReady(db) {
+  try {
+    await db.query("SELECT video_id FROM exercises LIMIT 1");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function dashboard(db, trainerId) {
   const withGifs = await gifSchemaReady(db);
   const withCustomGroups = await customGroupsReady(db);
-  const gifColumn = withGifs ? ',gif_id AS "gifId"' : "";
-  const gifJson = withGifs ? "'gifId',e.gif_id," : "";
+  const withVideoLink = await videoLinkReady(db);
+  const gifColumn =
+    (withGifs ? ',gif_id AS "gifId"' : "") +
+    (withVideoLink ? ',video_id AS "videoId"' : "");
+  const gifJson =
+    (withGifs ? "'gifId',e.gif_id," : "") +
+    (withVideoLink ? "'videoId',e.video_id," : "");
   const [
     students,
     exercises,

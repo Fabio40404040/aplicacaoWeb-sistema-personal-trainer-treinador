@@ -47,6 +47,9 @@ export async function uploadExerciseVideo(request, env, db, trainerId) {
       status: 400,
     };
 
+  // No envio em lote o vídeo entra só no acervo: criar um exercício por
+  // arquivo enchia a biblioteca de nomes soltos vindos do nome do arquivo.
+  const catalogar = form.get("catalog") !== "0";
   const bytes = await file.arrayBuffer();
   const signature = new TextDecoder().decode(bytes.slice(4, 8));
   if (signature !== "ftyp")
@@ -59,8 +62,9 @@ export async function uploadExerciseVideo(request, env, db, trainerId) {
     customMetadata: { originalFilename: file.name, trainerId },
   });
   try {
-    const [, videoResult] = await db.batch([
-      {
+    const queries = [];
+    if (catalogar)
+      queries.push({
         sql: `INSERT OR IGNORE INTO exercises
           (id,trainer_id,name,muscle_group,equipment,instructions,difficulty,media_type,is_active)
          VALUES ($1,$2,$3,$4,$5,$6,$7,'video',1)`,
@@ -73,7 +77,8 @@ export async function uploadExerciseVideo(request, env, db, trainerId) {
           instructions || null,
           difficulty,
         ],
-      },
+      });
+    queries.push(
       {
         sql: `INSERT INTO exercise_videos
           (id,trainer_id,name,muscle_group,equipment,difficulty,instructions,object_key,original_filename,size_bytes,published)
@@ -93,8 +98,9 @@ export async function uploadExerciseVideo(request, env, db, trainerId) {
           form.get("published") === "1" ? 1 : 0,
         ],
       },
-    ]);
-    return videoResult.rows[0];
+    );
+    const results = await db.batch(queries);
+    return results[results.length - 1].rows[0];
   } catch (error) {
     await env.MEDIA.delete(objectKey);
     throw error;

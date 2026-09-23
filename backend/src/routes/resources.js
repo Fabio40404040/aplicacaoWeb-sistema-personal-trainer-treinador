@@ -21,14 +21,15 @@ const configs = {
   exercises: {
     select: `SELECT id,name,muscle_group AS "group",equipment,instructions,difficulty,media_type AS "mediaType",
       media_url AS "mediaUrl",thumbnail_url AS "thumbnailUrl",animation_clip AS "animationClip",is_active AS "isActive",
-      gif_id AS "gifId"
+      gif_id AS "gifId",video_id AS "videoId"
       FROM exercises WHERE trainer_id=$1 ORDER BY created_at DESC`,
-    insert: `INSERT INTO exercises (trainer_id,name,muscle_group,equipment,instructions,difficulty,media_type,media_url,thumbnail_url,animation_clip,gif_id)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id,name,muscle_group AS "group",equipment,instructions,difficulty,
+    insert: `INSERT INTO exercises (trainer_id,name,muscle_group,equipment,instructions,difficulty,media_type,media_url,thumbnail_url,animation_clip,gif_id,video_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id,name,muscle_group AS "group",equipment,instructions,difficulty,
       media_type AS "mediaType",media_url AS "mediaUrl",thumbnail_url AS "thumbnailUrl",animation_clip AS "animationClip",
-      gif_id AS "gifId"`,
+      gif_id AS "gifId",video_id AS "videoId"`,
     update: `UPDATE exercises SET name=$3,muscle_group=$4,equipment=$5,instructions=$6,difficulty=$7,media_type=$8,
-      media_url=$9,thumbnail_url=$10,animation_clip=$11,gif_id=$12 WHERE id=$2 AND trainer_id=$1 RETURNING id`,
+      media_url=$9,thumbnail_url=$10,animation_clip=$11,gif_id=$12,video_id=$13
+      WHERE id=$2 AND trainer_id=$1 RETURNING id`,
     values: (b) => [
       b.name,
       b.group,
@@ -40,6 +41,7 @@ const configs = {
       b.thumbnailUrl || null,
       b.animationClip || null,
       b.gifId || null,
+      b.videoId || null,
     ],
   },
   assessments: {

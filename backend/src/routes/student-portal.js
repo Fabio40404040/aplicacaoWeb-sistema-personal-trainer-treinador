@@ -40,8 +40,18 @@ async function gifSchemaReady(db) {
 
 export async function studentPortal(db, accountId, version) {
   const withGifs = await gifSchemaReady(db);
-  const gifJson = withGifs ? "'gifId',e.gif_id," : "";
-  const gifColumn = withGifs ? 'e.gif_id AS "gifId",' : "";
+  let withVideoLink = true;
+  try {
+    await db.query("SELECT video_id FROM exercises LIMIT 1");
+  } catch {
+    withVideoLink = false;
+  }
+  const gifJson =
+    (withGifs ? "'gifId',e.gif_id," : "") +
+    (withVideoLink ? "'videoId',e.video_id," : "");
+  const gifColumn =
+    (withGifs ? 'e.gif_id AS "gifId",' : "") +
+    (withVideoLink ? 'e.video_id AS "videoId",' : "");
   const account = (
     await db.query(
       `SELECT a.id, a.name, a.email, a.auth_version AS "authVersion",

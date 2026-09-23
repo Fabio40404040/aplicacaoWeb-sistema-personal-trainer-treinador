@@ -45,6 +45,23 @@ function escapePdf(value) {
   return ascii(value).replace(/([\\()])/gu, "\\$1");
 }
 
+// URLs nao levam acento, entao so precisa escapar barra invertida/parenteses
+// (sem passar por ascii(), que tambem mudaria caracteres que nao aparecem
+// numa URL mesmo).
+function escapeUri(value) {
+  return String(value || "").replace(/([\\()])/gu, "\\$1");
+}
+
+// Base do link publico do GIF, embutido no PDF baixado. O PDF pode ser
+// reaberto em qualquer dispositivo, sem o app carregado, entao o link tem
+// que ser absoluto. window.location.origin cobre tanto o domínio de
+// produção quanto o localhost do dev (com o proxy /api do Vite).
+function publicOrigin() {
+  return typeof window !== "undefined" && window.location
+    ? window.location.origin
+    : "";
+}
+
 function truncate(value, length) {
   const content = ascii(value).trim();
   return content.length > length
@@ -177,7 +194,35 @@ function drawImage(commands, image, x, top, width, height) {
   );
 }
 
-function drawExerciseFigure(commands, x, top, number, frameBytes) {
+// Area clicavel do PDF: fica registrada no comando da pagina e vira uma
+// anotacao /Link de verdade na hora de montar o arquivo (em pdfDocument).
+function addLink(commands, x, top, width, height, uri) {
+  if (!commands.links) commands.links = [];
+  commands.links.push({ x, top, width, height, uri });
+}
+
+// Selo "GIF" em cima da imagem: o PDF continua estatico (nao anima), mas o
+// clique abre o GIF de verdade, em movimento, direto da biblioteca — sem
+// precisar do app aberto. A area clicavel cobre a imagem inteira, nao só o
+// selo.
+function drawGifLinkBadge(commands, x, top, uri) {
+  const badgeWidth = 52;
+  const badgeHeight = 17;
+  const badgeX = x + 142 - badgeWidth - 4;
+  const badgeTop = top + 104 - badgeHeight - 4;
+  rect(commands, badgeX, badgeTop, badgeWidth, badgeHeight, COLORS.blue);
+  // O "top" que text() recebe fica `size` pontos ACIMA da linha de base do
+  // texto (ela calcula baseline = top + size). +4 aqui deixa a linha de
+  // base perto do meio do selo, com folga em cima e embaixo — antes estava
+  // grande demais e a base do texto caía fora da caixinha.
+  text(commands, "> GIF", badgeX + 7, badgeTop + 4, 8, {
+    bold: true,
+    color: COLORS.white,
+  });
+  addLink(commands, x, top, 142, 104, uri);
+}
+
+function drawExerciseFigure(commands, x, top, number, frameBytes, gifLinkUri) {
   rect(commands, x, top, 142, 104, COLORS.white);
   const image = registerImage(frameBytes);
   if (image) {
@@ -196,8 +241,10 @@ function drawExerciseFigure(commands, x, top, number, frameBytes) {
       width,
       height,
     );
+    if (gifLinkUri) drawGifLinkBadge(commands, x, top, gifLinkUri);
     return;
   }
+  if (gifLinkUri) drawGifLinkBadge(commands, x, top, gifLinkUri);
   circle(commands, x + 70, top + 27, 9, COLORS.cyanSoft, COLORS.cyan);
   line(commands, x + 70, top + 36, x + 70, top + 67, COLORS.blueDark, 4);
   line(commands, x + 70, top + 44, x + 45, top + 57, COLORS.blueDark, 4);
@@ -344,7 +391,17 @@ function drawExerciseCard(commands, exercise, top, number) {
     bold: true,
     color: COLORS.white,
   });
-  drawExerciseFigure(commands, 59, top + 12, number, exercise.gifFrame);
+  const gifLinkUri = exercise.gifId
+    ? `${publicOrigin()}/api/public/exercise-gifs/${exercise.gifId}`
+    : null;
+  drawExerciseFigure(
+    commands,
+    59,
+    top + 12,
+    number,
+    exercise.gifFrame,
+    gifLinkUri,
+  );
   const infoX = 214;
   text(
     commands,
@@ -534,18 +591,39 @@ function pdfDocument(pages, images) {
         .map((image, index) => `/${image.name} ${imageIds[index]} 0 R`)
         .join(" ")} >>`
     : "";
+  // Cada selo "GIF" vira uma anotacao /Link (id proprio), alocada depois das
+  // imagens. IDs contiguos em toda a sequencia, senao a tabela xref no final
+  // do arquivo fica com buraco e o PDF nao abre.
+  let nextAnnotId = watermarkGsId + 1 + images.length;
+  const pageAnnotIds = pages.map(
+    (pageCommands) => (pageCommands.links || []).map(() => nextAnnotId++),
+  );
   objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
   objects[2] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`;
   pages.forEach((pageCommands, index) => {
     const pageId = pageIds[index];
     const contentId = pageId + 1;
     const commands = encoder.encode(pageCommands.join("\n"));
+    const links = pageCommands.links || [];
+    const annotIds = pageAnnotIds[index];
+    const annotsField = annotIds.length
+      ? ` /Annots [${annotIds.map((id) => `${id} 0 R`).join(" ")}]`
+      : "";
     objects[pageId] =
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 ${regularFontId} 0 R /F2 ${boldFontId} 0 R >> /ExtGState << /GS1 ${watermarkGsId} 0 R >>${xobjects} >> /Contents ${contentId} 0 R >>`;
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 ${regularFontId} 0 R /F2 ${boldFontId} 0 R >> /ExtGState << /GS1 ${watermarkGsId} 0 R >>${xobjects} >> /Contents ${contentId} 0 R${annotsField} >>`;
     objects[contentId] = {
       dict: `<< /Length ${commands.length} >>`,
       data: commands,
     };
+    links.forEach((link, linkIndex) => {
+      const annotId = annotIds[linkIndex];
+      const llx = link.x;
+      const lly = PAGE_HEIGHT - link.top - link.height;
+      const urx = link.x + link.width;
+      const ury = PAGE_HEIGHT - link.top;
+      objects[annotId] =
+        `<< /Type /Annot /Subtype /Link /Rect [${llx.toFixed(2)} ${lly.toFixed(2)} ${urx.toFixed(2)} ${ury.toFixed(2)}] /Border [0 0 0] /A << /Type /Action /S /URI /URI (${escapeUri(link.uri)}) >> >>`;
+    });
   });
   objects[regularFontId] =
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";

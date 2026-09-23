@@ -220,6 +220,15 @@ function matchingUploadedVideo(exercise, videos) {
     String(value || "")
       .trim()
       .toLocaleLowerCase("pt-BR");
+  // Desde a migração 017 o vínculo é explícito: você escolhe o MP4 do
+  // exercício dentro do montador de treino. O casamento por nome continua
+  // como reserva, para os exercícios antigos que nunca foram ligados.
+  if (exercise.videoId) {
+    const linked = videos.find(
+      (video) => String(video.id) === String(exercise.videoId),
+    );
+    if (linked) return linked;
+  }
   return videos.find(
     (video) =>
       String(video.id) === String(exercise.id || exercise.exerciseId) ||
@@ -320,8 +329,12 @@ function appendExerciseGroups(parent, exercises, uploadedVideos = []) {
         const item = element("li");
         const prescription = `${exercise.sets} × ${exercise.repetitions}${exercise.restSeconds ? ` · descanso ${exercise.restSeconds}s` : ""}`;
         addLine(item, `${exercise.name} — ${prescription}`, true);
-        // O GIF do exercício, quando o personal escolheu um, roda sozinho.
-        if (exercise.gifId) {
+        // Uma mídia grande só: o vídeo MP4 manda, e o GIF entra no lugar
+        // dele quando aquele exercício ainda não tem vídeo.
+        const uploadedVideo = matchingUploadedVideo(exercise, uploadedVideos);
+        if (uploadedVideo) {
+          appendExerciseMedia(item, exercise, uploadedVideo);
+        } else if (exercise.gifId) {
           const animation = element("img", "student-exercise-gif");
           animation.alt = "";
           animation.loading = "lazy";
@@ -336,11 +349,6 @@ function appendExerciseGroups(parent, exercises, uploadedVideos = []) {
         addLine(
           item,
           exercise.instructions || "Siga a orientação do personal.",
-        );
-        appendExerciseMedia(
-          item,
-          exercise,
-          matchingUploadedVideo(exercise, uploadedVideos),
         );
         list.append(item);
       });

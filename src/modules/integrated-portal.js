@@ -4,7 +4,9 @@ import {
   loadExerciseGifFrame,
   loadExerciseVideo,
   persistReadyProgram,
+  persistRecord,
   removeReadyProgram,
+  syncRemoteData,
   updateStudentAccess,
   uploadExerciseVideo,
 } from './api-client.js'
@@ -19,6 +21,7 @@ import {
   filesFromDrop,
   folderAddButton,
   groupFromFolder,
+  openGifPicker,
 } from './exercise-gifs.js'
 
 const billingCycleLabels = {
@@ -174,6 +177,169 @@ function renderWorkoutSessionTabs(form) {
   )
 }
 
+// ------------------------------------------------------------------
+// Mídia do exercício dentro do montador de treino
+// ------------------------------------------------------------------
+// As bibliotecas continuam sendo o acervo, sempre ativas. Aqui, na hora de
+// montar a ficha pronta ou personalizada, cada exercício escolhido mostra
+// um seletor único "GIF ou Vídeo MP4": nem todo exercício tem vídeo
+// cadastrado, então em vez de dois campos independentes (que forçam pensar
+// em vídeo mesmo quando não existe um), você escolhe qual dos dois vai pra
+// ficha e o PDF/área do aluno daquele exercício — escolher um substitui o
+// outro.
+
+function currentExercise(exerciseId) {
+  return (getData().exercises || []).find(
+    (item) => String(item.id) === String(exerciseId),
+  )
+}
+
+async function saveExerciseMedia(exercise, patch, control) {
+  const previous = control.disabled
+  control.disabled = true
+  try {
+    await persistRecord('exercises', { ...exercise, ...patch }, exercise.id)
+    await syncRemoteData()
+    showToast('Mídia do exercício atualizada.')
+    return true
+  } catch (error) {
+    showToast(error.message || 'Não foi possível salvar a mídia do exercício.')
+    return false
+  } finally {
+    control.disabled = previous
+  }
+}
+
+function videoPickerSelect(exercise) {
+  const select = document.createElement('select')
+  select.className = 'prescription-media-select'
+  const none = document.createElement('option')
+  none.value = ''
+  none.textContent = 'Sem vídeo MP4'
+  select.append(none)
+  const videos = getData().exerciseVideos || []
+  const groups = [...new Set(videos.map((video) => video.group || 'Outros'))].sort(
+    (a, b) => a.localeCompare(b, 'pt-BR'),
+  )
+  // O grupo do próprio exercício vem primeiro, que é onde você vai olhar.
+  groups.sort((a, b) => {
+    const mine = (name) => (name === exercise.group ? 0 : 1)
+    return mine(a) - mine(b)
+  })
+  groups.forEach((groupName) => {
+    const optgroup = document.createElement('optgroup')
+    optgroup.label = groupName
+    videos
+      .filter((video) => (video.group || 'Outros') === groupName)
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+      .forEach((video) => {
+        const option = document.createElement('option')
+        option.value = String(video.id)
+        option.textContent = video.name
+        optgroup.append(option)
+      })
+    if (optgroup.children.length) select.append(optgroup)
+  })
+  const current = exercise.videoId ? String(exercise.videoId) : ''
+  select.value = current
+  // Vídeo apagado da biblioteca: o select volta para "sem vídeo" em vez de
+  // mostrar um vínculo que não existe mais.
+  if (current && select.value !== current) select.value = ''
+  return select
+}
+
+// Linha de mídia usada pelos dois montadores. `rerender` redesenha o
+// assistente depois de salvar, para a miniatura/seleção aparecer na hora.
+// O tipo ativo (GIF ou Vídeo) começa de acordo com o que o exercício já tem
+// salvo, mas trocar de aba não salva nada sozinho — só troca qual seletor
+// aparece. Salvar em um dos dois sempre limpa o outro no banco, pra nunca
+// ficar um vínculo escondido que ninguém está vendo.
+function prescriptionMediaRow(exerciseId, rerender) {
+  const row = document.createElement('div')
+  row.className = 'prescription-media'
+  const exercise = currentExercise(exerciseId)
+  if (!exercise) return row
+
+  let activeType = exercise.videoId ? 'video' : 'gif'
+
+  const toggle = document.createElement('div')
+  toggle.className = 'prescription-media-toggle'
+  const gifTab = document.createElement('button')
+  gifTab.type = 'button'
+  gifTab.className = 'prescription-media-tab'
+  gifTab.textContent = 'GIF'
+  const videoTab = document.createElement('button')
+  videoTab.type = 'button'
+  videoTab.className = 'prescription-media-tab'
+  videoTab.textContent = 'Vídeo MP4'
+  toggle.append(gifTab, videoTab)
+
+  const body = document.createElement('div')
+  body.className = 'prescription-media-body'
+
+  const paintTabs = () => {
+    gifTab.classList.toggle('is-active', activeType === 'gif')
+    videoTab.classList.toggle('is-active', activeType === 'video')
+  }
+
+  const renderBody = () => {
+    body.replaceChildren()
+    if (activeType === 'gif') {
+      const thumb = exerciseGifThumb(exercise, 'prescription-media-thumb')
+      body.append(
+        thumb ||
+          Object.assign(document.createElement('span'), {
+            className: 'prescription-media-empty',
+            textContent: 'Nenhum GIF escolhido para este exercício',
+          }),
+      )
+      const chooseGif = document.createElement('button')
+      chooseGif.type = 'button'
+      chooseGif.className = 'button button--secondary prescription-media-button'
+      chooseGif.textContent = exercise.gifId ? 'Trocar GIF' : 'Escolher GIF'
+      chooseGif.addEventListener('click', async () => {
+        const chosen = await openGifPicker(exercise)
+        if (chosen === undefined) return
+        // Escolher um GIF de verdade some com o vínculo de vídeo deste
+        // exercício; só limpar (chosen === null) não mexe no vídeo.
+        const patch = chosen ? { gifId: chosen, videoId: null } : { gifId: null }
+        if (await saveExerciseMedia(exercise, patch, chooseGif)) rerender()
+      })
+      body.append(chooseGif)
+    } else {
+      const select = videoPickerSelect(exercise)
+      select.addEventListener('change', async () => {
+        const value = select.value
+        const patch = value
+          ? { videoId: value, gifId: null }
+          : { videoId: null }
+        if (!(await saveExerciseMedia(exercise, patch, select)))
+          select.value = exercise.videoId ? String(exercise.videoId) : ''
+        else rerender()
+      })
+      body.append(select)
+    }
+  }
+
+  gifTab.addEventListener('click', () => {
+    if (activeType === 'gif') return
+    activeType = 'gif'
+    paintTabs()
+    renderBody()
+  })
+  videoTab.addEventListener('click', () => {
+    if (activeType === 'video') return
+    activeType = 'video'
+    paintTabs()
+    renderBody()
+  })
+
+  paintTabs()
+  renderBody()
+  row.append(toggle, body)
+  return row
+}
+
 // Dentro do montador de ficha: cadastra um exercício novo naquele grupo sem
 // fechar a ficha. Ao salvar, o catálogo aqui se atualiza sozinho.
 function catalogAddButton(groupName) {
@@ -301,6 +467,9 @@ function renderWorkoutPrescriptionBuilder(form) {
       form.workoutPrescriptionMap.delete(String(current.exerciseId))
       renderWorkoutWizard(form)
     })
+    row.append(
+      prescriptionMediaRow(current.exerciseId, () => renderWorkoutWizard(form)),
+    )
     builder.append(row)
   })
 }
@@ -634,6 +803,12 @@ function renderReadyPrescriptionBuilder(form) {
       form.readyPrescriptionMap.delete(String(current.exerciseId))
       renderReadyWizard(form)
     })
+    row.append(
+      prescriptionMediaRow(current.exerciseId, () => {
+        captureReadyPrescriptionFields(form)
+        renderReadyWizard(form)
+      }),
+    )
     builder.append(row)
   })
   if (!builder.children.length) {
@@ -960,6 +1135,8 @@ function createExerciseVideoLibraryPanel() {
           payload.append('group', group)
           payload.append('difficulty', 'Intermediário')
           payload.append('published', '1')
+          // Em lote o vídeo entra só no acervo, sem virar exercício solto.
+          payload.append('catalog', '0')
           await uploadExerciseVideo(payload)
           enviados += 1
         } catch (error) {

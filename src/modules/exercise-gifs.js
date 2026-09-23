@@ -137,13 +137,59 @@ function gifImage(id, className) {
   return image
 }
 
+/* ------------------------------------------------------------------ */
+/* Ampliar o GIF                                                       */
+/* ------------------------------------------------------------------ */
+// Nas pastas por grupo muscular (biblioteca de exercícios e biblioteca de
+// GIFs) o GIF já toca animado, mas espremido na miniatura pequena. Clicar
+// nela abre numa janela maior, sem sair da página.
+
+let lightboxDialog = null
+
+function buildLightboxDialog() {
+  if (lightboxDialog) return lightboxDialog
+  const dialog = document.createElement('dialog')
+  dialog.className = 'modal gif-lightbox'
+  dialog.innerHTML = `<header>
+      <span data-gif-lightbox-name></span>
+      <button class="icon-button" type="button" data-gif-lightbox-close aria-label="Fechar">×</button>
+    </header>
+    <div class="gif-lightbox-body" data-gif-lightbox-body></div>`
+  document.body.append(dialog)
+  dialog
+    .querySelector('[data-gif-lightbox-close]')
+    .addEventListener('click', () => dialog.close())
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) dialog.close()
+  })
+  lightboxDialog = dialog
+  return dialog
+}
+
+export function openGifLightbox(id, name) {
+  if (!id) return
+  const dialog = buildLightboxDialog()
+  dialog.querySelector('[data-gif-lightbox-name]').textContent =
+    name || 'GIF do exercício'
+  dialog
+    .querySelector('[data-gif-lightbox-body]')
+    .replaceChildren(gifImage(id, 'gif-lightbox-image'))
+  dialog.showModal()
+}
+
 // Usada pela Biblioteca para trocar o bonequinho pela miniatura do GIF.
 export function applyExerciseGifThumb(item, exercise) {
   const holder = item.querySelector('.exercise-glyph')
   if (!holder || !exercise?.gifId) return
   if (!findGif(exercise.gifId)) return
-  holder.classList.add('exercise-glyph--gif')
+  holder.classList.add('exercise-glyph--gif', 'exercise-glyph--clickable')
   holder.replaceChildren(gifImage(exercise.gifId, 'exercise-glyph-image'))
+  holder.title = 'Clique para ampliar o GIF'
+  holder.addEventListener('click', (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    openGifLightbox(exercise.gifId, exercise.name)
+  })
 }
 
 // Botão "+ Novo exercício" usado no cabeçalho das pastas das três
@@ -871,8 +917,10 @@ function renderGifLibrary() {
         ...lista.map((gif) => {
           const card = document.createElement('div')
           card.className = 'gif-card'
+          card.title = 'Clique para ampliar o GIF'
           if (usados.has(gif.id)) card.classList.add('is-current')
           card.append(gifImage(gif.id, 'gif-card-image'))
+          card.addEventListener('click', () => openGifLightbox(gif.id, gif.name))
           const label = document.createElement('span')
           label.className = 'gif-card-name'
           label.textContent = gif.name
@@ -881,7 +929,10 @@ function renderGifLibrary() {
           remove.className = 'icon-button gif-card-remove'
           remove.textContent = '×'
           remove.title = 'Excluir este GIF'
-          remove.addEventListener('click', async () => {
+          remove.addEventListener('click', async (event) => {
+            // Sem isso, o clique tambem borbulharia pro card e abriria o
+            // GIF ampliado junto com a confirmacao de exclusao.
+            event.stopPropagation()
             const ok = await askConfirm({
               eyebrow: 'Biblioteca de GIFs',
               title: 'Excluir GIF?',

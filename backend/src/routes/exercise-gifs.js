@@ -153,6 +153,29 @@ export async function trainerExerciseGifFile(env, db, trainerId, id, kind) {
     : { error: "Arquivo não encontrado.", status: 404 };
 }
 
+// Link publico usado dentro do PDF baixado: a ficha pode ser reaberta em
+// qualquer dispositivo, sem sessao ativa, entao o selo "GIF" precisa de um
+// link que funcione sem login. Protegido só pelo id (um uuid aleatorio, sem
+// sequencia previsivel) — o mesmo nivel de um link de compartilhamento. O
+// conteudo é apenas a demonstração do exercício, sem nenhum dado do aluno.
+export async function publicExerciseGifFile(env, db, id) {
+  if (!env.MEDIA) return storageUnavailable();
+  if (!id || !/^[a-f0-9]{16,40}$/u.test(id))
+    return { error: "GIF não encontrado.", status: 404 };
+  const row = (
+    await db.query(
+      `SELECT object_key AS "objectKey",original_filename AS "originalFilename"
+       FROM exercise_gifs WHERE id=$1 LIMIT 1`,
+      [id],
+    )
+  ).rows[0];
+  if (!row) return { error: "GIF não encontrado.", status: 404 };
+  const object = await env.MEDIA.get(row.objectKey);
+  return object
+    ? mediaResponse(object, "image/gif", row.originalFilename)
+    : { error: "Arquivo não encontrado.", status: 404 };
+}
+
 export async function studentExerciseGifFile(env, db, accountId, id, kind) {
   if (!env.MEDIA) return storageUnavailable();
   const row = (

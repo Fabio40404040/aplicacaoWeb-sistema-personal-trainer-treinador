@@ -42,6 +42,7 @@ import {
 import {
   deleteExerciseGif,
   listExerciseGifs,
+  publicExerciseGifFile,
   studentExerciseGifFile,
   trainerExerciseGifFile,
   uploadExerciseGif,
@@ -64,6 +65,15 @@ async function handle(request, env) {
     .split("/")
     .filter(Boolean);
   const route = segments.join("/");
+  // Link do selo "GIF" no PDF baixado: sem sessao, so o id do GIF (uuid
+  // aleatorio) protege o acesso. Ver nota em publicExerciseGifFile.
+  if (
+    request.method === "GET" &&
+    segments[0] === "public" &&
+    segments[1] === "exercise-gifs" &&
+    segments[2]
+  )
+    return withDb(env, (db) => publicExerciseGifFile(env, db, segments[2]));
   if (request.method === "POST" && route === "payments/mercadopago/webhook")
     return withDb(env, (db) => mercadoPagoWebhook(request, env, db));
   if (request.method === "POST" && route === "payments/webhook")
