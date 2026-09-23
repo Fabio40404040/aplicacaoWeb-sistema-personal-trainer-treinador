@@ -143,9 +143,16 @@ function handleWorkout(form) {
   editing.workout = null
 }
 function handleExercise(form) {
+  // Um exercício pode trabalhar mais de um grupo muscular: "group" agora é
+  // uma lista de caixas marcadas, salva como texto separado por vírgula.
+  const groups = formData(form)
+    .getAll('group')
+    .map((entry) => entry.toString().trim())
+    .filter(Boolean)
+  if (!groups.length) throw new Error('Marque pelo menos um grupo muscular.')
   const record = {
     name: value(form, 'name'),
-    group: value(form, 'group'),
+    group: groups.join(', '),
     equipment: value(form, 'equipment'),
     instructions: value(form, 'instructions'),
     difficulty: value(form, 'difficulty'),
@@ -252,8 +259,17 @@ function fillForm(type, id) {
     const field = form.elements[key]
     if (!field) return
     if (field instanceof RadioNodeList) {
+      // Campo de várias caixas com o mesmo name (ex.: grupo muscular): o
+      // valor salvo pode ser uma lista de verdade ou um texto "A, B" — os
+      // dois casos viram a mesma lista de valores marcados.
+      const isCheckboxGroup = [...field].every((entry) => entry.type === 'checkbox')
+      const selected = Array.isArray(val)
+        ? val
+        : isCheckboxGroup && typeof val === 'string'
+          ? val.split(',').map((entry) => entry.trim())
+          : [val]
       ;[...field].forEach((entry) => {
-        entry.checked = Array.isArray(val) ? val.includes(entry.value) : entry.value === val
+        entry.checked = selected.includes(entry.value)
       })
     } else if (field.type === 'checkbox') field.checked = Boolean(val)
     else if (field.multiple) {
@@ -347,10 +363,11 @@ export function initForms() {
     form.reset()
     setExerciseGifField(form, '')
     const group = event.detail
-    const select = form.elements.group
-    if (group && select) {
-      const known = [...select.options].some((option) => option.value === group)
-      if (known) select.value = group
+    if (group) {
+      // form.reset() já desmarcou tudo; só marca a caixinha desta pasta.
+      form
+        .querySelectorAll('input[name="group"]')
+        .forEach((input) => (input.checked = input.value === group))
     }
     openModal('exercise')
   })

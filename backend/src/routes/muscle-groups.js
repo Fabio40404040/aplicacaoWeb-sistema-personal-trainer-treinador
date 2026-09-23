@@ -62,15 +62,30 @@ export async function deleteMuscleGroup(db, trainerId, id) {
     )
   ).rows[0];
   if (!group) return { error: "Pasta não encontrada.", status: 404 };
+  // Um exercício pode ter mais de um grupo muscular guardado como texto
+  // separado por vírgula (ex.: "Quadríceps, Glúteos"), então não dá mais
+  // para comparar muscle_group=$2 direto — precisa abrir a lista e checar
+  // se o nome da pasta está dentro dela. Vídeos e GIFs continuam com um
+  // grupo só, essa parte não muda.
+  const exerciseRows = (
+    await db.query(
+      `SELECT muscle_group AS "muscleGroup" FROM exercises WHERE trainer_id=$1`,
+      [trainerId],
+    )
+  ).rows;
+  const exercicios = exerciseRows.filter((row) =>
+    String(row?.muscleGroup || "")
+      .split(",")
+      .map((value) => value.trim())
+      .includes(group.name),
+  ).length;
   const uso = (
     await db.query(
       `SELECT
-         (SELECT COUNT(*) FROM exercises WHERE trainer_id=$1 AND muscle_group=$2) AS exercicios,
          (SELECT COUNT(*) FROM exercise_videos WHERE trainer_id=$1 AND muscle_group=$2) AS videos`,
       [trainerId, group.name],
     )
   ).rows[0];
-  const exercicios = Number(uso?.exercicios) || 0;
   const videos = Number(uso?.videos) || 0;
   let gifs = 0;
   try {

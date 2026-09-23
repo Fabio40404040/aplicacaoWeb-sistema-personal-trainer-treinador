@@ -1,8 +1,9 @@
 import { getData, updateData } from './state.js'
-import { askConfirm, formatDate, initials, showToast } from './utils.js'
+import { askConfirm, exerciseGroups, formatDate, initials, showToast } from './utils.js'
 import {
   deleteMuscleGroup,
   loadExerciseGifFrame,
+  persistRecord,
   removeRecord,
   syncRemoteData,
 } from './api-client.js'
@@ -14,15 +15,22 @@ import {
   folderCreateButton,
 } from './exercise-gifs.js'
 
-// Excluir a pasta inteira: apaga os exercícios de dentro e, se a pasta tiver
-// sido criada por você, apaga também o registro dela.
+// A pasta "Pernas" é só uma forma de agrupar essas quatro na exibição — o
+// exercício continua guardando o(s) grupo(s) reais dele (Glúteos,
+// Quadríceps, etc.), nunca a palavra "Pernas".
+const legGroups = ['Glúteos', 'Quadríceps', 'Posteriores de coxa', 'Panturrilhas']
+
+// Excluir a pasta inteira. Como agora um exercício pode pertencer a mais de
+// um grupo muscular (ex.: afundo no smith = quadríceps e glúteos), excluir
+// uma pasta só apaga de verdade o exercício se esse era o único grupo dele —
+// se ele também está em outro grupo, apenas tiramos esta pasta da lista dele.
 async function removeExerciseFolder(name, exercises, owned) {
   const total = exercises.length
   const ok = await askConfirm({
     eyebrow: 'Biblioteca de exercícios',
     title: `Excluir a pasta ${name}?`,
     message: total
-      ? `Os ${total} exercício(s) que estão dentro dela serão excluídos.`
+      ? `Os ${total} exercício(s) que estão dentro dela serão excluídos — exceto os que também pertencem a outro grupo, que só saem desta pasta.`
       : 'A pasta será removida da lista de grupos musculares.',
     note: total
       ? 'Exercícios usados em alguma ficha ou treino pronto não são excluídos — eu aviso quais ficaram.'
@@ -30,9 +38,22 @@ async function removeExerciseFolder(name, exercises, owned) {
     confirmLabel: 'Excluir pasta',
   })
   if (!ok) return
+  const groupsToStrip = name === 'Pernas' ? legGroups : [name]
   let apagados = 0
+  let mantidos = 0
   const emUso = []
   for (const exercise of exercises) {
+    const currentGroups = exerciseGroups(exercise)
+    const remaining = currentGroups.filter((groupName) => !groupsToStrip.includes(groupName))
+    if (remaining.length) {
+      try {
+        await persistRecord('exercises', { ...exercise, group: remaining.join(', ') }, exercise.id)
+        mantidos += 1
+      } catch {
+        emUso.push(exercise.name)
+      }
+      continue
+    }
     try {
       await removeRecord('exercises', exercise.id)
       apagados += 1
@@ -48,14 +69,14 @@ async function removeExerciseFolder(name, exercises, owned) {
     }
   }
   await syncRemoteData()
+  const parts = []
+  if (apagados) parts.push(`${apagados} excluído(s)`)
+  if (mantidos) parts.push(`${mantidos} mantido(s) em outro grupo`)
   if (emUso.length) {
     const lista = emUso.slice(0, 3).join(', ')
-    showToast(
-      `${apagados} excluído(s). ${emUso.length} continuam porque estão em uso: ${lista}${emUso.length > 3 ? '…' : ''}`,
-    )
-    return
+    parts.push(`${emUso.length} continuam porque estão em uso: ${lista}${emUso.length > 3 ? '…' : ''}`)
   }
-  showToast(`Pasta ${name} excluída.`)
+  showToast(parts.length ? `${parts.join('. ')}.` : `Pasta ${name} excluída.`)
 }
 
 function exerciseFolderRemoveButton(name, exercises, owned) {
@@ -234,17 +255,19 @@ function renderWorkouts() {
 }
 const openExerciseFolders = new Set()
 function renderExercises() {
-  const legGroups = ['Glúteos', 'Quadríceps', 'Posteriores de coxa', 'Panturrilhas']
   const query = document
       .querySelector('[data-table-search="exercises"]')
       .value.trim()
       .toLocaleLowerCase('pt-BR'),
     group = document.querySelector('[data-exercise-filter]').value
-  const filtered = getData().exercises.filter(
-    (e) =>
-      e.name.toLocaleLowerCase('pt-BR').includes(query) &&
-      (group === 'all' || e.group === group || (group === 'Pernas' && legGroups.includes(e.group))),
-  )
+  const filtered = getData().exercises.filter((e) => {
+    if (!e.name.toLocaleLowerCase('pt-BR').includes(query)) return false
+    if (group === 'all') return true
+    const groups = exerciseGroups(e)
+    return (
+      groups.includes(group) || (group === 'Pernas' && groups.some((name) => legGroups.includes(name)))
+    )
+  })
   const list = document.querySelector('[data-exercises-list]')
   list.querySelectorAll('.exercise-folder').forEach((folder) => {
     if (folder.open) openExerciseFolders.add(folder.dataset.group)
@@ -253,19 +276,27 @@ function renderExercises() {
   const filterOptions = [...document.querySelector('[data-exercise-filter]').options]
     .map((option) => option.value)
     .filter((value) => value !== 'all')
-  const folderName = (exercise) =>
-    legGroups.includes(exercise.group) && filterOptions.includes('Pernas')
-      ? 'Pernas'
-      : exercise.group || 'Sem grupo'
+  // Um exercício pode aparecer em mais de uma pasta quando trabalha mais de
+  // um grupo muscular (ex.: afundo no smith = quadríceps e glúteos).
+  const folderNamesFor = (exercise) => {
+    const groups = exerciseGroups(exercise)
+    if (!groups.length) return ['Sem grupo']
+    const names = new Set()
+    groups.forEach((name) =>
+      names.add(legGroups.includes(name) && filterOptions.includes('Pernas') ? 'Pernas' : name),
+    )
+    return [...names]
+  }
   const folders = new Map()
   // Pastas criadas por você aparecem mesmo sem exercício dentro.
   const custom = getData().customGroups || []
   if (!query && group === 'all')
     custom.forEach((item) => folders.set(item.name, []))
   filtered.forEach((exercise) => {
-    const name = folderName(exercise)
-    if (!folders.has(name)) folders.set(name, [])
-    folders.get(name).push(exercise)
+    folderNamesFor(exercise).forEach((name) => {
+      if (!folders.has(name)) folders.set(name, [])
+      folders.get(name).push(exercise)
+    })
   })
   const position = (name) => {
     const index = filterOptions.indexOf(name)
@@ -303,7 +334,7 @@ function renderExercises() {
             item.querySelector('h3').textContent = e.name
             item.querySelector('p').textContent =
               `${e.equipment} · ${e.difficulty || 'Intermediário'} · ${exerciseGifStatus(e)}`
-            item.querySelector('.tag').textContent = e.group
+            item.querySelector('.tag').textContent = exerciseGroups(e).join(' · ') || 'Sem grupo'
             applyExerciseGifThumb(item, e)
             const remove = document.createElement('button')
             remove.className = 'icon-button exercise-remove'

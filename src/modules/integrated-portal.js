@@ -14,7 +14,7 @@ import { downloadWorkoutPdf } from './workout-pdf.js'
 import { getData } from './state.js'
 import { exerciseCatalog } from '../data/exercises.js'
 import { exerciseVideoLibrary, muscleGroups } from '../data/library.js'
-import { askConfirm, showToast } from './utils.js'
+import { askConfirm, exerciseGroups, showToast } from './utils.js'
 import { createWhatsappUrl, planNames } from './whatsapp.js'
 import {
   exerciseGifThumb,
@@ -58,16 +58,16 @@ function workoutCatalogGroups(exercises) {
     name: 'Pernas',
     memberNames: legMuscleGroups,
   })
-  exercises
-    .filter((exercise) => !knownGroups.has(exercise.group))
-    .forEach((exercise) => {
-      if (groups.some((group) => group.name === exercise.group)) return
-      groups.push({
-        id: exercise.group,
-        name: exercise.group,
-        memberNames: [exercise.group],
+  // Um exercício pode ter mais de um grupo (ex.: quadríceps e glúteos):
+  // percorre cada nome separadamente, não a string toda.
+  exercises.forEach((exercise) => {
+    exerciseGroups(exercise)
+      .filter((name) => !knownGroups.has(name))
+      .forEach((name) => {
+        if (groups.some((group) => group.name === name)) return
+        groups.push({ id: name, name, memberNames: [name] })
       })
-    })
+  })
   // Pastas criadas por você aparecem também aqui, mesmo ainda vazias.
   ;(getData().customGroups || []).forEach((item) => {
     if (groups.some((group) => group.name === item.name)) return
@@ -362,7 +362,9 @@ function renderWorkoutExerciseCatalog(form) {
   catalog.replaceChildren(
     ...groups.map((group) => {
       const items = exercises
-        .filter((exercise) => group.memberNames.includes(exercise.group))
+        .filter((exercise) =>
+          exerciseGroups(exercise).some((name) => group.memberNames.includes(name)),
+        )
         .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
       const details = document.createElement('details')
       details.className = 'ready-exercise-group'
@@ -580,17 +582,17 @@ function enhanceExercise() {
   const applyCatalogItem = (item) => {
     if (!item) return
     name.value = item.name
-    ;[
-      'group',
-      'equipment',
-      'difficulty',
-      'mediaType',
-      'mediaUrl',
-      'animationClip',
-      'instructions',
-    ].forEach((key) => {
-      if (form.elements[key]) form.elements[key].value = item[key] || ''
-    })
+    ;['equipment', 'difficulty', 'mediaType', 'mediaUrl', 'animationClip', 'instructions'].forEach(
+      (key) => {
+        if (form.elements[key]) form.elements[key].value = item[key] || ''
+      },
+    )
+    // 'group' não é mais um select único — marca a caixinha correspondente.
+    if (item.group) {
+      form.querySelectorAll('input[name="group"]').forEach((input) => {
+        input.checked = input.value === item.group
+      })
+    }
   }
   pickerSelect.addEventListener('change', () =>
     applyCatalogItem(mediaExerciseCatalog.find((entry) => entry.id === pickerSelect.value)),
@@ -609,19 +611,28 @@ function configureMuscleGroupFields() {
       (name) => !muscleGroups.some((group) => group.name === name),
     ),
   ]
-  const groupSelect = document.querySelector('[data-form="exercise"] [name="group"]')
+  // Um exercício pode trabalhar mais de um grupo (ex.: afundo no smith =
+  // quadríceps e glúteos), então isto é uma lista de caixas de marcar, não
+  // um select de escolha única.
+  const groupCheckboxes = document.querySelector('[data-group-checkboxes]')
   const filter = document.querySelector('[data-exercise-filter]')
-  if (groupSelect) {
-    const selected = groupSelect.value
-    groupSelect.replaceChildren(
+  if (groupCheckboxes) {
+    const previouslyChecked = new Set(
+      [...groupCheckboxes.querySelectorAll('input:checked')].map((input) => input.value),
+    )
+    groupCheckboxes.replaceChildren(
       ...values.map((value) => {
-        const option = document.createElement('option')
-        option.value = value
-        option.textContent = value
+        const option = document.createElement('label')
+        option.className = 'checkbox-grid-option'
+        const input = document.createElement('input')
+        input.type = 'checkbox'
+        input.name = 'group'
+        input.value = value
+        input.checked = previouslyChecked.has(value)
+        option.append(input, document.createTextNode(value))
         return option
       }),
     )
-    if (values.includes(selected)) groupSelect.value = selected
   }
   if (filter) {
     const all = document.createElement('option')
@@ -711,7 +722,9 @@ function renderReadyExerciseCatalog(form) {
   catalog.replaceChildren(
     ...groups.map((group) => {
       const items = exercises
-        .filter((exercise) => group.memberNames.includes(exercise.group))
+        .filter((exercise) =>
+          exerciseGroups(exercise).some((name) => group.memberNames.includes(name)),
+        )
         .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
       const details = document.createElement('details')
       details.className = 'ready-exercise-group'

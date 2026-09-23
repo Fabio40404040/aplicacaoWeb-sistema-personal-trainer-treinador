@@ -2109,24 +2109,21 @@
               required
               placeholder="Ex.: Agachamento livre"
           /></label>
-          <div class="field-grid">
-            <label class="field"
-              ><span>Grupo muscular</span
-              ><select name="group">
-                <option>Peitoral</option>
-                <option>Costas</option>
-                <option>Pernas</option>
-                <option>Ombros</option>
-                <option>Braços</option>
-              </select></label
-            ><label class="field"
-              ><span>Equipamento</span
-              ><input
-                name="equipment"
-                required
-                placeholder="Ex.: Barra"
-            /></label>
+          <div class="field group-checkboxes-field">
+            <span>Grupo muscular</span>
+            <small class="field-hint"
+              >Marque mais de um quando o exercício trabalhar mais de um
+              grupo (ex.: afundo no smith = quadríceps e glúteos).</small
+            >
+            <div class="checkbox-grid" data-group-checkboxes></div>
           </div>
+          <label class="field"
+            ><span>Equipamento</span
+            ><input
+              name="equipment"
+              required
+              placeholder="Ex.: Barra"
+          /></label>
           <label class="field"
             ><span>Orientação</span
             ><textarea

@@ -1505,6 +1505,40 @@ td {
 .field-grid--three {
   grid-template-columns: repeat(3, 1fr);
 }
+/* Grupo muscular do exercício: agora são caixas de marcar (um exercício
+   pode trabalhar mais de um grupo), não mais um select de escolha única. */
+.group-checkboxes-field .field-hint {
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--muted, var(--ink-500, #6b7280));
+  margin: -2px 0 2px;
+}
+.checkbox-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--blue-50);
+  max-height: 190px;
+  overflow-y: auto;
+}
+.checkbox-grid-option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--ink-700);
+  cursor: pointer;
+}
+.checkbox-grid-option input {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  accent-color: var(--blue-700);
+}
 .form-row {
   justify-content: space-between;
   gap: 15px;

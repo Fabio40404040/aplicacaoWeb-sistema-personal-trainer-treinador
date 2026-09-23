@@ -1,3 +1,14 @@
+// Um exercício pode trabalhar mais de um grupo muscular (ex.: afundo no
+// smith = quadríceps e glúteos). O campo continua sendo um texto só no
+// banco, com os nomes separados por vírgula — esta função é o único lugar
+// que sabe abrir essa lista de volta.
+export function exerciseGroups(exercise) {
+  return String(exercise?.group || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+}
+
 export function initials(name) {
   return name
     .split(' ')
