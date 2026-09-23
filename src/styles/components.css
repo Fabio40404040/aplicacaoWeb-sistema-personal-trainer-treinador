@@ -2121,3 +2121,22 @@ td {
   background: #fff;
   color: inherit;
 }
+
+/* Biblioteca de exercícios: destaque de quem já tem GIF e quem ainda não tem. */
+.gif-status {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.5;
+  vertical-align: 1px;
+}
+.gif-status--on {
+  color: var(--green-600);
+  background: var(--green-100);
+}
+.gif-status--off {
+  color: var(--red-600);
+  background: var(--red-100);
+}

@@ -332,8 +332,17 @@ function renderExercises() {
             const item = cloneTemplate('exercise-item-template')
             item.dataset.id = e.id
             item.querySelector('h3').textContent = e.name
-            item.querySelector('p').textContent =
-              `${e.equipment} · ${e.difficulty || 'Intermediário'} · ${exerciseGifStatus(e)}`
+            // "com GIF" em verde e "sem GIF" em vermelho, para achar rápido
+            // quais exercícios ainda estão faltando GIF.
+            const info = item.querySelector('p')
+            const gifStatus = exerciseGifStatus(e)
+            const badge = document.createElement('span')
+            badge.className = `gif-status ${gifStatus === 'com GIF' ? 'gif-status--on' : 'gif-status--off'}`
+            badge.textContent = gifStatus
+            info.replaceChildren(
+              document.createTextNode(`${e.equipment} · ${e.difficulty || 'Intermediário'} · `),
+              badge,
+            )
             item.querySelector('.tag').textContent = exerciseGroups(e).join(' · ') || 'Sem grupo'
             applyExerciseGifThumb(item, e)
             const remove = document.createElement('button')
