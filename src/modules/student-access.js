@@ -48,6 +48,22 @@ async function loadStudentExerciseVideo(id) {
   }
   return URL.createObjectURL(await response.blob());
 }
+// GIF do exercício na conta do aluno: o animado para a tela e o quadro
+// parado para o PDF da ficha.
+async function loadStudentGif(id, kind = "file") {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  const response = await fetch(
+    `${API_URL}/api/student/exercise-gifs/${id}/${kind}`,
+    {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    },
+  );
+  if (!response.ok) return null;
+  return kind === "frame"
+    ? new Uint8Array(await response.arrayBuffer())
+    : URL.createObjectURL(await response.blob());
+}
+const loadStudentGifFrame = (id) => loadStudentGif(id, "frame");
 const element = (tag, className, text) => {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -304,6 +320,19 @@ function appendExerciseGroups(parent, exercises, uploadedVideos = []) {
         const item = element("li");
         const prescription = `${exercise.sets} × ${exercise.repetitions}${exercise.restSeconds ? ` · descanso ${exercise.restSeconds}s` : ""}`;
         addLine(item, `${exercise.name} — ${prescription}`, true);
+        // O GIF do exercício, quando o personal escolheu um, roda sozinho.
+        if (exercise.gifId) {
+          const animation = element("img", "student-exercise-gif");
+          animation.alt = "";
+          animation.loading = "lazy";
+          void loadStudentGif(exercise.gifId)
+            .then((url) => {
+              if (url) animation.src = url;
+              else animation.remove();
+            })
+            .catch(() => animation.remove());
+          item.append(animation);
+        }
         addLine(
           item,
           exercise.instructions || "Siga a orientação do personal.",
@@ -342,7 +371,12 @@ function renderReadyWorkoutLibrary(container, data) {
     );
     open.type = "button";
     open.addEventListener("click", () =>
-      downloadWorkoutPdf({ ...workout, readyProgram: true }, data.name),
+      // O nome do aluno cadastrado, não o rótulo do programa.
+      void downloadWorkoutPdf(
+        { ...workout, readyProgram: true },
+        data.name,
+        loadStudentGifFrame,
+      ),
     );
     block.append(open);
     appendExerciseGroups(
@@ -386,7 +420,7 @@ function renderPortal(container, data) {
       );
       download.type = "button";
       download.addEventListener("click", () =>
-        downloadWorkoutPdf(workout, data.name),
+        void downloadWorkoutPdf(workout, data.name, loadStudentGifFrame),
       );
       workoutBlock.append(download);
       if (!workout.exercises.length)

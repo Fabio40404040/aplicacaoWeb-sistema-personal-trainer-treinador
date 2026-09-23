@@ -1,8 +1,76 @@
 import { getData, updateData } from './state.js'
-import { formatDate, initials, showToast } from './utils.js'
-import { removeRecord } from './api-client.js'
+import { askConfirm, formatDate, initials, showToast } from './utils.js'
+import {
+  deleteMuscleGroup,
+  loadExerciseGifFrame,
+  removeRecord,
+  syncRemoteData,
+} from './api-client.js'
 import { downloadWorkoutPdf } from './workout-pdf.js'
-import { applyExerciseGifThumb, exerciseGifStatus } from './exercise-gifs.js'
+import {
+  applyExerciseGifThumb,
+  exerciseGifStatus,
+  folderAddButton,
+  folderCreateButton,
+} from './exercise-gifs.js'
+
+// Excluir a pasta inteira: apaga os exercícios de dentro e, se a pasta tiver
+// sido criada por você, apaga também o registro dela.
+async function removeExerciseFolder(name, exercises, owned) {
+  const total = exercises.length
+  const ok = await askConfirm({
+    eyebrow: 'Biblioteca de exercícios',
+    title: `Excluir a pasta ${name}?`,
+    message: total
+      ? `Os ${total} exercício(s) que estão dentro dela serão excluídos.`
+      : 'A pasta será removida da lista de grupos musculares.',
+    note: total
+      ? 'Exercícios usados em alguma ficha ou treino pronto não são excluídos — eu aviso quais ficaram.'
+      : 'Esta ação não pode ser desfeita.',
+    confirmLabel: 'Excluir pasta',
+  })
+  if (!ok) return
+  let apagados = 0
+  const emUso = []
+  for (const exercise of exercises) {
+    try {
+      await removeRecord('exercises', exercise.id)
+      apagados += 1
+    } catch {
+      emUso.push(exercise.name)
+    }
+  }
+  if (owned && !emUso.length) {
+    try {
+      await deleteMuscleGroup(owned.id)
+    } catch {
+      /* a pasta some sozinha quando fica vazia */
+    }
+  }
+  await syncRemoteData()
+  if (emUso.length) {
+    const lista = emUso.slice(0, 3).join(', ')
+    showToast(
+      `${apagados} excluído(s). ${emUso.length} continuam porque estão em uso: ${lista}${emUso.length > 3 ? '…' : ''}`,
+    )
+    return
+  }
+  showToast(`Pasta ${name} excluída.`)
+}
+
+function exerciseFolderRemoveButton(name, exercises, owned) {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'button button--secondary gif-group-remove'
+  button.textContent = 'Excluir pasta'
+  button.title = `Excluir a pasta ${name}`
+  button.addEventListener('click', (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    void removeExerciseFolder(name, exercises, owned)
+  })
+  return button
+}
 
 const cloneTemplate = (id) => document.getElementById(id).content.firstElementChild.cloneNode(true)
 const billingCycleLabels = {
@@ -190,6 +258,10 @@ function renderExercises() {
       ? 'Pernas'
       : exercise.group || 'Sem grupo'
   const folders = new Map()
+  // Pastas criadas por você aparecem mesmo sem exercício dentro.
+  const custom = getData().customGroups || []
+  if (!query && group === 'all')
+    custom.forEach((item) => folders.set(item.name, []))
   filtered.forEach((exercise) => {
     const name = folderName(exercise)
     if (!folders.has(name)) folders.set(name, [])
@@ -215,7 +287,13 @@ function renderExercises() {
         const count = document.createElement('span')
         count.className = 'exercise-folder-count'
         count.textContent = `${exercises.length} ${exercises.length === 1 ? 'exercício' : 'exercícios'}`
-        summary.append(label, count)
+        const owned = custom.find((item) => item.name === name)
+        summary.append(
+          label,
+          count,
+          folderAddButton(name),
+          exerciseFolderRemoveButton(name, exercises, owned),
+        )
         const body = document.createElement('div')
         body.className = 'exercise-folder-body'
         body.append(
@@ -227,6 +305,14 @@ function renderExercises() {
               `${e.equipment} · ${e.difficulty || 'Intermediário'} · ${exerciseGifStatus(e)}`
             item.querySelector('.tag').textContent = e.group
             applyExerciseGifThumb(item, e)
+            const remove = document.createElement('button')
+            remove.className = 'icon-button exercise-remove'
+            remove.type = 'button'
+            remove.dataset.action = 'delete-exercise'
+            remove.textContent = '×'
+            remove.title = `Excluir ${e.name}`
+            remove.setAttribute('aria-label', `Excluir ${e.name}`)
+            item.append(remove)
             return item
           }),
         )
@@ -584,6 +670,9 @@ export function initDashboard() {
     .querySelector('[data-table-search="exercises"]')
     .addEventListener('input', renderExercises)
   document.querySelector('[data-exercise-filter]').addEventListener('change', renderExercises)
+  const filterBox = document.querySelector('[data-exercise-filter]')?.parentElement
+  if (filterBox && !filterBox.querySelector('.folder-create-button'))
+    filterBox.append(folderCreateButton())
   document
     .querySelector('[data-dashboard-chart-metric]')
     .addEventListener('change', renderDashboardChart)
@@ -612,7 +701,7 @@ export function initDashboard() {
       }
     }
   })
-  document.querySelector('[data-workouts-grid]').addEventListener('click', (event) => {
+  document.querySelector('[data-workouts-grid]').addEventListener('click', async (event) => {
     const b = event.target.closest('[data-action]')
     if (!b) return
     const id = b.closest('[data-id]').dataset.id
@@ -627,12 +716,20 @@ export function initDashboard() {
         } catch {
           workout.exercisePrescriptions = []
         }
-      downloadWorkoutPdf(
+      void downloadWorkoutPdf(
         { ...workout, exercises: workout.exercisePrescriptions },
         workout.student || 'Aluno',
-      )
+        loadExerciseGifFrame,
+      ).catch((error) => showToast(error.message))
     }
-    if (b.dataset.action === 'delete' && window.confirm('Excluir esta ficha de treino?')) {
+    if (
+      b.dataset.action === 'delete' &&
+      (await askConfirm({
+        title: 'Excluir ficha de treino?',
+        message: 'A ficha sai do painel e deixa de aparecer para o aluno.',
+        note: 'Esta ação não pode ser desfeita.',
+      }))
+    ) {
       updateData((d) => {
         d.workouts = d.workouts.filter((w) => w.id !== id)
       })
@@ -640,14 +737,37 @@ export function initDashboard() {
       showToast('Ficha excluída com sucesso.')
     }
   })
-  document.querySelector('[data-exercises-list]').addEventListener('click', (event) => {
-    const b = event.target.closest('[data-action="edit"]')
-    if (b)
+  document.querySelector('[data-exercises-list]').addEventListener('click', async (event) => {
+    const edit = event.target.closest('[data-action="edit"]')
+    if (edit) {
       window.dispatchEvent(
         new CustomEvent('frs:edit-exercise', {
-          detail: b.closest('[data-id]').dataset.id,
+          detail: edit.closest('[data-id]').dataset.id,
         }),
       )
+      return
+    }
+    const remove = event.target.closest('[data-action="delete-exercise"]')
+    if (!remove) return
+    const row = remove.closest('[data-id]')
+    const exercise = getData().exercises.find((item) => item.id === row.dataset.id)
+    if (!exercise) return
+    const ok = await askConfirm({
+      eyebrow: 'Biblioteca de exercícios',
+      title: 'Excluir exercício?',
+      message: `O exercício “${exercise.name}” será removido da biblioteca.`,
+      note: 'Esta ação não pode ser desfeita.',
+    })
+    if (!ok) return
+    remove.disabled = true
+    try {
+      await removeRecord('exercises', exercise.id)
+      await syncRemoteData()
+      showToast('Exercício excluído.')
+    } catch (error) {
+      remove.disabled = false
+      showToast(error.message)
+    }
   })
   document.querySelector('[data-progress-student]').addEventListener('change', (event) => {
     const s = getData().students.find((i) => i.name === event.target.value)
@@ -657,7 +777,7 @@ export function initDashboard() {
     document.querySelector('[data-progress-avatar]').textContent = initials(s.name)
     renderProgress()
   })
-  document.querySelector('[data-schedule-list]').addEventListener('click', (event) => {
+  document.querySelector('[data-schedule-list]').addEventListener('click', async (event) => {
     const button = event.target.closest('[data-appointment-action]')
     if (!button) return
     const id = button.closest('[data-id]').dataset.id
@@ -665,7 +785,12 @@ export function initDashboard() {
       window.dispatchEvent(new CustomEvent('frs:edit-appointment', { detail: id }))
     if (
       button.dataset.appointmentAction === 'delete' &&
-      window.confirm('Excluir este atendimento da agenda?')
+      (await askConfirm({
+        eyebrow: 'Agenda',
+        title: 'Excluir atendimento?',
+        message: 'O atendimento sai da agenda.',
+        note: 'Esta ação não pode ser desfeita.',
+      }))
     ) {
       updateData((data) => {
         data.appointments = (data.appointments || []).filter((item) => item.id !== id)

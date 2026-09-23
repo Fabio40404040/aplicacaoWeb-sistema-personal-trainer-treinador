@@ -1,5 +1,7 @@
 import {
   deleteExerciseVideo,
+  deleteMuscleGroup,
+  loadExerciseGifFrame,
   loadExerciseVideo,
   persistReadyProgram,
   removeReadyProgram,
@@ -10,8 +12,14 @@ import { downloadWorkoutPdf } from './workout-pdf.js'
 import { getData } from './state.js'
 import { exerciseCatalog } from '../data/exercises.js'
 import { exerciseVideoLibrary, muscleGroups } from '../data/library.js'
-import { showToast } from './utils.js'
+import { askConfirm, showToast } from './utils.js'
 import { createWhatsappUrl, planNames } from './whatsapp.js'
+import {
+  exerciseGifThumb,
+  filesFromDrop,
+  folderAddButton,
+  groupFromFolder,
+} from './exercise-gifs.js'
 
 const billingCycleLabels = {
   monthly: 'mensal',
@@ -57,6 +65,11 @@ function workoutCatalogGroups(exercises) {
         memberNames: [exercise.group],
       })
     })
+  // Pastas criadas por você aparecem também aqui, mesmo ainda vazias.
+  ;(getData().customGroups || []).forEach((item) => {
+    if (groups.some((group) => group.name === item.name)) return
+    groups.push({ id: item.id, name: item.name, memberNames: [item.name] })
+  })
   return groups
 }
 
@@ -161,6 +174,21 @@ function renderWorkoutSessionTabs(form) {
   )
 }
 
+// Dentro do montador de ficha: cadastra um exercício novo naquele grupo sem
+// fechar a ficha. Ao salvar, o catálogo aqui se atualiza sozinho.
+function catalogAddButton(groupName) {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'button button--secondary catalog-add-button'
+  button.textContent = '+ Novo exercício neste grupo'
+  button.addEventListener('click', () =>
+    window.dispatchEvent(
+      new CustomEvent('frs:new-exercise', { detail: groupName }),
+    ),
+  )
+  return button
+}
+
 function renderWorkoutExerciseCatalog(form) {
   const catalog = form.querySelector('[data-workout-exercise-catalog]')
   const exercises = getData().exercises || []
@@ -183,6 +211,7 @@ function renderWorkoutExerciseCatalog(form) {
         `${items.length} exercícios${selectedCount ? ` · ${selectedCount} selecionado${selectedCount === 1 ? '' : 's'}` : ''}`
       const options = details.querySelector('.ready-exercise-options')
       if (!items.length) options.textContent = 'Nenhum exercício cadastrado neste grupo.'
+      options.append(catalogAddButton(group.name))
       items.forEach((exercise) => {
         const exerciseId = String(exercise.id)
         const assignment = form.workoutPrescriptionMap.get(exerciseId)
@@ -190,6 +219,8 @@ function renderWorkoutExerciseCatalog(form) {
         label.className = 'ready-exercise-option'
         label.innerHTML = `<input type="checkbox"><span><strong></strong><small></small></span>`
         const checkbox = label.querySelector('input')
+        const thumb = exerciseGifThumb(exercise)
+        if (thumb) checkbox.after(thumb)
         checkbox.checked = assignment?.sessionLabel === form.workoutActiveSession
         label.querySelector('strong').textContent = exercise.name
         label.querySelector('small').textContent = assignment
@@ -401,7 +432,14 @@ function enhanceExercise() {
 }
 
 function configureMuscleGroupFields() {
-  const values = muscleGroups.map((group) => group.name)
+  // Pastas criadas por você entram junto das do catálogo.
+  const customNames = (getData().customGroups || []).map((item) => item.name)
+  const values = [
+    ...muscleGroups.map((group) => group.name),
+    ...customNames.filter(
+      (name) => !muscleGroups.some((group) => group.name === name),
+    ),
+  ]
   const groupSelect = document.querySelector('[data-form="exercise"] [name="group"]')
   const filter = document.querySelector('[data-exercise-filter]')
   if (groupSelect) {
@@ -420,7 +458,13 @@ function configureMuscleGroupFields() {
     const all = document.createElement('option')
     all.value = 'all'
     all.textContent = 'Todos os grupos'
-    const filterValues = workoutCatalogGroups(getData().exercises || []).map((group) => group.name)
+    const catalogNames = workoutCatalogGroups(getData().exercises || []).map(
+      (group) => group.name,
+    )
+    const filterValues = [
+      ...catalogNames,
+      ...customNames.filter((name) => !catalogNames.includes(name)),
+    ]
     filter.replaceChildren(
       all,
       ...filterValues.map((value) => {
@@ -512,8 +556,13 @@ function renderReadyExerciseCatalog(form) {
       details.querySelector('summary span').textContent =
         `${items.length} exercícios${selectedCount ? ` · ${selectedCount} neste treino` : ''}`
       const options = details.querySelector('.ready-exercise-options')
+      options.append(catalogAddButton(group.name))
       if (!items.length) {
-        options.textContent = 'Nenhum exercício cadastrado neste grupo.'
+        options.append(
+          Object.assign(document.createElement('p'), {
+            textContent: 'Nenhum exercício cadastrado neste grupo.',
+          }),
+        )
       }
       items.forEach((exercise) => {
         const assignment = form.readyPrescriptionMap.get(String(exercise.id))
@@ -521,6 +570,8 @@ function renderReadyExerciseCatalog(form) {
         label.className = 'ready-exercise-option'
         label.innerHTML = `<input type="checkbox"><span><strong></strong><small></small></span>`
         const checkbox = label.querySelector('input')
+        const thumb = exerciseGifThumb(exercise)
+        if (thumb) checkbox.after(thumb)
         checkbox.checked = assignment?.sessionLabel === form.readyActiveSession
         label.querySelector('span strong').textContent = exercise.name
         label.querySelector('small').textContent = assignment
@@ -765,14 +816,15 @@ function renderReadyWorkoutLibrary() {
     pdf.type = 'button'
     pdf.textContent = 'Baixar PDF completo'
     pdf.addEventListener('click', () =>
-      downloadWorkoutPdf(
+      void downloadWorkoutPdf(
         {
           ...program,
           exercises: program.exercisePrescriptions,
           readyProgram: true,
         },
         'Treino Pronto',
-      ),
+        loadExerciseGifFrame,
+      ).catch((error) => showToast(error.message)),
     )
     const edit = document.createElement('button')
     edit.className = 'button button--secondary'
@@ -784,7 +836,13 @@ function renderReadyWorkoutLibrary() {
     remove.type = 'button'
     remove.textContent = 'Excluir'
     remove.addEventListener('click', async () => {
-      if (!window.confirm(`Excluir o treino pronto “${program.name}”?`)) return
+      const ok = await askConfirm({
+        eyebrow: 'Treinos Prontos',
+        title: 'Excluir treino pronto?',
+        message: `O treino “${program.name}” sai do painel e da área dos alunos.`,
+        note: 'Esta ação não pode ser desfeita.',
+      })
+      if (!ok) return
       await removeReadyProgram(program.id)
       showToast('Treino pronto excluído.')
       window.dispatchEvent(new Event('frs:remote-refresh'))
@@ -839,17 +897,108 @@ function createExerciseVideoLibraryPanel() {
   panel.dataset.exerciseVideoLibrary = ''
   panel.innerHTML = `<div class="panel-heading"><div><span class="eyebrow eyebrow--blue">Biblioteca de MP4</span><h2>Vídeos por grupo muscular</h2><p>Envie e publique os vídeos diretamente pelo painel.</p></div></div><form class="media-upload-form" data-exercise-video-upload><div class="field-grid"><label class="field"><span>Nome do exercício</span><input name="name" required placeholder="Ex.: Supino reto com barra"></label><label class="field"><span>Arquivo MP4</span><input name="video" type="file" accept="video/mp4,.mp4" required></label></div><div class="field-grid field-grid--three"><label class="field"><span>Grupo muscular</span><select name="group" required data-video-muscle-group></select></label><label class="field"><span>Equipamento</span><input name="equipment" placeholder="Ex.: Barra e banco"></label><label class="field"><span>Dificuldade</span><select name="difficulty"><option>Iniciante</option><option selected>Intermediário</option><option>Avançado</option></select></label></div><label class="field"><span>Instruções</span><textarea name="instructions" rows="3" placeholder="Orientações de execução e segurança"></textarea></label><label class="check-field"><input name="published" type="checkbox" value="1"><span>Publicar imediatamente para alunos com acesso ativo</span></label><small>Somente MP4, com no máximo 90 MB.</small><button class="button button--primary" type="submit">Enviar vídeo</button><p role="status" aria-live="polite"></p></form><div class="video-group-library" data-exercise-video-groups></div>`
   const groupSelect = panel.querySelector('[data-video-muscle-group]')
-  const videoUploadGroups = [...muscleGroups]
-  const abdomenIndex = videoUploadGroups.findIndex((group) => group.name === 'Abdômen')
-  videoUploadGroups.splice(abdomenIndex + 1, 0, { id: 'pernas', name: 'Pernas' })
-  groupSelect.replaceChildren(
-    ...videoUploadGroups.map((group) => {
-      const option = document.createElement('option')
-      option.value = group.name
-      option.textContent = group.name
-      return option
+  syncVideoGroupOptions(groupSelect)
+  const dropzone = document.createElement('div')
+  dropzone.className = 'gif-dropzone'
+  dropzone.innerHTML = `<strong>Arraste aqui a pasta dos vídeos MP4</strong>
+    <span>ou clique para escolher os arquivos .mp4 no computador</span>
+    <input type="file" accept=".mp4,video/mp4" multiple hidden data-video-bulk-input>
+    <progress data-video-bulk-progress hidden value="0" max="100"></progress>
+    <p role="status" aria-live="polite" data-video-bulk-status></p>`
+  const uploadForm = panel.querySelector('form')
+  uploadForm.before(dropzone)
+  const bulkInput = dropzone.querySelector('[data-video-bulk-input]')
+  const bulkBar = dropzone.querySelector('[data-video-bulk-progress]')
+  const bulkStatus = dropzone.querySelector('[data-video-bulk-status]')
+  const sendVideos = async (files) => {
+    const recebidos = [...files]
+    const chosen = recebidos.filter(
+      (file) =>
+        file.type === 'video/mp4' ||
+        file.name.toLocaleLowerCase('pt-BR').endsWith('.mp4'),
+    )
+    if (!chosen.length) {
+      const amostra = recebidos
+        .slice(0, 3)
+        .map((file) => file.name)
+        .join(', ')
+      bulkStatus.textContent = recebidos.length
+        ? `Recebi ${recebidos.length} arquivo(s), mas nenhum é .mp4${amostra ? ` (ex.: ${amostra})` : ''}.`
+        : 'Não chegou nenhum arquivo.'
+      return
+    }
+    let enviados = 0
+    const falhas = []
+    let concluidos = 0
+    const paint = () => {
+      bulkBar.max = chosen.length
+      bulkBar.value = concluidos
+      bulkBar.hidden = false
+      bulkStatus.textContent = `Enviando ${concluidos} de ${chosen.length}… (${enviados} enviados${falhas.length ? `, ${falhas.length} com erro` : ''})`
+    }
+    paint()
+    const fila = chosen.slice()
+    // Dois de cada vez: MP4 é pesado e o limite do servidor é 90 MB por arquivo.
+    const worker = async () => {
+      while (fila.length) {
+        const file = fila.shift()
+        const folder = (file.webkitRelativePath || '').split('/').slice(-2, -1)[0]
+        const group =
+          groupFromFolder(folder) ||
+          groupFromFolder(file.name) ||
+          groupSelect.value
+        try {
+          const payload = new FormData()
+          payload.append('video', file)
+          payload.append(
+            'name',
+            file.name
+              .replace(/\.mp4$/iu, '')
+              .replace(/[-_+]+/gu, ' ')
+              .trim() || 'Exercício',
+          )
+          payload.append('group', group)
+          payload.append('difficulty', 'Intermediário')
+          payload.append('published', '1')
+          await uploadExerciseVideo(payload)
+          enviados += 1
+        } catch (error) {
+          falhas.push(`${file.name}: ${error.message}`)
+        }
+        concluidos += 1
+        paint()
+      }
+    }
+    await Promise.all([worker(), worker()])
+    bulkBar.hidden = true
+    bulkStatus.textContent = `Pronto: ${enviados} vídeo(s) enviados${falhas.length ? `, ${falhas.length} não subiram` : ''}.`
+    if (falhas.length) console.warn('MP4 com erro:', falhas)
+    showToast(`Biblioteca de MP4 atualizada (${enviados} novos).`)
+    window.dispatchEvent(new Event('frs:remote-refresh'))
+  }
+  dropzone.addEventListener('click', () => bulkInput.click())
+  bulkInput.addEventListener('change', async (event) => {
+    if (!event.target.files?.length) return
+    const files = event.target.files
+    event.target.value = ''
+    await sendVideos(files)
+  })
+  ;['dragenter', 'dragover'].forEach((type) =>
+    dropzone.addEventListener(type, (event) => {
+      event.preventDefault()
+      dropzone.classList.add('is-over')
     }),
   )
+  dropzone.addEventListener('dragleave', () =>
+    dropzone.classList.remove('is-over'),
+  )
+  dropzone.addEventListener('drop', async (event) => {
+    event.preventDefault()
+    dropzone.classList.remove('is-over')
+    bulkStatus.textContent = 'Lendo os arquivos…'
+    await sendVideos(await filesFromDrop(event.dataTransfer))
+  })
+
   const form = panel.querySelector('form')
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
@@ -894,7 +1043,96 @@ function confirmExerciseVideoDeletion(exercise) {
   )
 }
 
+async function removeVideoGroup(groupName, videos, ownedGroup) {
+  if (!videos.length && !ownedGroup) {
+    showToast(
+      `A pasta ${groupName} é do catálogo e já está vazia — não há nada para excluir.`,
+    )
+    return
+  }
+  const ok = await askConfirm({
+    eyebrow: 'Biblioteca de MP4',
+    title: `Excluir a pasta ${groupName}?`,
+    message: videos.length
+      ? `${videos.length} vídeo(s) serão apagados e deixam de aparecer para os alunos.`
+      : 'A pasta será removida da lista de grupos musculares.',
+    note: 'Esta ação não pode ser desfeita.',
+    confirmLabel: 'Excluir pasta',
+  })
+  if (!ok) return
+  const status = document.querySelector('[data-video-bulk-status]')
+  const bar = document.querySelector('[data-video-bulk-progress]')
+  let apagados = 0
+  const falhas = []
+  const paint = () => {
+    if (bar) {
+      bar.max = videos.length
+      bar.value = apagados + falhas.length
+      bar.hidden = false
+    }
+    if (status)
+      status.textContent = `Excluindo ${apagados + falhas.length} de ${videos.length}…`
+  }
+  paint()
+  const fila = videos.slice()
+  const worker = async () => {
+    while (fila.length) {
+      const video = fila.shift()
+      try {
+        await deleteExerciseVideo(video.id)
+        apagados += 1
+      } catch (error) {
+        falhas.push(`${video.name}: ${error.message}`)
+      }
+      paint()
+    }
+  }
+  await Promise.all([worker(), worker(), worker()])
+  if (ownedGroup && !falhas.length) {
+    try {
+      await deleteMuscleGroup(ownedGroup.id)
+    } catch {
+      /* a pasta some sozinha quando fica vazia */
+    }
+  }
+  if (bar) bar.hidden = true
+  if (status)
+    status.textContent = `${apagados} vídeo(s) de ${groupName} excluídos${falhas.length ? `, ${falhas.length} não saíram` : ''}.`
+  if (falhas.length) console.warn('MP4 que não foram excluídos:', falhas)
+  showToast(
+    falhas.length
+      ? `Pasta ${groupName}: ${apagados} vídeo(s) excluídos, ${falhas.length} não saíram.`
+      : `Pasta ${groupName} excluída.`,
+  )
+  window.dispatchEvent(new Event('frs:remote-refresh'))
+}
+
+// Opções do campo "Grupo muscular" do envio de MP4: catálogo + pastas criadas
+// por você. Refeita a cada mudança de dados, para uma pasta nova já aparecer.
+function syncVideoGroupOptions(target) {
+  const select = target || document.querySelector('[data-video-muscle-group]')
+  if (!select) return
+  const escolhido = select.value
+  const lista = [...muscleGroups]
+  const abdomenIndex = lista.findIndex((group) => group.name === 'Abdômen')
+  lista.splice(abdomenIndex + 1, 0, { id: 'pernas', name: 'Pernas' })
+  const nomes = lista.map((group) => group.name)
+  ;(getData().customGroups || []).forEach((item) => {
+    if (!nomes.includes(item.name)) nomes.push(item.name)
+  })
+  select.replaceChildren(
+    ...nomes.map((name) => {
+      const option = document.createElement('option')
+      option.value = name
+      option.textContent = name
+      return option
+    }),
+  )
+  if (nomes.includes(escolhido)) select.value = escolhido
+}
+
 function renderExerciseVideoLibrary() {
+  syncVideoGroupOptions()
   const groups = document.querySelector('[data-exercise-video-groups]')
   if (!groups) return
   const videos = getData().exerciseVideos || []
@@ -905,11 +1143,32 @@ function renderExerciseVideoLibrary() {
       exercises: videos.filter((video) => group.memberNames.includes(video.group)),
     }))
     .forEach((group) => {
+      // Mesmo formato das pastas da Biblioteca de GIFs.
       const section = document.createElement('details')
-      section.className = 'video-muscle-group'
+      section.className = 'exercise-folder video-muscle-group'
       if (group.exercises.length) section.open = true
       const summary = document.createElement('summary')
-      summary.textContent = `${group.name} (${group.exercises.length})`
+      const groupName = document.createElement('span')
+      groupName.className = 'exercise-folder-name'
+      groupName.textContent = group.name
+      const groupCount = document.createElement('span')
+      groupCount.className = 'exercise-folder-count'
+      groupCount.textContent = `${group.exercises.length} vídeo(s)`
+      summary.append(groupName, groupCount, folderAddButton(group.name))
+      const ownedGroup = (getData().customGroups || []).find(
+        (item) => item.name === group.name,
+      )
+      const wipe = document.createElement('button')
+      wipe.type = 'button'
+      wipe.className = 'button button--secondary gif-group-remove'
+      wipe.textContent = 'Excluir pasta'
+      wipe.title = `Excluir a pasta ${group.name}`
+      wipe.addEventListener('click', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        void removeVideoGroup(group.name, group.exercises, ownedGroup)
+      })
+      summary.append(wipe)
       const content = document.createElement('div')
       content.className = 'video-library-grid'
       if (!group.exercises.length) {
@@ -1110,12 +1369,14 @@ function renderOperations() {
     release.type = 'button'
     release.textContent = 'Confirmar pagamento presencial e liberar'
     release.addEventListener('click', async () => {
-      if (
-        !window.confirm(
-          `Confirma que o pagamento de ${student.name} foi recebido e deseja liberar o acesso?`,
-        )
-      )
-        return
+      const ok = await askConfirm({
+        eyebrow: 'Liberar acesso',
+        title: 'Confirmar pagamento presencial?',
+        message: `O acesso de ${student.name} será liberado agora.`,
+        confirmLabel: 'Liberar acesso',
+        danger: false,
+      })
+      if (!ok) return
       release.disabled = true
       release.textContent = 'Liberando…'
       try {

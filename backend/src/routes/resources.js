@@ -312,6 +312,37 @@ export async function deleteResource(db, resource, trainerId, id) {
     ]);
     return deleted.rows[0] || null;
   }
+  if (resource === "exercises") {
+    // O exercicio e referenciado pelas fichas e pelos treinos prontos. Se
+    // apagarmos direto, o banco recusa e o painel mostra um erro generico.
+    const uso = (
+      await db.query(
+        `SELECT
+           (SELECT COUNT(*) FROM workout_exercises WHERE exercise_id=$1) AS fichas,
+           (SELECT COUNT(*) FROM ready_program_exercises WHERE exercise_id=$1) AS prontos`,
+        [id],
+      )
+    ).rows[0];
+    const fichas = Number(uso?.fichas) || 0;
+    const prontos = Number(uso?.prontos) || 0;
+    if (fichas || prontos) {
+      const onde = [
+        fichas ? `${fichas} ficha(s) de treino` : "",
+        prontos ? `${prontos} treino(s) pronto(s)` : "",
+      ]
+        .filter(Boolean)
+        .join(" e ");
+      return {
+        error: `Este exercício está sendo usado em ${onde}. Remova ele de lá antes de excluir.`,
+        status: 409,
+      };
+    }
+    await db.query("DELETE FROM exercises WHERE id=$1 AND trainer_id=$2", [
+      id,
+      trainerId,
+    ]);
+    return null;
+  }
   return db.query(`DELETE FROM ${resource} WHERE id=$1 AND trainer_id=$2`, [
     id,
     trainerId,

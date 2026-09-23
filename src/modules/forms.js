@@ -339,6 +339,21 @@ export function initForms() {
       }
     }),
   )
+  // "+ Novo exercício" das pastas: abre o cadastro já no grupo da pasta.
+  window.addEventListener('frs:new-exercise', (event) => {
+    const form = document.querySelector('[data-form="exercise"]')
+    if (!form) return
+    editing.exercise = null
+    form.reset()
+    setExerciseGifField(form, '')
+    const group = event.detail
+    const select = form.elements.group
+    if (group && select) {
+      const known = [...select.options].some((option) => option.value === group)
+      if (known) select.value = group
+    }
+    openModal('exercise')
+  })
   window.addEventListener('frs:edit-student', (e) => fillForm('student', e.detail))
   window.addEventListener('frs:edit-workout', (e) => fillForm('workout', e.detail))
   window.addEventListener('frs:edit-exercise', (e) => fillForm('exercise', e.detail))

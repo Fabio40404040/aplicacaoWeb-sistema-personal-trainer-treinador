@@ -1837,3 +1837,150 @@ td {
   font-size: 0.72rem;
   color: var(--ink-500);
 }
+.gif-dropzone {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  margin-top: 14px;
+  padding: 26px 18px;
+  border: 2px dashed var(--blue-700);
+  border-radius: 14px;
+  background: var(--blue-50);
+  text-align: center;
+  cursor: pointer;
+}
+.gif-dropzone.is-over {
+  background: #e4edff;
+  border-style: solid;
+}
+.gif-dropzone strong {
+  color: var(--blue-700);
+  font-size: 1rem;
+}
+.gif-dropzone span {
+  color: var(--ink-500);
+  font-size: 0.82rem;
+}
+.gif-loose-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-500);
+  font-size: 0.78rem;
+}
+.gif-loose-group {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink-700);
+  background: var(--white);
+  font-size: 0.82rem;
+}
+.modal.gif-picker {
+  width: min(94vw, 900px);
+}
+.gif-picker form {
+  width: 100%;
+  max-width: 100%;
+}
+.gif-picker .modal-body {
+  max-height: min(72vh, 700px);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.gif-group-remove {
+  min-height: 32px;
+  margin-left: 14px;
+  padding: 5px 12px;
+  font-size: 0.74rem;
+}
+.gif-group-remove:hover {
+  color: #b3261e;
+  border-color: #f0c4c0;
+  background: #fdf1f0;
+}
+.video-muscle-group summary .gif-group-remove {
+  vertical-align: middle;
+}
+.folder-add-button {
+  min-height: 32px;
+  margin-left: 12px;
+  padding: 5px 12px;
+  font-size: 0.74rem;
+}
+.folder-add-button:hover {
+  color: var(--blue-700);
+  border-color: #c3d7ff;
+  background: var(--blue-50);
+}
+/* O item de exercício ganhou o botão de excluir: mais uma coluna. */
+.exercise-item {
+  grid-template-columns: 44px minmax(0, 1fr) auto 42px 34px;
+}
+.exercise-remove {
+  width: 30px;
+  height: 30px;
+  font-size: 1rem;
+  color: var(--ink-500);
+}
+.exercise-remove:hover {
+  color: #b3261e;
+  border-color: #f0c4c0;
+  background: #fdf1f0;
+}
+@media (max-width: 620px) {
+  .exercise-item {
+    grid-template-columns: 42px minmax(0, 1fr) 38px 30px;
+  }
+}
+.folder-create-button {
+  min-height: 42px;
+  white-space: nowrap;
+}
+/* A barra de busca ganhou o "+ Nova pasta": sem isso o botão vaza do painel. */
+.toolbar {
+  flex-wrap: wrap;
+}
+.toolbar > .search-box {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.toolbar > .folder-create-button {
+  flex: 0 0 auto;
+}
+/* Caixas de confirmação e de digitação do painel. */
+.app-dialog {
+  width: min(92vw, 470px);
+}
+.app-dialog .modal-body p {
+  margin: 0;
+}
+.app-dialog .modal-body > * + * {
+  margin-top: 12px;
+}
+.button--danger {
+  color: var(--white);
+  background: #b3261e;
+  border-color: #b3261e;
+}
+.button--danger:hover {
+  background: #8f1d17;
+  border-color: #8f1d17;
+}
+/* Montador de ficha: miniatura do GIF e atalho de cadastro. */
+.exercise-pick-gif {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--blue-50);
+}
+.catalog-add-button {
+  min-height: 34px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  font-size: 0.76rem;
+}

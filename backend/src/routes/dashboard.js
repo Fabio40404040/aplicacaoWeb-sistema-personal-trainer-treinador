@@ -1,6 +1,15 @@
 // A biblioteca de GIFs depende da migracao 015. Enquanto ela nao for aplicada
 // no banco (por exemplo logo apos um deploy), o painel continua funcionando
 // sem os GIFs em vez de quebrar inteiro.
+async function customGroupsReady(db) {
+  try {
+    await db.query("SELECT 1 FROM trainer_muscle_groups LIMIT 1");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function gifSchemaReady(db) {
   try {
     await db.query("SELECT 1 FROM exercise_gifs LIMIT 1");
@@ -12,6 +21,7 @@ async function gifSchemaReady(db) {
 
 export async function dashboard(db, trainerId) {
   const withGifs = await gifSchemaReady(db);
+  const withCustomGroups = await customGroupsReady(db);
   const gifColumn = withGifs ? ',gif_id AS "gifId"' : "";
   const gifJson = withGifs ? "'gifId',e.gif_id," : "";
   const [
@@ -26,6 +36,7 @@ export async function dashboard(db, trainerId) {
     readyPrograms,
     exerciseVideos,
     exerciseGifs,
+    customGroups,
   ] = await Promise.all([
     db.query(
       `SELECT s.id, s.name, s.email, s.goal, s.status, s.created_at AS "createdAt", s.assessment_date AS "assessmentDate",
@@ -123,6 +134,12 @@ export async function dashboard(db, trainerId) {
           [trainerId],
         )
       : { rows: [] },
+    withCustomGroups
+      ? db.query(
+          `SELECT id,name FROM trainer_muscle_groups WHERE trainer_id=$1 ORDER BY name`,
+          [trainerId],
+        )
+      : { rows: [] },
   ]);
   return {
     students: students.rows,
@@ -136,5 +153,6 @@ export async function dashboard(db, trainerId) {
     readyPrograms: readyPrograms.rows,
     exerciseVideos: exerciseVideos.rows,
     exerciseGifs: exerciseGifs.rows,
+    customGroups: customGroups.rows,
   };
 }

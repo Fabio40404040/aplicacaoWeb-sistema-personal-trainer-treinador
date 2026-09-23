@@ -47,6 +47,11 @@ import {
   uploadExerciseGif,
 } from "./routes/exercise-gifs.js";
 import {
+  createMuscleGroup,
+  deleteMuscleGroup,
+  listMuscleGroups,
+} from "./routes/muscle-groups.js";
+import {
   createReadyProgram,
   deleteReadyProgram,
   updateReadyProgram,
@@ -250,6 +255,24 @@ async function handle(request, env) {
       segments[2] === "file"
     )
       return trainerExerciseVideoFile(env, db, session.sub, segments[1]);
+    if (request.method === "GET" && route === "muscle-groups")
+      return { data: await listMuscleGroups(db, session.sub) };
+    if (request.method === "POST" && route === "muscle-groups") {
+      const created = await createMuscleGroup(
+        db,
+        session.sub,
+        await readJson(request),
+      );
+      return created?.error ? created : { data: created, status: 201 };
+    }
+    if (
+      request.method === "DELETE" &&
+      segments[0] === "muscle-groups" &&
+      segments[1]
+    ) {
+      const removed = await deleteMuscleGroup(db, session.sub, segments[1]);
+      return removed?.error ? removed : { data: null, status: 204 };
+    }
     if (request.method === "GET" && route === "exercise-gifs")
       return { data: await listExerciseGifs(db, session.sub) };
     if (request.method === "POST" && route === "exercise-gifs") {
@@ -299,8 +322,8 @@ async function handle(request, env) {
         ),
       };
     if (request.method === "DELETE" && id) {
-      await deleteResource(db, resource, session.sub, id);
-      return { data: null, status: 204 };
+      const removed = await deleteResource(db, resource, session.sub, id);
+      return removed?.error ? removed : { data: null, status: 204 };
     }
     return { error: "Rota não encontrada.", status: 404 };
   });

@@ -1,7 +1,9 @@
 import { getData } from './state.js'
-import { showToast } from './utils.js'
+import { askConfirm, askText, showToast } from './utils.js'
 import {
+  createMuscleGroup,
   deleteExerciseGif,
+  deleteMuscleGroup,
   forgetExerciseGif,
   loadExerciseGif,
   syncRemoteData,
@@ -144,6 +146,100 @@ export function applyExerciseGifThumb(item, exercise) {
   holder.replaceChildren(gifImage(exercise.gifId, 'exercise-glyph-image'))
 }
 
+// Botão "+ Novo exercício" usado no cabeçalho das pastas das três
+// bibliotecas: abre o cadastro já com o grupo muscular daquela pasta.
+export function folderAddButton(group) {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'button button--secondary folder-add-button'
+  button.textContent = '+ Novo exercício'
+  button.title = `Cadastrar um exercício em ${group}`
+  button.addEventListener('click', (event) => {
+    // Dentro do <summary>: sem isso o clique abriria/fecharia a pasta.
+    event.preventDefault()
+    event.stopPropagation()
+    window.dispatchEvent(new CustomEvent('frs:new-exercise', { detail: group }))
+  })
+  return button
+}
+
+// Botão "Excluir pasta", só nas pastas criadas por você. As pastas do
+// catálogo somem sozinhas quando ficam sem exercício.
+export function folderRemoveButton(group, total) {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'button button--secondary gif-group-remove'
+  button.textContent = 'Excluir pasta'
+  button.title = `Excluir a pasta ${group.name}`
+  button.addEventListener('click', async (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (total)
+      return showToast(
+        `A pasta ${group.name} ainda tem ${total} exercício(s) dentro. Esvazie ela antes de excluir.`,
+      )
+    const ok = await askConfirm({
+      eyebrow: 'Pastas',
+      title: 'Excluir pasta?',
+      message: `A pasta ${group.name} será removida da lista de grupos musculares.`,
+      note: 'Ela está vazia, então nenhum exercício é perdido.',
+      confirmLabel: 'Excluir pasta',
+    })
+    if (!ok) return
+    button.disabled = true
+    try {
+      await deleteMuscleGroup(group.id)
+      await syncRemoteData()
+      showToast('Pasta excluída.')
+    } catch (error) {
+      button.disabled = false
+      showToast(error.message)
+    }
+  })
+  return button
+}
+
+// Botão "+ Nova pasta", ao lado do filtro "Todos os grupos".
+export function folderCreateButton() {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'button button--secondary folder-create-button'
+  button.textContent = '+ Nova pasta'
+  button.title = 'Criar uma pasta de grupo muscular'
+  button.addEventListener('click', async () => {
+    const name = await askText({
+      eyebrow: 'Pastas',
+      title: 'Nova pasta de grupo muscular',
+      label: 'Nome da pasta',
+      placeholder: 'Ex.: Lombar',
+      note: 'A pasta aparece na biblioteca e nos campos de grupo muscular, mesmo antes de ter exercício dentro.',
+      confirmLabel: 'Criar pasta',
+    })
+    if (!name) return
+    button.disabled = true
+    try {
+      const saved = await createMuscleGroup(name)
+      await syncRemoteData()
+      showToast(
+        saved?.alreadyStored
+          ? 'Essa pasta já existia.'
+          : `Pasta ${saved?.name || name} criada.`,
+      )
+    } catch (error) {
+      showToast(error.message)
+    } finally {
+      button.disabled = false
+    }
+  })
+  return button
+}
+
+// Miniatura do GIF para usar fora da Biblioteca (ex.: no montador de ficha).
+export function exerciseGifThumb(exercise, className = 'exercise-pick-gif') {
+  if (!exercise?.gifId || !findGif(exercise.gifId)) return null
+  return gifImage(exercise.gifId, className)
+}
+
 export function exerciseGifStatus(exercise) {
   return exercise?.gifId && findGif(exercise.gifId) ? 'com GIF' : 'sem GIF'
 }
@@ -168,13 +264,13 @@ function buildPickerDialog() {
       <button class="icon-button" type="button" data-gif-close aria-label="Fechar">×</button>
     </header>
     <div class="modal-body">
+      <div class="gif-dropzone" data-gif-picker-drop>
+        <strong>Arraste aqui a pasta dos GIFs</strong>
+        <span>ou clique para escolher os arquivos .gif no computador</span>
+      </div>
       <div class="gif-upload">
         <label class="button button--primary gif-upload-button">
-          Enviar pasta de GIFs
-          <input type="file" accept=".gif,image/gif" multiple webkitdirectory directory hidden data-gif-picker-folder>
-        </label>
-        <label class="button button--secondary gif-upload-button">
-          Enviar GIFs avulsos
+          Enviar GIFs do computador
           <input type="file" accept=".gif,image/gif" multiple hidden data-gif-picker-files>
         </label>
         <progress data-gif-picker-progress hidden value="0" max="100"></progress>
@@ -225,13 +321,9 @@ export function openGifPicker(exercise) {
       if (card) finish(card.dataset.gifId)
     }
     const onSearch = () => render()
-    const folderInput = dialog.querySelector('[data-gif-picker-folder]')
     const filesInput = dialog.querySelector('[data-gif-picker-files]')
-    const onUpload = async (event) => {
-      const input = event.target
-      if (!input.files?.length) return
-      const files = input.files
-      input.value = ''
+    const dropzone = dialog.querySelector('[data-gif-picker-drop]')
+    const receive = async (files) => {
       try {
         await sendGifFolder(files, uploadStatus, uploadBar, exercise?.group)
         available = gifsForGroup(exercise?.group)
@@ -240,6 +332,25 @@ export function openGifPicker(exercise) {
         uploadBar.hidden = true
         uploadStatus.textContent = error.message
       }
+    }
+    const onUpload = async (event) => {
+      const input = event.target
+      if (!input.files?.length) return
+      const files = input.files
+      input.value = ''
+      await receive(files)
+    }
+    const onDropClick = () => filesInput.click()
+    const onDragOver = (event) => {
+      event.preventDefault()
+      dropzone.classList.add('is-over')
+    }
+    const onDragLeave = () => dropzone.classList.remove('is-over')
+    const onDrop = async (event) => {
+      event.preventDefault()
+      dropzone.classList.remove('is-over')
+      uploadStatus.textContent = 'Lendo os arquivos…'
+      await receive(await filesFromDrop(event.dataTransfer))
     }
 
     function cleanup() {
@@ -250,8 +361,12 @@ export function openGifPicker(exercise) {
       clearButton.removeEventListener('click', onClear)
       grid.removeEventListener('click', onGridClick)
       search.removeEventListener('input', onSearch)
-      folderInput.removeEventListener('change', onUpload)
       filesInput.removeEventListener('change', onUpload)
+      dropzone.removeEventListener('click', onDropClick)
+      dropzone.removeEventListener('dragover', onDragOver)
+      dropzone.removeEventListener('dragenter', onDragOver)
+      dropzone.removeEventListener('dragleave', onDragLeave)
+      dropzone.removeEventListener('drop', onDrop)
     }
 
     function render() {
@@ -298,8 +413,12 @@ export function openGifPicker(exercise) {
     clearButton.addEventListener('click', onClear)
     grid.addEventListener('click', onGridClick)
     search.addEventListener('input', onSearch)
-    folderInput.addEventListener('change', onUpload)
     filesInput.addEventListener('change', onUpload)
+    dropzone.addEventListener('click', onDropClick)
+    dropzone.addEventListener('dragover', onDragOver)
+    dropzone.addEventListener('dragenter', onDragOver)
+    dropzone.addEventListener('dragleave', onDragLeave)
+    dropzone.addEventListener('drop', onDrop)
     uploadStatus.textContent = ''
     uploadBar.hidden = true
     render()
@@ -381,6 +500,43 @@ function enhanceExerciseForm() {
 /* Envio da pasta de GIFs                                              */
 /* ------------------------------------------------------------------ */
 
+// Arrastar e soltar: percorre as subpastas para manter o caminho de origem,
+// que e o que define o grupo muscular de cada GIF.
+export async function filesFromDrop(dataTransfer) {
+  const entries = [...(dataTransfer.items || [])]
+    .map((item) => item.webkitGetAsEntry?.())
+    .filter(Boolean)
+  if (!entries.length) return [...(dataTransfer.files || [])]
+  const collected = []
+  const walk = async (entry, path) => {
+    if (entry.isFile) {
+      const file = await new Promise((resolve, reject) =>
+        entry.file(resolve, reject),
+      )
+      try {
+        Object.defineProperty(file, 'webkitRelativePath', {
+          value: `${path}${file.name}`,
+        })
+      } catch {
+        /* alguns navegadores nao deixam redefinir: seguimos sem o caminho */
+      }
+      collected.push(file)
+      return
+    }
+    if (!entry.isDirectory) return
+    const reader = entry.createReader()
+    let batch
+    do {
+      batch = await new Promise((resolve, reject) =>
+        reader.readEntries(resolve, reject),
+      )
+      for (const child of batch) await walk(child, `${path}${entry.name}/`)
+    } while (batch.length)
+  }
+  for (const entry of entries) await walk(entry, '')
+  return collected
+}
+
 async function sendOneGif(file, group) {
   const payload = new FormData()
   payload.append('gif', file)
@@ -392,11 +548,20 @@ async function sendOneGif(file, group) {
 }
 
 async function sendGifFolder(files, status, bar, fallbackGroup = '') {
-  const chosen = [...files].filter((file) =>
-    file.name.toLocaleLowerCase('pt-BR').endsWith('.gif'),
+  const recebidos = [...files]
+  const chosen = recebidos.filter(
+    (file) =>
+      file.type === 'image/gif' ||
+      file.name.toLocaleLowerCase('pt-BR').endsWith('.gif'),
   )
   if (!chosen.length) {
-    status.textContent = 'Nenhum arquivo .gif encontrado na pasta escolhida.'
+    const amostra = recebidos
+      .slice(0, 3)
+      .map((file) => file.name)
+      .join(', ')
+    status.textContent = recebidos.length
+      ? `Recebi ${recebidos.length} arquivo(s), mas nenhum é .gif${amostra ? ` (ex.: ${amostra})` : ''}. Abra a pasta 1-Peitoral e selecione os arquivos, ou arraste a pasta para a área tracejada.`
+      : 'Não chegou nenhum arquivo. Tente arrastar a pasta para a área tracejada.'
     return
   }
   let enviados = 0
@@ -456,19 +621,28 @@ function createGifLibraryPanel() {
         <p>Envie a pasta inteira de uma vez. O grupo muscular vem do nome da pasta de origem, e depois você escolhe o GIF de cada exercício vendo o movimento.</p>
       </div>
     </div>
+    <div class="gif-dropzone" data-gif-dropzone>
+      <strong>Arraste aqui a pasta dos GIFs</strong>
+      <span>ou clique para escolher os arquivos .gif no computador</span>
+      <input type="file" accept=".gif,image/gif" multiple hidden data-gif-file-input>
+    </div>
     <div class="gif-upload">
-      <label class="button button--primary gif-upload-button">
-        Enviar pasta de GIFs
-        <input type="file" accept=".gif,image/gif" multiple webkitdirectory directory hidden data-gif-folder-input>
-      </label>
-      <label class="button button--secondary gif-upload-button">
-        Enviar GIFs avulsos
-        <input type="file" accept=".gif,image/gif" multiple hidden data-gif-file-input>
-      </label>
-      <select class="gif-loose-group" data-gif-loose-group aria-label="Grupo muscular dos GIFs avulsos"></select>
       <progress data-gif-progress hidden value="0" max="100"></progress>
       <p role="status" aria-live="polite" data-gif-status></p>
     </div>
+    <form class="media-upload-form" data-gif-single-form>
+      <div class="field-grid">
+        <label class="field"><span>Nome do exercício</span>
+          <input name="name" required placeholder="Ex.: Crossover alto"></label>
+        <label class="field"><span>Arquivo GIF</span>
+          <input name="gif" type="file" accept=".gif,image/gif" required></label>
+      </div>
+      <label class="field"><span>Grupo muscular</span>
+        <select name="group" required data-gif-loose-group></select></label>
+      <small>Somente GIF, com no máximo 12 MB. Este grupo também é usado quando você arrasta arquivos soltos, sem pasta.</small>
+      <button class="button button--primary" type="submit">Enviar GIF</button>
+      <p role="status" aria-live="polite"></p>
+    </form>
     <div class="gif-library-groups" data-gif-groups></div>`
   // Logo abaixo da lista de exercicios, para nao ficar escondido no fim da
   // pagina embaixo da biblioteca de MP4.
@@ -507,13 +681,136 @@ function createGifLibraryPanel() {
       status.textContent = error.message
     }
   }
-  panel
-    .querySelector('[data-gif-folder-input]')
-    .addEventListener('change', (event) => handle(event.target))
-  panel
-    .querySelector('[data-gif-file-input]')
-    .addEventListener('change', (event) => handle(event.target))
+  const fileInput = panel.querySelector('[data-gif-file-input]')
+  fileInput.addEventListener('change', (event) => handle(event.target))
+
+  const dropzone = panel.querySelector('[data-gif-dropzone]')
+  dropzone.addEventListener('click', () => fileInput.click())
+  ;['dragenter', 'dragover'].forEach((type) =>
+    dropzone.addEventListener(type, (event) => {
+      event.preventDefault()
+      dropzone.classList.add('is-over')
+    }),
+  )
+  ;['dragleave', 'dragend'].forEach((type) =>
+    dropzone.addEventListener(type, () => dropzone.classList.remove('is-over')),
+  )
+  dropzone.addEventListener('drop', async (event) => {
+    event.preventDefault()
+    dropzone.classList.remove('is-over')
+    status.textContent = 'Lendo os arquivos…'
+    try {
+      const files = await filesFromDrop(event.dataTransfer)
+      await sendGifFolder(files, status, bar, looseGroup.value)
+      renderGifLibrary()
+    } catch (error) {
+      bar.hidden = true
+      status.textContent = error.message
+    }
+  })
+
+  // Envio de um GIF por vez, com nome e grupo escolhidos na mão.
+  const singleForm = panel.querySelector('[data-gif-single-form]')
+  singleForm.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    if (!singleForm.reportValidity()) return
+    const file = singleForm.elements.gif.files?.[0]
+    const single = singleForm.querySelector('[role="status"]')
+    const button = singleForm.querySelector('[type="submit"]')
+    if (!file) return
+    button.disabled = true
+    button.textContent = 'Enviando…'
+    single.textContent = ''
+    try {
+      const payload = new FormData()
+      payload.append('gif', file)
+      payload.append('name', singleForm.elements.name.value.trim())
+      payload.append('group', singleForm.elements.group.value)
+      const frame = await firstFrameBlob(file)
+      if (frame) payload.append('frame', frame, 'frame.jpg')
+      const saved = await uploadExerciseGif(payload)
+      await syncRemoteData()
+      renderGifLibrary()
+      singleForm.reset()
+      showToast(
+        saved?.alreadyStored
+          ? 'Esse arquivo já estava na biblioteca.'
+          : 'GIF enviado para a biblioteca.',
+      )
+    } catch (error) {
+      single.textContent = error.message
+    } finally {
+      button.disabled = false
+      button.textContent = 'Enviar GIF'
+    }
+  })
   renderGifLibrary()
+}
+
+async function removeGifGroup(group, lista, ownedGroup) {
+  const emUso = (getData().exercises || []).filter((exercise) =>
+    lista.some((gif) => gif.id === exercise.gifId),
+  ).length
+  const aviso = emUso
+    ? ` ${emUso} exercício(s) usam esses GIFs e vão ficar sem GIF.`
+    : ''
+  const ok = await askConfirm({
+    eyebrow: 'Biblioteca de GIFs',
+    title: `Excluir a pasta ${group}?`,
+    message: lista.length
+      ? `${lista.length} GIF(s) serão apagados.${aviso}`
+      : 'A pasta será removida da lista de grupos musculares.',
+    note: 'Esta ação não pode ser desfeita.',
+    confirmLabel: 'Excluir pasta',
+  })
+  if (!ok) return
+  const status = document.querySelector('[data-gif-status]')
+  const bar = document.querySelector('[data-gif-progress]')
+  let apagados = 0
+  const falhas = []
+  const paint = () => {
+    if (bar) {
+      bar.max = lista.length
+      bar.value = apagados + falhas.length
+      bar.hidden = false
+    }
+    if (status)
+      status.textContent = `Excluindo ${apagados + falhas.length} de ${lista.length}…`
+  }
+  paint()
+  const fila = lista.slice()
+  const worker = async () => {
+    while (fila.length) {
+      const gif = fila.shift()
+      try {
+        await deleteExerciseGif(gif.id)
+        forgetExerciseGif(gif.id)
+        apagados += 1
+      } catch (error) {
+        falhas.push(`${gif.name}: ${error.message}`)
+      }
+      paint()
+    }
+  }
+  await Promise.all([worker(), worker(), worker(), worker()])
+  if (ownedGroup && !falhas.length) {
+    try {
+      await deleteMuscleGroup(ownedGroup.id)
+    } catch {
+      /* a pasta some sozinha quando fica vazia */
+    }
+  }
+  await syncRemoteData()
+  if (bar) bar.hidden = true
+  if (status)
+    status.textContent = `${apagados} GIF(s) do grupo ${group} excluídos${falhas.length ? `, ${falhas.length} não saíram` : ''}.`
+  if (falhas.length) console.warn('GIFs que não foram excluídos:', falhas)
+  renderGifLibrary()
+  showToast(
+    falhas.length
+      ? `Pasta ${group}: ${apagados} GIF(s) excluídos, ${falhas.length} não saíram.`
+      : `Pasta ${group} excluída.`,
+  )
 }
 
 function renderGifLibrary() {
@@ -552,7 +849,22 @@ function renderGifLibrary() {
       const count = document.createElement('span')
       count.className = 'exercise-folder-count'
       count.textContent = `${lista.length} GIF(s)`
-      summary.append(name, count)
+      const ownedGroup = (getData().customGroups || []).find(
+        (item) => item.name === group,
+      )
+      const wipe = document.createElement('button')
+      wipe.type = 'button'
+      wipe.className = 'button button--secondary gif-group-remove'
+      wipe.textContent = 'Excluir pasta'
+      wipe.title = `Excluir a pasta ${group}`
+      wipe.addEventListener('click', (event) => {
+        // O botao vive dentro do <summary>: sem isso o clique abriria/fecharia
+        // a pasta em vez de excluir.
+        event.preventDefault()
+        event.stopPropagation()
+        void removeGifGroup(group, lista, ownedGroup)
+      })
+      summary.append(name, count, folderAddButton(group), wipe)
       const body = document.createElement('div')
       body.className = 'gif-grid gif-grid--library'
       body.append(
@@ -570,7 +882,13 @@ function renderGifLibrary() {
           remove.textContent = '×'
           remove.title = 'Excluir este GIF'
           remove.addEventListener('click', async () => {
-            if (!window.confirm(`Excluir o GIF “${gif.name}”?`)) return
+            const ok = await askConfirm({
+              eyebrow: 'Biblioteca de GIFs',
+              title: 'Excluir GIF?',
+              message: `O GIF “${gif.name}” será apagado da biblioteca.`,
+              note: 'Exercícios que usam ele ficam sem GIF.',
+            })
+            if (!ok) return
             try {
               await deleteExerciseGif(gif.id)
               forgetExerciseGif(gif.id)

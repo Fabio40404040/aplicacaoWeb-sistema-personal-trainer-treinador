@@ -114,8 +114,90 @@ function circle(commands, x, top, radius, fill, stroke = null) {
   );
 }
 
-function drawExerciseFigure(commands, x, top, number) {
+// Imagens embutidas nesta geracao (um quadro parado de cada GIF usado).
+let pdfImages = [];
+
+// Le largura/altura direto do cabecalho do JPEG, sem precisar decodificar.
+export function jpegSize(bytes) {
+  let offset = 2;
+  while (offset + 9 < bytes.length) {
+    if (bytes[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+    const marker = bytes[offset + 1];
+    if (
+      marker === 0xd8 ||
+      marker === 0x01 ||
+      (marker >= 0xd0 && marker <= 0xd7)
+    ) {
+      offset += 2;
+      continue;
+    }
+    const length = (bytes[offset + 2] << 8) | bytes[offset + 3];
+    if (
+      marker >= 0xc0 &&
+      marker <= 0xcf &&
+      marker !== 0xc4 &&
+      marker !== 0xc8 &&
+      marker !== 0xcc
+    ) {
+      return {
+        height: (bytes[offset + 5] << 8) | bytes[offset + 6],
+        width: (bytes[offset + 7] << 8) | bytes[offset + 8],
+        components: bytes[offset + 9],
+      };
+    }
+    offset += 2 + length;
+  }
+  return null;
+}
+
+function registerImage(frameBytes) {
+  if (!frameBytes || !frameBytes.length) return null;
+  const existing = pdfImages.find((image) => image.bytes === frameBytes);
+  if (existing) return existing;
+  const size = jpegSize(frameBytes);
+  if (!size || !size.width || !size.height) return null;
+  const image = {
+    name: `Im${pdfImages.length + 1}`,
+    bytes: frameBytes,
+    width: size.width,
+    height: size.height,
+    gray: size.components === 1,
+  };
+  pdfImages.push(image);
+  return image;
+}
+
+function drawImage(commands, image, x, top, width, height) {
+  const y = PAGE_HEIGHT - top - height;
+  commands.push(
+    `q ${width.toFixed(2)} 0 0 ${height.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm /${image.name} Do Q`,
+  );
+}
+
+function drawExerciseFigure(commands, x, top, number, frameBytes) {
   rect(commands, x, top, 142, 104, COLORS.white);
+  const image = registerImage(frameBytes);
+  if (image) {
+    // O GIF entra aqui como quadro parado, encaixado sem distorcer:
+    // PDF nao aceita imagem animada.
+    const boxWidth = 138;
+    const boxHeight = 100;
+    const scale = Math.min(boxWidth / image.width, boxHeight / image.height);
+    const width = image.width * scale;
+    const height = image.height * scale;
+    drawImage(
+      commands,
+      image,
+      x + 2 + (boxWidth - width) / 2,
+      top + 2 + (boxHeight - height) / 2,
+      width,
+      height,
+    );
+    return;
+  }
   circle(commands, x + 70, top + 27, 9, COLORS.cyanSoft, COLORS.cyan);
   line(commands, x + 70, top + 36, x + 70, top + 67, COLORS.blueDark, 4);
   line(commands, x + 70, top + 44, x + 45, top + 57, COLORS.blueDark, 4);
@@ -262,7 +344,7 @@ function drawExerciseCard(commands, exercise, top, number) {
     bold: true,
     color: COLORS.white,
   });
-  drawExerciseFigure(commands, 59, top + 12, number);
+  drawExerciseFigure(commands, 59, top + 12, number, exercise.gifFrame);
   const infoX = 214;
   text(
     commands,
@@ -439,40 +521,80 @@ function drawWatermark(commands) {
   commands.push("Q");
 }
 
-function pdfDocument(pages) {
+function pdfDocument(pages, images) {
+  const encoder = new TextEncoder();
   const objects = [];
   const pageIds = pages.map((_, index) => 3 + index * 2);
   const regularFontId = 3 + pages.length * 2;
   const boldFontId = regularFontId + 1;
   const watermarkGsId = boldFontId + 1;
+  const imageIds = images.map((_, index) => watermarkGsId + 1 + index);
+  const xobjects = images.length
+    ? ` /XObject << ${images
+        .map((image, index) => `/${image.name} ${imageIds[index]} 0 R`)
+        .join(" ")} >>`
+    : "";
   objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
   objects[2] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`;
   pages.forEach((pageCommands, index) => {
     const pageId = pageIds[index];
     const contentId = pageId + 1;
-    const commands = pageCommands.join("\n");
+    const commands = encoder.encode(pageCommands.join("\n"));
     objects[pageId] =
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 ${regularFontId} 0 R /F2 ${boldFontId} 0 R >> /ExtGState << /GS1 ${watermarkGsId} 0 R >> >> /Contents ${contentId} 0 R >>`;
-    objects[contentId] =
-      `<< /Length ${new TextEncoder().encode(commands).length} >>\nstream\n${commands}\nendstream`;
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 ${regularFontId} 0 R /F2 ${boldFontId} 0 R >> /ExtGState << /GS1 ${watermarkGsId} 0 R >>${xobjects} >> /Contents ${contentId} 0 R >>`;
+    objects[contentId] = {
+      dict: `<< /Length ${commands.length} >>`,
+      data: commands,
+    };
   });
   objects[regularFontId] =
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
   objects[boldFontId] =
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>";
   objects[watermarkGsId] = "<< /Type /ExtGState /ca 0.09 /CA 0.09 >>";
-  let output = "%PDF-1.4\n";
+  images.forEach((image, index) => {
+    objects[imageIds[index]] = {
+      dict: `<< /Type /XObject /Subtype /Image /Width ${image.width} /Height ${image.height} /ColorSpace ${image.gray ? "/DeviceGray" : "/DeviceRGB"} /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.bytes.length} >>`,
+      data: image.bytes,
+    };
+  });
+
+  // O arquivo e montado em pedacos de bytes: os JPEG nao sobrevivem se o
+  // documento for tratado como texto.
+  const chunks = [];
+  let size = 0;
+  const push = (value) => {
+    const bytes = typeof value === "string" ? encoder.encode(value) : value;
+    chunks.push(bytes);
+    size += bytes.length;
+  };
+  push("%PDF-1.4\n");
   const offsets = [0];
   for (let id = 1; id < objects.length; id += 1) {
-    offsets[id] = new TextEncoder().encode(output).length;
-    output += `${id} 0 obj\n${objects[id]}\nendobj\n`;
+    offsets[id] = size;
+    const object = objects[id];
+    if (typeof object === "string") {
+      push(`${id} 0 obj\n${object}\nendobj\n`);
+    } else {
+      push(`${id} 0 obj\n${object.dict}\nstream\n`);
+      push(object.data);
+      push("\nendstream\nendobj\n");
+    }
   }
-  const xref = new TextEncoder().encode(output).length;
-  output += `xref\n0 ${objects.length}\n0000000000 65535 f \n`;
+  const xref = size;
+  push(`xref\n0 ${objects.length}\n0000000000 65535 f \n`);
   for (let id = 1; id < objects.length; id += 1)
-    output += `${String(offsets[id]).padStart(10, "0")} 00000 n \n`;
-  output += `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
-  return new TextEncoder().encode(output);
+    push(`${String(offsets[id]).padStart(10, "0")} 00000 n \n`);
+  push(
+    `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`,
+  );
+  const output = new Uint8Array(size);
+  let at = 0;
+  chunks.forEach((chunk) => {
+    output.set(chunk, at);
+    at += chunk.length;
+  });
+  return output;
 }
 
 export function buildWorkoutPdfBytes(workout, studentName) {
@@ -482,15 +604,51 @@ export function buildWorkoutPdfBytes(workout, studentName) {
     cyan: COLORS.cyan,
   };
   Object.assign(COLORS, THEMES[workout.colorTheme] || THEMES.blue);
+  pdfImages = [];
   try {
-    return pdfDocument(buildPages(workout, studentName));
+    const pages = buildPages(workout, studentName);
+    return pdfDocument(pages, pdfImages);
   } finally {
+    pdfImages = [];
     Object.assign(COLORS, original);
   }
 }
 
-export function downloadWorkoutPdf(workout, studentName) {
-  const blob = new Blob([buildWorkoutPdfBytes(workout, studentName)], {
+// Busca o quadro parado de cada GIF usado na ficha. Se algum falhar, aquele
+// exercicio volta a mostrar o bonequinho desenhado.
+async function withGifFrames(workout, loadFrame) {
+  const exercises = Array.isArray(workout.exercises)
+    ? workout.exercises
+    : Array.isArray(workout.exercisePrescriptions)
+      ? workout.exercisePrescriptions
+      : [];
+  const ids = [...new Set(exercises.map((item) => item?.gifId).filter(Boolean))];
+  if (!loadFrame || !ids.length) return workout;
+  const frames = new Map();
+  await Promise.all(
+    ids.map(async (id) => {
+      try {
+        const bytes = await loadFrame(id);
+        if (bytes && bytes.length) frames.set(id, bytes);
+      } catch {
+        /* sem quadro: fica o bonequinho */
+      }
+    }),
+  );
+  if (!frames.size) return workout;
+  const withFrames = exercises.map((item) =>
+    item?.gifId && frames.has(item.gifId)
+      ? { ...item, gifFrame: frames.get(item.gifId) }
+      : item,
+  );
+  return Array.isArray(workout.exercises)
+    ? { ...workout, exercises: withFrames }
+    : { ...workout, exercisePrescriptions: withFrames };
+}
+
+export async function downloadWorkoutPdf(workout, studentName, loadFrame) {
+  const prepared = await withGifFrames(workout, loadFrame);
+  const blob = new Blob([buildWorkoutPdfBytes(prepared, studentName)], {
     type: "application/pdf",
   });
   const link = document.createElement("a");

@@ -170,6 +170,24 @@ export function loadExerciseGif(id, kind = "file") {
   exerciseGifUrls.set(cacheKey, pending);
   return pending;
 }
+// Quadro parado do GIF, em bytes, para embutir no PDF da ficha.
+export async function loadExerciseGifFrame(id) {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  const response = await fetch(`${API_URL}/api/exercise-gifs/${id}/frame`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) return null;
+  return new Uint8Array(await response.arrayBuffer());
+}
+export function createMuscleGroup(name) {
+  return request("/muscle-groups", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+export function deleteMuscleGroup(id) {
+  return request(`/muscle-groups/${id}`, { method: "DELETE" });
+}
 export function forgetExerciseGif(id) {
   ["file", "frame"].forEach((kind) => {
     const cacheKey = `${id}:${kind}`;
