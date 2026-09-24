@@ -575,3 +575,51 @@
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.06);
 }
+
+/* GIF do exercício: toque para ampliar em tela cheia. */
+.student-exercise-gif {
+  cursor: zoom-in;
+}
+.student-gif-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  background: rgba(8, 13, 24, 0.96);
+}
+.student-gif-viewer-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+  color: #fff;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.student-gif-viewer-bar span {
+  flex: 1;
+  min-width: 0;
+}
+.student-gif-viewer-close {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  color: #0b1220;
+  background: #fff;
+  font-size: 1.3rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.student-gif-viewer img {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  object-fit: contain;
+  padding: 8px 12px calc(16px + env(safe-area-inset-bottom));
+}

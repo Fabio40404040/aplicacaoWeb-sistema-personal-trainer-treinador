@@ -43,6 +43,7 @@ import {
   deleteExerciseGif,
   listExerciseGifs,
   publicExerciseGifFile,
+  publicExerciseGifPage,
   studentExerciseGifFile,
   trainerExerciseGifFile,
   uploadExerciseGif,
@@ -73,7 +74,11 @@ async function handle(request, env) {
     segments[1] === "exercise-gifs" &&
     segments[2]
   )
-    return withDb(env, (db) => publicExerciseGifFile(env, db, segments[2]));
+    return withDb(env, (db) =>
+      segments[3] === "ver"
+        ? publicExerciseGifPage(db, segments[2])
+        : publicExerciseGifFile(env, db, segments[2]),
+    );
   if (request.method === "POST" && route === "payments/mercadopago/webhook")
     return withDb(env, (db) => mercadoPagoWebhook(request, env, db));
   if (request.method === "POST" && route === "payments/webhook")

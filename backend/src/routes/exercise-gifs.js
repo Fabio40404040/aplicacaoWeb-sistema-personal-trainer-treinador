@@ -221,3 +221,89 @@ export async function studentExerciseGifFile(env, db, accountId, id, kind) {
       )
     : { error: "Arquivo não encontrado.", status: 404 };
 }
+
+const escapeHtml = (value) =>
+  String(value || "").replace(
+    /[&<>"']/gu,
+    (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        char
+      ],
+  );
+
+// Página que o selo "GIF" do PDF abre. Antes o link ia direto no arquivo
+// .gif: no iPhone o Safari mostra a imagem sozinha em tela cheia, sem botão
+// para sair. Aqui o GIF aparece numa página com um botão "Fechar" que volta
+// para o PDF (ou orienta a fechar a aba, quando o navegador não deixa).
+export async function publicExerciseGifPage(db, id) {
+  const valid = id && /^[a-f0-9]{16,40}$/u.test(id);
+  const row = valid
+    ? (
+        await db.query(
+          `SELECT name FROM exercise_gifs WHERE id=$1 LIMIT 1`,
+          [id],
+        )
+      ).rows[0]
+    : null;
+  const title = row ? escapeHtml(row.name) : "GIF não encontrado";
+  const body = row
+    ? `<img src="/api/public/exercise-gifs/${id}" alt="${title}">`
+    : `<p class="msg">Este GIF não está mais disponível.</p>`;
+  const html = `<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>${title} · FRS Personal Trainer</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; flex-direction: column; background: #0b1220; color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+  }
+  h1 { flex: 1; margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.3; }
+  button {
+    display: inline-flex; align-items: center; gap: 6px; flex: none;
+    min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px;
+    background: #fff; color: #0b1220; font-size: 0.95rem; font-weight: 700;
+  }
+  main {
+    flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
+    padding: 8px 12px calc(16px + env(safe-area-inset-bottom));
+  }
+  img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; background: #fff; }
+  .msg { color: #c7d2e5; text-align: center; }
+  .hint { margin: 0 16px 16px; color: #c7d2e5; font-size: 0.9rem; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>${title}</h1>
+  <button type="button" id="fechar" aria-label="Fechar e voltar ao treino">✕ Fechar</button>
+</header>
+<main>${body}</main>
+<p class="hint" id="dica" hidden>Para voltar ao treino, feche esta aba do navegador.</p>
+<script>
+  document.getElementById('fechar').addEventListener('click', function () {
+    var dica = document.getElementById('dica');
+    if (history.length > 1) history.back();
+    else window.close();
+    setTimeout(function () { dica.hidden = false; }, 500);
+  });
+</script>
+</body>
+</html>`;
+  return new Response(html, {
+    status: row ? 200 : 404,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
+}

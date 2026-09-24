@@ -392,7 +392,9 @@ function drawExerciseCard(commands, exercise, top, number) {
     color: COLORS.white,
   });
   const gifLinkUri = exercise.gifId
-    ? `${publicOrigin()}/api/public/exercise-gifs/${exercise.gifId}`
+    ? // Abre uma página com o GIF e um botão Fechar (no iPhone o .gif puro
+      // abria em tela cheia sem ter como sair).
+      `${publicOrigin()}/api/public/exercise-gifs/${exercise.gifId}/ver`
     : null;
   drawExerciseFigure(
     commands,

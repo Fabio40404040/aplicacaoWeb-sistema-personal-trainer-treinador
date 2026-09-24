@@ -64,6 +64,66 @@ async function loadStudentGif(id, kind = "file") {
     : URL.createObjectURL(await response.blob());
 }
 const loadStudentGifFrame = (id) => loadStudentGif(id, "frame");
+
+// GIF em tela cheia na área do aluno: toca no GIF, ele ocupa a tela toda, e
+// o "✕" (ou o botão Voltar do celular) fecha e volta para o treino. É uma
+// camada por cima da página, e não o modo tela cheia do navegador, porque o
+// Safari do iPhone não deixa imagem entrar nesse modo nem sair dele direito.
+function openStudentGifViewer(src, title) {
+  if (!src || document.querySelector(".student-gif-viewer")) return;
+  const viewer = document.createElement("div");
+  viewer.className = "student-gif-viewer";
+  viewer.setAttribute("role", "dialog");
+  viewer.setAttribute("aria-modal", "true");
+  viewer.setAttribute("aria-label", title || "GIF do exercício");
+  const bar = document.createElement("div");
+  bar.className = "student-gif-viewer-bar";
+  const name = document.createElement("span");
+  name.textContent = title || "";
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "student-gif-viewer-close";
+  close.setAttribute("aria-label", "Fechar e voltar ao treino");
+  close.textContent = "✕";
+  bar.append(name, close);
+  const image = document.createElement("img");
+  image.src = src;
+  image.alt = title || "";
+  viewer.append(bar, image);
+
+  const previousOverflow = document.body.style.overflow;
+  let closed = false;
+  const onKey = (event) => {
+    if (event.key === "Escape") requestClose();
+  };
+  const finish = () => {
+    if (closed) return;
+    closed = true;
+    viewer.remove();
+    document.body.style.overflow = previousOverflow;
+    window.removeEventListener("popstate", finish);
+    document.removeEventListener("keydown", onKey);
+  };
+  // Uma entrada no histórico só para o GIF: o botão Voltar do celular fecha
+  // o GIF em vez de sair da área do aluno.
+  history.pushState({ studentGifViewer: true }, "");
+  window.addEventListener("popstate", finish);
+  function requestClose() {
+    if (history.state?.studentGifViewer) history.back();
+    else finish();
+  }
+  close.addEventListener("click", (event) => {
+    event.stopPropagation();
+    requestClose();
+  });
+  viewer.addEventListener("click", (event) => {
+    if (event.target === viewer) requestClose();
+  });
+  document.addEventListener("keydown", onKey);
+  document.body.style.overflow = "hidden";
+  document.body.append(viewer);
+  close.focus();
+}
 const element = (tag, className, text) => {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -338,6 +398,10 @@ function appendExerciseGroups(parent, exercises, uploadedVideos = []) {
           const animation = element("img", "student-exercise-gif");
           animation.alt = "";
           animation.loading = "lazy";
+          animation.title = "Toque para ver em tela cheia";
+          animation.addEventListener("click", () =>
+            openStudentGifViewer(animation.src, exercise.name),
+          );
           void loadStudentGif(exercise.gifId)
             .then((url) => {
               if (url) animation.src = url;
