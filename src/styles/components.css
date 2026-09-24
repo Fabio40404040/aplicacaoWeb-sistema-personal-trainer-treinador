@@ -2140,3 +2140,70 @@ td {
   color: var(--red-600);
   background: var(--red-100);
 }
+
+/* Pastas das bibliotecas (exercícios, GIFs e MP4).
+   A setinha de abrir/fechar era um risquinho cinza quase invisível: agora é
+   um círculo azul com a seta branca, que gira quando a pasta abre. */
+.exercise-folder > summary::after {
+  content: '›';
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  margin-left: 4px;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--blue-700);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  transform: rotate(90deg);
+  box-shadow: 0 2px 6px rgba(29, 78, 216, 0.25);
+}
+.exercise-folder[open] > summary::after {
+  transform: rotate(-90deg);
+}
+.exercise-folder > summary .button {
+  white-space: nowrap;
+}
+
+/* Em tela estreita (celular, ou o painel de GIFs que é mais fino) os botões
+   empurravam tudo para fora da tela. Agora a linha de cima fica com o nome,
+   a contagem e a seta, e os botões descem para uma segunda linha. */
+.exercise-folder {
+  container-type: inline-size;
+}
+@container (max-width: 620px) {
+  .exercise-folder > summary {
+    flex-wrap: wrap;
+    row-gap: 10px;
+    padding: 12px 14px;
+  }
+  .exercise-folder > summary::before {
+    order: 1;
+  }
+  .exercise-folder > summary .exercise-folder-name {
+    order: 2;
+    /* Ocupa o resto da linha: isso obriga os botões a irem para baixo. */
+    flex: 1 1 calc(100% - 190px);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .exercise-folder > summary .exercise-folder-count {
+    order: 3;
+    margin-left: 0;
+    white-space: nowrap;
+  }
+  .exercise-folder > summary::after {
+    order: 4;
+  }
+  .exercise-folder > summary .button {
+    order: 5;
+    flex: 1 1 100px;
+    min-width: 0;
+    margin-left: 0;
+    padding: 6px 8px;
+  }
+}

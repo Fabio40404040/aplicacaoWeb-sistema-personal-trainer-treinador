@@ -3,6 +3,17 @@ import { getData, replaceData } from "./state.js";
 const API_URL = import.meta.env.VITE_API_URL || "";
 const TOKEN_KEY = "frs-coach-api-token";
 
+// Login vencido: a API responde 401 para tudo. Em vez de continuar pedindo
+// centenas de GIFs (e encher o terminal de "401 Unauthorized"), apagamos o
+// token uma vez só, paramos de pedir arquivos e avisamos a tela de login.
+function handleUnauthorized(status) {
+  if (status !== 401 || !sessionStorage.getItem(TOKEN_KEY)) return;
+  sessionStorage.removeItem(TOKEN_KEY);
+  window.dispatchEvent(new CustomEvent("frs:session-expired"));
+}
+const sessionExpiredError = () =>
+  new Error("Sua sessão expirou. Entre de novo para continuar.");
+
 async function request(path, options = {}) {
   const token = sessionStorage.getItem(TOKEN_KEY);
   const { timeoutMs = 12000, ...fetchOptions } = options;
@@ -34,6 +45,8 @@ async function request(path, options = {}) {
     clearTimeout(timeoutId);
     fetchOptions.signal?.removeEventListener("abort", cancelRequest);
   }
+  // O 401 do próprio login é senha errada, não sessão vencida.
+  if (token && path !== "/auth/login") handleUnauthorized(response.status);
   if (response.status === 204) return null;
   let result;
   try {
@@ -103,9 +116,11 @@ export function updateReadyWorkout(id, published) {
 }
 export async function downloadReadyWorkout(id, filename) {
   const token = sessionStorage.getItem(TOKEN_KEY);
+  if (!token) throw sessionExpiredError();
   const response = await fetch(`${API_URL}/api/ready-workouts/${id}/file`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: { Authorization: `Bearer ${token}` },
   });
+  handleUnauthorized(response.status);
   if (!response.ok) {
     const result = await response.json().catch(() => null);
     throw new Error(result?.error || "Não foi possível baixar o PDF.");
@@ -129,9 +144,11 @@ export function deleteExerciseVideo(id) {
 }
 export async function loadExerciseVideo(id) {
   const token = sessionStorage.getItem(TOKEN_KEY);
+  if (!token) throw sessionExpiredError();
   const response = await fetch(`${API_URL}/api/exercise-videos/${id}/file`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: { Authorization: `Bearer ${token}` },
   });
+  handleUnauthorized(response.status);
   if (!response.ok) {
     const result = await response.json().catch(() => null);
     throw new Error(result?.error || "Não foi possível carregar o vídeo.");
@@ -157,9 +174,12 @@ export function loadExerciseGif(id, kind = "file") {
   if (exerciseGifUrls.has(cacheKey)) return exerciseGifUrls.get(cacheKey);
   const pending = (async () => {
     const token = sessionStorage.getItem(TOKEN_KEY);
+    // Sem login não adianta pedir: a API só devolveria 401.
+    if (!token) throw sessionExpiredError();
     const response = await fetch(`${API_URL}/api/exercise-gifs/${id}/${kind}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: { Authorization: `Bearer ${token}` },
     });
+    handleUnauthorized(response.status);
     if (!response.ok) {
       const result = await response.json().catch(() => null);
       throw new Error(result?.error || "Não foi possível carregar o GIF.");
@@ -173,9 +193,11 @@ export function loadExerciseGif(id, kind = "file") {
 // Quadro parado do GIF, em bytes, para embutir no PDF da ficha.
 export async function loadExerciseGifFrame(id) {
   const token = sessionStorage.getItem(TOKEN_KEY);
+  if (!token) return null;
   const response = await fetch(`${API_URL}/api/exercise-gifs/${id}/frame`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: { Authorization: `Bearer ${token}` },
   });
+  handleUnauthorized(response.status);
   if (!response.ok) return null;
   return new Uint8Array(await response.arrayBuffer());
 }

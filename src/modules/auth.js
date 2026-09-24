@@ -113,6 +113,16 @@ export function initAuth() {
     }
   })
 
+  // Login vencido (a API respondeu 401): volta para a tela de entrada com um
+  // aviso, em vez de deixar o painel aberto tentando carregar tudo sem acesso.
+  window.addEventListener('frs:session-expired', () => {
+    if (!sessionStorage.getItem(SESSION_KEY)) return
+    sessionStorage.removeItem(SESSION_KEY)
+    document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close())
+    showLogin()
+    status.textContent = 'Sua sessão expirou. Entre de novo para continuar.'
+  })
+
   document.querySelector('[data-logout]').addEventListener('click', () => {
     sessionStorage.removeItem(SESSION_KEY)
     clearApiSession()
