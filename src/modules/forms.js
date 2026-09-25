@@ -160,6 +160,9 @@ function handleExercise(form) {
     mediaUrl: value(form, 'mediaUrl'),
     animationClip: value(form, 'animationClip'),
     gifId: value(form, 'gifId'),
+    // Vídeo MP4 da biblioteca (formato "Vídeo MP4"). Antes não ia junto, e
+    // editar o exercício apagava o vídeo ligado a ele.
+    videoId: form.elements.videoId ? value(form, 'videoId') : undefined,
   }
   updateData((d) => {
     const old = d.exercises.find((e) => e.id === editing.exercise)

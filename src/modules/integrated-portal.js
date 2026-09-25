@@ -558,7 +558,7 @@ function enhanceExercise() {
   })
   body.append(list)
   const extra = document.createElement('div')
-  extra.innerHTML = `<div class="field-grid"><label class="field"><span>Dificuldade</span><select name="difficulty"><option>Iniciante</option><option selected>Intermediário</option><option>Avançado</option></select></label><label class="field"><span>Formato da mídia</span><select name="mediaType"><option value="3d">Animação 3D</option><option value="video">Vídeo</option><option value="image">Imagem</option></select></label></div><label class="field"><span>Arquivo 3D, vídeo ou imagem (URL)</span><input name="mediaUrl" placeholder="/models/exercises/exercicio.glb"></label><label class="field"><span>Nome da animação 3D</span><input name="animationClip" placeholder="Ex.: Squat"></label>`
+  extra.innerHTML = `<div class="field-grid"><label class="field"><span>Dificuldade</span><select name="difficulty"><option>Iniciante</option><option selected>Intermediário</option><option>Avançado</option></select></label><label class="field"><span>Formato da mídia</span><select name="mediaType" data-media-type><option value="gif">GIF</option><option value="video">Vídeo MP4</option><option value="3d">Animação 3D</option></select></label></div><label class="field" data-media-3d><span>Arquivo 3D (URL)</span><input name="mediaUrl" placeholder="/models/exercises/exercicio.glb"></label><label class="field" data-media-3d><span>Nome da animação 3D</span><input name="animationClip" placeholder="Ex.: Squat"></label>`
   body.append(...extra.children)
   const picker = field('Selecionar da biblioteca de vídeos', '<select data-video-picker></select>')
   const pickerSelect = picker.querySelector('select')
@@ -582,6 +582,10 @@ function enhanceExercise() {
     pickerSelect.append(options)
   })
   body.insertBefore(picker, body.firstElementChild)
+  // O seletor antigo lê só os vídeos escritos à mão em src/data/library.js;
+  // sem nenhum lá, ele só confunde — fica escondido.
+  picker.hidden = !exerciseVideoLibrary.length
+  setupExerciseMediaFields(form)
   const applyCatalogItem = (item) => {
     if (!item) return
     name.value = item.name
@@ -603,6 +607,76 @@ function enhanceExercise() {
   name.addEventListener('change', () => {
     applyCatalogItem(mediaExerciseCatalog.find((entry) => entry.name === name.value))
   })
+}
+
+// Formato da mídia do exercício: GIF, Vídeo MP4 ou Animação 3D. Cada
+// formato mostra só os campos dele. O vídeo vem da Biblioteca de MP4.
+function exerciseVideoSelect(form) {
+  let wrapper = form.querySelector('[data-media-video]')
+  if (!wrapper) {
+    wrapper = document.createElement('div')
+    wrapper.className = 'field'
+    wrapper.dataset.mediaVideo = ''
+    wrapper.innerHTML = `<span>Vídeo MP4 da biblioteca</span><select name="videoId"></select><small class="field-hint">Os vídeos vêm da Biblioteca de MP4 (mais abaixo nesta página). Envie lá e escolha aqui.</small>`
+    const gifField = form.querySelector('[data-gif-field]')
+    if (gifField) gifField.after(wrapper)
+    else form.querySelector('.modal-body').append(wrapper)
+  }
+  const select = wrapper.querySelector('select')
+  const current = select.value
+  const checked = [...form.querySelectorAll('input[name="group"]:checked')].map((input) => input.value)
+  const fresh = videoPickerSelect({ group: checked.join(', '), videoId: current })
+  select.replaceChildren(...fresh.children)
+  select.value = current
+  return wrapper
+}
+
+function syncExerciseMediaFields(form) {
+  const type = form.elements.mediaType
+  if (!type) return
+  const video = exerciseVideoSelect(form)
+  // Exercícios antigos ("imagem" ou sem formato): escolhe pelo que já têm.
+  if (!['gif', 'video', '3d'].includes(type.value)) {
+    type.value = form.elements.videoId?.value
+      ? 'video'
+      : form.elements.mediaUrl?.value && !form.elements.gifId?.value
+        ? '3d'
+        : 'gif'
+  }
+  const mode = type.value
+  form.querySelectorAll('[data-media-3d]').forEach((element) => (element.hidden = mode !== '3d'))
+  const gifField = form.querySelector('[data-gif-field]')
+  if (gifField) gifField.hidden = mode !== 'gif'
+  video.hidden = mode !== 'video'
+}
+
+function setupExerciseMediaFields(form) {
+  form.elements.mediaType.addEventListener('change', () => syncExerciseMediaFields(form))
+  // Ao abrir a janela (novo exercício ou edição), atualiza a lista de vídeos
+  // e mostra os campos certos do formato salvo.
+  const dialog = form.closest('dialog')
+  if (dialog)
+    new MutationObserver(() => {
+      if (dialog.open) queueMicrotask(() => syncExerciseMediaFields(form))
+    }).observe(dialog, { attributes: true, attributeFilter: ['open'] })
+  // A lista de vídeos fica sempre atualizada, para a edição de um exercício
+  // já encontrar o vídeo dele na lista.
+  exerciseVideoSelect(form)
+  window.addEventListener('frs:data-changed', () => exerciseVideoSelect(form))
+  // Só um tipo de mídia fica salvo: ao enviar, zera o que não é do formato.
+  form.addEventListener(
+    'submit',
+    () => {
+      const mode = form.elements.mediaType.value
+      if (mode !== 'video' && form.elements.videoId) form.elements.videoId.value = ''
+      if (mode === 'video' && form.elements.gifId) form.elements.gifId.value = ''
+      if (mode !== '3d') {
+        if (form.elements.mediaUrl) form.elements.mediaUrl.value = ''
+        if (form.elements.animationClip) form.elements.animationClip.value = ''
+      }
+    },
+    true,
+  )
 }
 
 // "18 exercícios · 6 selecionados": a parte dos selecionados vai em vermelho
