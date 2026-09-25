@@ -2328,3 +2328,20 @@ video.gif-lightbox-image {
   color: var(--ink-500);
   text-align: center;
 }
+
+/* Montador de ficha: GIF e vídeo MP4 lado a lado (um não apaga o outro). */
+.prescription-media {
+  display: grid;
+  gap: 8px;
+}
+.prescription-media-label {
+  flex-basis: 100%;
+  color: var(--ink-500);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.prescription-media-body + .prescription-media-body {
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}

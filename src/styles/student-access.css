@@ -623,3 +623,41 @@
   object-fit: contain;
   padding: 8px 12px calc(16px + env(safe-area-inset-bottom));
 }
+
+/* Seta das pastas do treino: a mesma bolinha das bibliotecas do painel
+   (fundo azul-claro, contorno fino e seta azul), no lugar do risquinho. */
+.student-muscle-group summary::after {
+  content: "›";
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  margin-left: auto;
+  border: 1px solid #c3d7ff;
+  border-radius: 999px;
+  color: var(--blue-700, #1d4ed8);
+  background: var(--blue-50, #eef4ff);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  transform: rotate(90deg);
+}
+.student-muscle-group[open] > summary::after {
+  transform: rotate(-90deg);
+}
+
+/* Vídeo MP4 em tela cheia (mesma camada do GIF) e botão "Ver vídeo". */
+.student-gif-viewer video {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px calc(16px + env(safe-area-inset-bottom));
+  object-fit: contain;
+  background: transparent;
+}
+.student-watch-video {
+  display: inline-flex;
+  margin: 0 0 8px;
+}

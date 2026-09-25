@@ -71,7 +71,40 @@ const loadStudentGifFrame = (id) => loadStudentGif(id, "frame");
 // camada por cima da página, e não o modo tela cheia do navegador, porque o
 // Safari do iPhone não deixa imagem entrar nesse modo nem sair dele direito.
 function openStudentGifViewer(src, title) {
-  if (!src || document.querySelector(".student-gif-viewer")) return;
+  if (!src) return;
+  const image = document.createElement("img");
+  image.src = src;
+  image.alt = title || "";
+  openStudentViewer(image, title);
+}
+
+// Vídeo MP4 do exercício na mesma tela cheia do GIF, com o mesmo "✕".
+function openStudentVideoViewer(videoId, title) {
+  if (!videoId) return;
+  const video = hardenVideo(element("video"));
+  video.controls = true;
+  video.playsInline = true;
+  video.preload = "metadata";
+  let closed = false;
+  openStudentViewer(video, title, () => {
+    closed = true;
+    video.pause();
+    if (video.src.startsWith("blob:")) URL.revokeObjectURL(video.src);
+  });
+  loadStudentExerciseVideo(videoId)
+    .then((url) => {
+      if (closed) return URL.revokeObjectURL(url);
+      video.src = url;
+      video.play().catch(() => {});
+    })
+    .catch(() => {
+      const bar = document.querySelector(".student-gif-viewer-bar span");
+      if (bar) bar.textContent = "Não foi possível carregar o vídeo.";
+    });
+}
+
+function openStudentViewer(media, title, onClose) {
+  if (document.querySelector(".student-gif-viewer")) return;
   const viewer = document.createElement("div");
   viewer.className = "student-gif-viewer";
   viewer.setAttribute("role", "dialog");
@@ -87,10 +120,7 @@ function openStudentGifViewer(src, title) {
   close.setAttribute("aria-label", "Fechar e voltar ao treino");
   close.textContent = "✕";
   bar.append(name, close);
-  const image = document.createElement("img");
-  image.src = src;
-  image.alt = title || "";
-  viewer.append(bar, image);
+  viewer.append(bar, media);
 
   const previousOverflow = document.body.style.overflow;
   let closed = false;
@@ -100,6 +130,7 @@ function openStudentGifViewer(src, title) {
   const finish = () => {
     if (closed) return;
     closed = true;
+    onClose?.();
     viewer.remove();
     document.body.style.overflow = previousOverflow;
     window.removeEventListener("popstate", finish);
@@ -393,7 +424,9 @@ function appendExerciseGroups(parent, exercises, uploadedVideos = []) {
         // Uma mídia grande só: o vídeo MP4 manda, e o GIF entra no lugar
         // dele quando aquele exercício ainda não tem vídeo.
         const uploadedVideo = matchingUploadedVideo(exercise, uploadedVideos);
-        if (uploadedVideo) {
+        // Com GIF e vídeo: o GIF aparece e, embaixo, o botão "Ver vídeo"
+        // abre o MP4 em tela cheia. Só vídeo: o player de sempre.
+        if (uploadedVideo && !exercise.gifId) {
           appendExerciseMedia(item, exercise, uploadedVideo);
         } else if (exercise.gifId) {
           const animation = element("img", "student-exercise-gif");
@@ -410,6 +443,18 @@ function appendExerciseGroups(parent, exercises, uploadedVideos = []) {
             })
             .catch(() => animation.remove());
           item.append(animation);
+          if (uploadedVideo) {
+            const watch = element(
+              "button",
+              "button button--secondary student-watch-video",
+              "▶ Ver vídeo",
+            );
+            watch.type = "button";
+            watch.addEventListener("click", () =>
+              openStudentVideoViewer(uploadedVideo.id, exercise.name),
+            );
+            item.append(watch);
+          }
         }
         addLine(
           item,

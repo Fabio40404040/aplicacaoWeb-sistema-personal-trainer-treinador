@@ -254,89 +254,63 @@ function videoPickerSelect(exercise) {
 // salvo, mas trocar de aba não salva nada sozinho — só troca qual seletor
 // aparece. Salvar em um dos dois sempre limpa o outro no banco, pra nunca
 // ficar um vínculo escondido que ninguém está vendo.
+// Linha de mídia usada pelos dois montadores: o exercício pode ter GIF e
+// vídeo MP4 ao mesmo tempo. O GIF vai para a ficha em PDF; o vídeo aparece
+// para o aluno na área dele (botão "Ver vídeo"). Um não apaga o outro.
 function prescriptionMediaRow(exerciseId, rerender) {
   const row = document.createElement('div')
   row.className = 'prescription-media'
   const exercise = currentExercise(exerciseId)
   if (!exercise) return row
 
-  let activeType = exercise.videoId ? 'video' : 'gif'
-
-  const toggle = document.createElement('div')
-  toggle.className = 'prescription-media-toggle'
-  const gifTab = document.createElement('button')
-  gifTab.type = 'button'
-  gifTab.className = 'prescription-media-tab'
-  gifTab.textContent = 'GIF'
-  const videoTab = document.createElement('button')
-  videoTab.type = 'button'
-  videoTab.className = 'prescription-media-tab'
-  videoTab.textContent = 'Vídeo MP4'
-  toggle.append(gifTab, videoTab)
-
-  const body = document.createElement('div')
-  body.className = 'prescription-media-body'
-
-  const paintTabs = () => {
-    gifTab.classList.toggle('is-active', activeType === 'gif')
-    videoTab.classList.toggle('is-active', activeType === 'video')
-  }
-
-  const renderBody = () => {
-    body.replaceChildren()
-    if (activeType === 'gif') {
-      const thumb = exerciseGifThumb(exercise, 'prescription-media-thumb')
-      body.append(
-        thumb ||
-          Object.assign(document.createElement('span'), {
-            className: 'prescription-media-empty',
-            textContent: 'Nenhum GIF escolhido para este exercício',
-          }),
-      )
-      const chooseGif = document.createElement('button')
-      chooseGif.type = 'button'
-      chooseGif.className = 'button button--secondary prescription-media-button'
-      chooseGif.textContent = exercise.gifId ? 'Trocar GIF' : 'Escolher GIF'
-      chooseGif.addEventListener('click', async () => {
-        const chosen = await openGifPicker(exercise)
-        if (chosen === undefined) return
-        // Escolher um GIF de verdade some com o vínculo de vídeo deste
-        // exercício; só limpar (chosen === null) não mexe no vídeo.
-        const patch = chosen ? { gifId: chosen, videoId: null } : { gifId: null }
-        if (await saveExerciseMedia(exercise, patch, chooseGif)) rerender()
-      })
-      body.append(chooseGif)
-    } else {
-      const select = videoPickerSelect(exercise)
-      select.addEventListener('change', async () => {
-        const value = select.value
-        const patch = value
-          ? { videoId: value, gifId: null }
-          : { videoId: null }
-        if (!(await saveExerciseMedia(exercise, patch, select)))
-          select.value = exercise.videoId ? String(exercise.videoId) : ''
-        else rerender()
-      })
-      body.append(select)
-    }
-  }
-
-  gifTab.addEventListener('click', () => {
-    if (activeType === 'gif') return
-    activeType = 'gif'
-    paintTabs()
-    renderBody()
+  const gifPart = document.createElement('div')
+  gifPart.className = 'prescription-media-body'
+  const gifLabel = document.createElement('span')
+  gifLabel.className = 'prescription-media-label'
+  gifLabel.textContent = 'GIF (ficha e PDF)'
+  const thumb = exerciseGifThumb(exercise, 'prescription-media-thumb')
+  const chooseGif = document.createElement('button')
+  chooseGif.type = 'button'
+  chooseGif.className = 'button button--secondary prescription-media-button'
+  chooseGif.textContent = exercise.gifId ? 'Trocar GIF' : 'Escolher GIF'
+  chooseGif.addEventListener('click', async () => {
+    const chosen = await openGifPicker(exercise)
+    if (chosen === undefined) return
+    if (await saveExerciseMedia(exercise, { gifId: chosen || null }, chooseGif)) rerender()
   })
-  videoTab.addEventListener('click', () => {
-    if (activeType === 'video') return
-    activeType = 'video'
-    paintTabs()
-    renderBody()
-  })
+  gifPart.append(
+    gifLabel,
+    thumb ||
+      Object.assign(document.createElement('span'), {
+        className: 'prescription-media-empty',
+        textContent: 'Sem GIF',
+      }),
+    chooseGif,
+  )
 
-  paintTabs()
-  renderBody()
-  row.append(toggle, body)
+  const videoPart = document.createElement('div')
+  videoPart.className = 'prescription-media-body'
+  const videoLabel = document.createElement('span')
+  videoLabel.className = 'prescription-media-label'
+  videoLabel.textContent = 'Vídeo MP4 (área do aluno)'
+  const select = videoPickerSelect(exercise)
+  select.addEventListener('change', async () => {
+    const value = select.value
+    if (!(await saveExerciseMedia(exercise, { videoId: value || null }, select)))
+      select.value = exercise.videoId ? String(exercise.videoId) : ''
+    else rerender()
+  })
+  const watch = document.createElement('button')
+  watch.type = 'button'
+  watch.className = 'button button--secondary prescription-media-button'
+  watch.textContent = '▶ Ver'
+  watch.disabled = !select.value
+  watch.addEventListener('click', () => {
+    if (select.value) void openVideoLightbox(select.value, exercise.name)
+  })
+  videoPart.append(videoLabel, select, watch)
+
+  row.append(gifPart, videoPart)
   return row
 }
 
@@ -559,7 +533,7 @@ function enhanceExercise() {
   })
   body.append(list)
   const extra = document.createElement('div')
-  extra.innerHTML = `<div class="field-grid"><label class="field"><span>Dificuldade</span><select name="difficulty"><option>Iniciante</option><option selected>Intermediário</option><option>Avançado</option></select></label><label class="field"><span>Formato da mídia</span><select name="mediaType" data-media-type><option value="gif">GIF</option><option value="video">Vídeo MP4</option><option value="3d">Animação 3D</option></select></label></div><label class="field" data-media-3d><span>Arquivo 3D (URL)</span><input name="mediaUrl" placeholder="/models/exercises/exercicio.glb"></label><label class="field" data-media-3d><span>Nome da animação 3D</span><input name="animationClip" placeholder="Ex.: Squat"></label>`
+  extra.innerHTML = `<div class="field-grid"><label class="field"><span>Dificuldade</span><select name="difficulty"><option>Iniciante</option><option selected>Intermediário</option><option>Avançado</option></select></label><label class="field"><span>Formato da mídia</span><select name="mediaType" data-media-type><option value="gif">GIF e vídeo MP4</option><option value="3d">Animação 3D</option></select></label></div><label class="field" data-media-3d><span>Arquivo 3D (URL)</span><input name="mediaUrl" placeholder="/models/exercises/exercicio.glb"></label><label class="field" data-media-3d><span>Nome da animação 3D</span><input name="animationClip" placeholder="Ex.: Squat"></label>`
   body.append(...extra.children)
   const picker = field('Selecionar da biblioteca de vídeos', '<select data-video-picker></select>')
   const pickerSelect = picker.querySelector('select')
@@ -712,19 +686,15 @@ function syncExerciseMediaFields(form) {
   const type = form.elements.mediaType
   if (!type) return
   const video = exerciseVideoSelect(form)
-  // Exercícios antigos ("imagem" ou sem formato): escolhe pelo que já têm.
-  if (!['gif', 'video', '3d'].includes(type.value)) {
-    type.value = form.elements.videoId?.value
-      ? 'video'
-      : form.elements.mediaUrl?.value && !form.elements.gifId?.value
-        ? '3d'
-        : 'gif'
-  }
+  // GIF e vídeo podem ficar juntos (GIF para a ficha/PDF, vídeo para a área
+  // do aluno). Exercícios antigos ("imagem", "vídeo" ou sem formato) abrem
+  // como "GIF e vídeo MP4"; os de 3D continuam 3D.
+  if (!['gif', '3d'].includes(type.value)) type.value = 'gif'
   const mode = type.value
   form.querySelectorAll('[data-media-3d]').forEach((element) => (element.hidden = mode !== '3d'))
   const gifField = form.querySelector('[data-gif-field]')
-  if (gifField) gifField.hidden = mode !== 'gif'
-  video.hidden = mode !== 'video'
+  if (gifField) gifField.hidden = false
+  video.hidden = false
 }
 
 function setupExerciseMediaFields(form) {
@@ -740,13 +710,11 @@ function setupExerciseMediaFields(form) {
   // já encontrar o vídeo dele na lista.
   exerciseVideoSelect(form)
   window.addEventListener('frs:data-changed', () => exerciseVideoSelect(form))
-  // Só um tipo de mídia fica salvo: ao enviar, zera o que não é do formato.
+  // Ao salvar, os campos de 3D só ficam guardados no formato Animação 3D.
   form.addEventListener(
     'submit',
     () => {
       const mode = form.elements.mediaType.value
-      if (mode !== 'video' && form.elements.videoId) form.elements.videoId.value = ''
-      if (mode === 'video' && form.elements.gifId) form.elements.gifId.value = ''
       if (mode !== '3d') {
         if (form.elements.mediaUrl) form.elements.mediaUrl.value = ''
         if (form.elements.animationClip) form.elements.animationClip.value = ''
