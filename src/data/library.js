@@ -7,6 +7,9 @@
 //
 // Use caminhos iniciados por /library/. Não coloque arquivos grandes dentro de src/.
 
+// leg: true = o grupo entra dentro da pasta "Pernas" nas bibliotecas e no
+// montador de treino. Ao criar um grupo novo de perna (ex.: Adutor máximo),
+// marque leg: true, senão ele vira uma pasta separada.
 export const muscleGroups = [
   { id: 'peitoral', name: 'Peitoral' },
   { id: 'costas', name: 'Costas' },
@@ -15,15 +18,16 @@ export const muscleGroups = [
   { id: 'triceps', name: 'Tríceps' },
   { id: 'antebracos', name: 'Antebraços' },
   { id: 'abdomen', name: 'Abdômen' },
-  { id: 'gluteos', name: 'Glúteos' },
-  { id: 'quadriceps', name: 'Quadríceps' },
-  { id: 'posteriores', name: 'Posteriores de coxa' },
-  { id: 'adultor', name: 'Adultor Maximo' },
-  { id: 'panturrilhas', name: 'Panturrilhas' },
+  { id: 'gluteos', name: 'Glúteos', leg: true },
+  { id: 'quadriceps', name: 'Quadríceps', leg: true },
+  { id: 'posteriores', name: 'Posteriores de coxa', leg: true },
+  { id: 'adultor', name: 'Adultor Maximo', leg: true },
+  { id: 'panturrilhas', name: 'Panturrilhas', leg: true },
   { id: 'cardio', name: 'Cardio e condicionamento' },
- 
-  
 ]
+
+// Nomes dos grupos que ficam dentro da pasta "Pernas".
+export const legGroupNames = muscleGroups.filter((group) => group.leg).map((group) => group.name)
 
 export const exerciseVideoLibrary = [
   // MODELO PARA COPIAR:

@@ -13,7 +13,7 @@ import {
 import { downloadWorkoutPdf } from './workout-pdf.js'
 import { getData } from './state.js'
 import { exerciseCatalog } from '../data/exercises.js'
-import { exerciseVideoLibrary, muscleGroups } from '../data/library.js'
+import { exerciseVideoLibrary, legGroupNames, muscleGroups } from '../data/library.js'
 import { askConfirm, exerciseGroups, showToast } from './utils.js'
 import { createWhatsappUrl, planNames } from './whatsapp.js'
 import {
@@ -45,7 +45,7 @@ const mediaExerciseCatalog = [
     animationClip: '',
   })),
 ]
-const legMuscleGroups = ['Pernas', 'Glúteos', 'Quadríceps', 'Posteriores de coxa', 'Panturrilhas']
+const legMuscleGroups = ['Pernas', ...legGroupNames]
 
 function workoutCatalogGroups(exercises) {
   const knownGroups = new Set([...muscleGroups.map((group) => group.name), 'Pernas'])

@@ -1,4 +1,5 @@
 import { getData } from './state.js'
+import { legGroupNames } from '../data/library.js'
 import { askConfirm, askText, exerciseGroups, showToast } from './utils.js'
 import {
   createMuscleGroup,
@@ -11,13 +12,7 @@ import {
 } from './api-client.js'
 
 // Grupos que a Biblioteca mostra dentro da pasta "Pernas".
-const LEG_GROUPS = [
-  'Glúteos',
-  'Quadríceps',
-  'Posteriores de coxa',
-  'Panturrilhas',
-  'Pernas',
-]
+const LEG_GROUPS = [...legGroupNames, 'Pernas']
 
 // A pasta de origem do arquivo define o grupo muscular do GIF.
 // Ex.: "1-Peitoral" -> Peitoral, "3-Menbros-inferiores-e-Gluteos" -> Pernas.

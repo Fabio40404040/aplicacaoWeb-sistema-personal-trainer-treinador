@@ -8,6 +8,7 @@ import {
   syncRemoteData,
 } from './api-client.js'
 import { downloadWorkoutPdf } from './workout-pdf.js'
+import { legGroupNames } from '../data/library.js'
 import {
   applyExerciseGifThumb,
   exerciseGifStatus,
@@ -18,7 +19,7 @@ import {
 // A pasta "Pernas" é só uma forma de agrupar essas quatro na exibição — o
 // exercício continua guardando o(s) grupo(s) reais dele (Glúteos,
 // Quadríceps, etc.), nunca a palavra "Pernas".
-const legGroups = ['Glúteos', 'Quadríceps', 'Posteriores de coxa', 'Panturrilhas']
+const legGroups = legGroupNames
 
 // Excluir a pasta inteira. Como agora um exercício pode pertencer a mais de
 // um grupo muscular (ex.: afundo no smith = quadríceps e glúteos), excluir
