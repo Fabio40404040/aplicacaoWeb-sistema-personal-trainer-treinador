@@ -375,8 +375,12 @@ function renderWorkoutExerciseCatalog(form) {
       ).length
       details.innerHTML = `<summary><strong></strong><span></span></summary><div class="ready-exercise-options"></div>`
       details.querySelector('summary strong').textContent = group.name
-      details.querySelector('summary span').textContent =
-        `${items.length} exercícios${selectedCount ? ` · ${selectedCount} selecionado${selectedCount === 1 ? '' : 's'}` : ''}`
+      paintGroupCount(
+        details.querySelector('summary span'),
+        items.length,
+        selectedCount,
+        `selecionado${selectedCount === 1 ? '' : 's'}`,
+      )
       const options = details.querySelector('.ready-exercise-options')
       if (!items.length) options.textContent = 'Nenhum exercício cadastrado neste grupo.'
       options.append(catalogAddButton(group.name))
@@ -602,6 +606,17 @@ function enhanceExercise() {
   })
 }
 
+// "18 exercícios · 6 selecionados": a parte dos selecionados vai em vermelho
+// para destacar quantos exercícios já estão neste treino.
+function paintGroupCount(target, total, selected, label) {
+  target.replaceChildren(document.createTextNode(`${total} exercícios`))
+  if (!selected) return
+  const mark = document.createElement('b')
+  mark.className = 'group-selected-count'
+  mark.textContent = `${selected} ${label}`
+  target.append(document.createTextNode(' · '), mark)
+}
+
 function configureMuscleGroupFields() {
   // Pastas criadas por você entram junto das do catálogo.
   const customNames = (getData().customGroups || []).map((item) => item.name)
@@ -735,8 +750,12 @@ function renderReadyExerciseCatalog(form) {
       ).length
       details.innerHTML = `<summary><strong></strong><span></span></summary><div class="ready-exercise-options"></div>`
       details.querySelector('summary strong').textContent = group.name
-      details.querySelector('summary span').textContent =
-        `${items.length} exercícios${selectedCount ? ` · ${selectedCount} neste treino` : ''}`
+      paintGroupCount(
+        details.querySelector('summary span'),
+        items.length,
+        selectedCount,
+        'neste treino',
+      )
       const options = details.querySelector('.ready-exercise-options')
       options.append(catalogAddButton(group.name))
       if (!items.length) {

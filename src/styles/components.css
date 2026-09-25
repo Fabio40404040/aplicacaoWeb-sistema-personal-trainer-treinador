@@ -2216,3 +2216,9 @@ td {
 .gif-card-badge--new {
   background: var(--green-600);
 }
+
+/* Montar ficha / treino pronto: quantos exercícios do grupo já estão no treino. */
+.group-selected-count {
+  color: var(--red-600);
+  font-weight: 800;
+}
