@@ -19,7 +19,6 @@ import { createWhatsappUrl, planNames } from './whatsapp.js'
 import {
   exerciseGifThumb,
   filesFromDrop,
-  folderAddButton,
   groupFromFolder,
   openGifPicker,
 } from './exercise-gifs.js'
@@ -1117,7 +1116,7 @@ function createExerciseVideoLibraryPanel() {
   const bulkInput = dropzone.querySelector('[data-video-bulk-input]')
   const bulkBar = dropzone.querySelector('[data-video-bulk-progress]')
   const bulkStatus = dropzone.querySelector('[data-video-bulk-status]')
-  const sendVideos = async (files) => {
+  const sendVideos = async (files, forceGroup = '') => {
     const recebidos = [...files]
     const chosen = recebidos.filter(
       (file) =>
@@ -1151,6 +1150,7 @@ function createExerciseVideoLibraryPanel() {
         const file = fila.shift()
         const folder = (file.webkitRelativePath || '').split('/').slice(-2, -1)[0]
         const group =
+          forceGroup ||
           groupFromFolder(folder) ||
           groupFromFolder(file.name) ||
           groupSelect.value
@@ -1185,6 +1185,8 @@ function createExerciseVideoLibraryPanel() {
     showToast(`Biblioteca de MP4 atualizada (${enviados} novos).`)
     window.dispatchEvent(new Event('frs:remote-refresh'))
   }
+  // Usado também pelo botão "+ Enviar vídeos aqui" de cada pasta.
+  sendVideosToLibrary = sendVideos
   dropzone.addEventListener('click', () => bulkInput.click())
   bulkInput.addEventListener('change', async (event) => {
     if (!event.target.files?.length) return
@@ -1340,6 +1342,46 @@ function syncVideoGroupOptions(target) {
   if (nomes.includes(escolhido)) select.value = escolhido
 }
 
+let sendVideosToLibrary = null
+
+// Botão da pasta na Biblioteca de MP4: escolhe vídeos .mp4 no computador e
+// envia todos para esta pasta. (Antes aqui havia "+ Novo exercício", que
+// abria o cadastro de exercício com a escolha de GIF.)
+function videoUploadHereButton(group) {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'button button--secondary folder-add-button'
+  button.textContent = '+ Enviar vídeos aqui'
+  button.title = `Enviar arquivos MP4 para a pasta ${group}`
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.mp4,video/mp4'
+  input.multiple = true
+  input.hidden = true
+  input.addEventListener('click', (event) => event.stopPropagation())
+  input.addEventListener('change', async () => {
+    if (!input.files?.length || !sendVideosToLibrary) return
+    const files = [...input.files]
+    input.value = ''
+    button.disabled = true
+    button.textContent = 'Enviando…'
+    try {
+      await sendVideosToLibrary(files, group)
+    } finally {
+      button.disabled = false
+      button.textContent = '+ Enviar vídeos aqui'
+    }
+  })
+  button.addEventListener('click', (event) => {
+    // Dentro do <summary>: sem isso o clique abriria/fecharia a pasta.
+    event.preventDefault()
+    event.stopPropagation()
+    input.click()
+  })
+  button.append(input)
+  return button
+}
+
 function renderExerciseVideoLibrary() {
   syncVideoGroupOptions()
   const groups = document.querySelector('[data-exercise-video-groups]')
@@ -1363,7 +1405,7 @@ function renderExerciseVideoLibrary() {
       const groupCount = document.createElement('span')
       groupCount.className = 'exercise-folder-count'
       groupCount.textContent = `${group.exercises.length} vídeo(s)`
-      summary.append(groupName, groupCount, folderAddButton(group.name))
+      summary.append(groupName, groupCount, videoUploadHereButton(group.name))
       const ownedGroup = (getData().customGroups || []).find(
         (item) => item.name === group.name,
       )
