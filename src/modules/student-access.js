@@ -2,6 +2,7 @@ import { downloadWorkoutPdf } from "./workout-pdf.js";
 import { openSecureCardForm } from "./mercado-pago-card.js";
 import { createQrCodeImage } from "./pix.js";
 import { findExerciseVideo } from "../data/library.js";
+import { hideStudentExtras, renderStudentExtras } from "./student-extras.js";
 
 const TOKEN_KEY = "frs-student-token";
 const API_URL = import.meta.env.VITE_API_URL || "";
@@ -540,6 +541,7 @@ function renderPortal(container, data) {
   }
   if (data.access.features.includes("checkins")) {
     const checkin = article("Check-in semanal");
+    checkin.id = "student-checkin";
     const form = element("form");
     form.dataset.checkinForm = "";
     form.innerHTML = `<label class="field"><span>Energia (1 a 5)</span><input name="energy" type="number" min="1" max="5" required></label><label class="field"><span>Qualidade do sono (1 a 5)</span><input name="sleep" type="number" min="1" max="5" required></label><label class="field"><span>Dor ou desconforto</span><input name="pain" maxlength="200"></label><label class="field"><span>Como foi sua semana?</span><textarea name="notes" rows="3" maxlength="1000"></textarea></label><button class="button button--primary" type="submit">Enviar check-in</button><p role="status"></p>`;
@@ -636,6 +638,8 @@ export function initStudentAccess() {
       }
       if (data.access.active) renderPortal(container, data);
       else renderLocked(container, data, loadPanel);
+      // Foto/perfil e sininho de notificações no topo da área do aluno.
+      renderStudentExtras(data, { request: studentRequest, reload: loadPanel });
     } catch (error) {
       if (current === generation) status.textContent = error.message;
     }
@@ -695,6 +699,7 @@ export function initStudentAccess() {
     .addEventListener("click", () => {
       generation++;
       sessionStorage.removeItem(TOKEN_KEY);
+      hideStudentExtras();
       document.querySelector("[data-student-name]").textContent =
         "Área do Aluno";
       location.hash = "#entrar-aluno";

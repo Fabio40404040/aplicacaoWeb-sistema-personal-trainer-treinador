@@ -29,6 +29,8 @@ async function videoLinkReady(db) {
   }
 }
 
+import { trainerProfile } from "./profile.js";
+
 export async function dashboard(db, trainerId) {
   const withGifs = await gifSchemaReady(db);
   const withCustomGroups = await customGroupsReady(db);
@@ -169,5 +171,7 @@ export async function dashboard(db, trainerId) {
     exerciseVideos: exerciseVideos.rows,
     exerciseGifs: exerciseGifs.rows,
     customGroups: customGroups.rows,
+    // Perfil do personal (foto, nome, limite de alunos). null sem a migração 018.
+    profile: await trainerProfile(db, trainerId),
   };
 }

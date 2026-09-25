@@ -474,7 +474,9 @@ function renderDashboardMeta() {
   }).format(now)
   const hour = now.getHours()
   document.querySelector('[data-dashboard-greeting]').textContent =
-    `${hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'}, Fabio.`
+    `${hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'}, ${
+      String(getData().profile?.name || 'Fabio').trim().split(/\s+/u)[0]
+    }.`
 }
 
 function chartPath(points) {

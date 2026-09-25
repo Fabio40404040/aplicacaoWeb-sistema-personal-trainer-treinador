@@ -1,3 +1,5 @@
+import { studentProfileFields } from "./profile.js";
+
 const PLAN_FEATURES = {
   ready: ["workouts", "exercises"],
   basic: ["workouts", "exercises", "assessments", "progress"],
@@ -93,8 +95,22 @@ export async function studentPortal(db, accountId, version) {
     exerciseVideos: [],
     assessments: [],
     checkins: [],
+    appointments: [],
+    // Foto, telefone, nascimento e dia do check-in (null sem a migração 018).
+    profile: await studentProfileFields(db, accountId),
   };
   if (!accessActive || !account.studentId) return response;
+
+  // Próximos atendimentos (usados nas notificações do aluno).
+  response.appointments = (
+    await db.query(
+      `SELECT id, starts_at AS "startsAt", ends_at AS "endsAt", service, location, status
+       FROM appointments
+       WHERE student_id=$1 AND status='scheduled' AND ends_at >= datetime('now','-1 day')
+       ORDER BY starts_at LIMIT 10`,
+      [account.studentId],
+    )
+  ).rows;
 
   if (account.planCode === "ready") {
     response.readyWorkouts = (

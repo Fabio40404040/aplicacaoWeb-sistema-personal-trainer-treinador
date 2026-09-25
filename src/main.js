@@ -14,6 +14,7 @@ import { initCredentialSeparation } from './modules/credential-separation.js'
 import { initIntegratedPortal } from './modules/integrated-portal.js'
 import { initExerciseGifs } from './modules/exercise-gifs.js'
 import { initPwa } from './modules/pwa.js'
+import { initPersonalExtras } from './modules/personal-extras.js'
 
 function initialize(name, initializer) {
   try {
@@ -36,6 +37,7 @@ initialize('navegação', initNavigation)
 initialize('portal integrado', initIntegratedPortal)
 initialize('biblioteca de GIFs', initExerciseGifs)
 initialize('painel', initDashboard)
+initialize('perfil e notificações', initPersonalExtras)
 initialize('formulários', initForms)
 initialize('atalhos', initShortcuts)
 initialize('sincronização remota', initRemoteSync)

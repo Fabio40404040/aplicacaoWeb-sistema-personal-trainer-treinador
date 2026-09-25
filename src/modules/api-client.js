@@ -232,3 +232,7 @@ export function initRemoteSync() {
   window.addEventListener("frs:remote-refresh", syncRemoteData);
   return syncRemoteData();
 }
+// Perfil do personal (nome, foto, contato e limite de alunos do plano).
+export function saveTrainerProfile(profile) {
+  return request("/profile", { method: "PUT", body: JSON.stringify(profile) });
+}

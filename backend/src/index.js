@@ -7,6 +7,11 @@ import { studentAuth } from "./routes/student-auth.js";
 import { studentRecovery } from "./routes/student-recovery.js";
 import { dashboard } from "./routes/dashboard.js";
 import {
+  trainerProfile,
+  updateStudentProfile,
+  updateTrainerProfile,
+} from "./routes/profile.js";
+import {
   createResource,
   deleteResource,
   listResource,
@@ -118,6 +123,8 @@ async function handle(request, env) {
           ? { data: { ...data, _reconcileDebug: reconcileResult } } // DIAGNÓSTICO TEMPORÁRIO — remover depois
           : { error: "Conta não encontrada.", status: 401 };
       }
+      if (request.method === "POST" && route === "student/profile")
+        return updateStudentProfile(db, session.sub, await readJson(request));
       if (request.method === "POST" && route === "student/checkins")
         return submitCheckin(db, session.sub, await readJson(request));
       if (request.method === "POST" && route === "student/plan-request")
@@ -169,6 +176,14 @@ async function handle(request, env) {
       return { error: "Sessão inválida ou expirada.", status: 401 };
     if (request.method === "GET" && segments[0] === "dashboard")
       return { data: await dashboard(db, session.sub) };
+    if (request.method === "GET" && route === "profile") {
+      const profile = await trainerProfile(db, session.sub);
+      return profile
+        ? { data: profile }
+        : { error: "Perfil indisponível: rode a migração 018.", status: 503 };
+    }
+    if (request.method === "PUT" && route === "profile")
+      return updateTrainerProfile(db, session.sub, await readJson(request));
     if (
       request.method === "PUT" &&
       segments[0] === "students" &&
