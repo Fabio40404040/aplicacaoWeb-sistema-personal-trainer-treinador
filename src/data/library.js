@@ -18,9 +18,11 @@ export const muscleGroups = [
   { id: 'gluteos', name: 'Glúteos' },
   { id: 'quadriceps', name: 'Quadríceps' },
   { id: 'posteriores', name: 'Posteriores de coxa' },
+  { id: 'adultor', name: 'Adultor Maximo' },
   { id: 'panturrilhas', name: 'Panturrilhas' },
   { id: 'cardio', name: 'Cardio e condicionamento' },
-  { id: 'mobilidade', name: 'Mobilidade e aquecimento' },
+ 
+  
 ]
 
 export const exerciseVideoLibrary = [
