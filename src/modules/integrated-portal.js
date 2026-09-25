@@ -617,10 +617,19 @@ function exerciseVideoSelect(form) {
     wrapper = document.createElement('div')
     wrapper.className = 'field'
     wrapper.dataset.mediaVideo = ''
-    wrapper.innerHTML = `<span>Vídeo MP4 da biblioteca</span><select name="videoId"></select><small class="field-hint">Os vídeos vêm da Biblioteca de MP4 (mais abaixo nesta página). Envie lá e escolha aqui.</small>`
+    wrapper.innerHTML = `<span>Vídeo MP4</span>
+      <div class="exercise-video-row">
+        <select name="videoId"></select>
+        <label class="button button--secondary exercise-video-upload">Enviar MP4 do computador<input type="file" accept=".mp4,video/mp4" hidden data-exercise-video-file></label>
+      </div>
+      <progress data-exercise-video-progress hidden></progress>
+      <small class="field-hint" data-exercise-video-status>Escolha um vídeo da Biblioteca de MP4 ou envie um novo do computador (MP4 de até 90 MB).</small>`
     const gifField = form.querySelector('[data-gif-field]')
     if (gifField) gifField.after(wrapper)
     else form.querySelector('.modal-body').append(wrapper)
+    wrapper
+      .querySelector('[data-exercise-video-file]')
+      .addEventListener('change', (event) => uploadVideoFromExerciseForm(form, event.target))
   }
   const select = wrapper.querySelector('select')
   const current = select.value
@@ -629,6 +638,57 @@ function exerciseVideoSelect(form) {
   select.replaceChildren(...fresh.children)
   select.value = current
   return wrapper
+}
+
+// Envia um MP4 direto do formulário do exercício. O vídeo vai para a
+// Biblioteca de MP4 (no primeiro grupo marcado) e já fica escolhido aqui.
+async function uploadVideoFromExerciseForm(form, input) {
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  const status = form.querySelector('[data-exercise-video-status]')
+  const bar = form.querySelector('[data-exercise-video-progress]')
+  const group = form.querySelector('input[name="group"]:checked')?.value
+  if (!group) {
+    status.textContent = 'Marque o grupo muscular do exercício antes de enviar o vídeo.'
+    return
+  }
+  if (!file.name.toLocaleLowerCase('pt-BR').endsWith('.mp4')) {
+    status.textContent = 'Escolha um arquivo .mp4.'
+    return
+  }
+  const name =
+    form.elements.name.value.trim() ||
+    file.name.replace(/\.mp4$/iu, '').replace(/[-_+]+/gu, ' ').trim() ||
+    'Exercício'
+  const payload = new FormData()
+  payload.append('video', file)
+  payload.append('name', name)
+  payload.append('group', group)
+  payload.append('equipment', form.elements.equipment?.value || '')
+  payload.append('difficulty', form.elements.difficulty?.value || 'Intermediário')
+  payload.append('instructions', form.elements.instructions?.value || '')
+  payload.append('published', '1')
+  // Só na biblioteca: o exercício é este que você está cadastrando.
+  payload.append('catalog', '0')
+  const uploadButton = form.querySelector('.exercise-video-upload')
+  uploadButton.classList.add('is-busy')
+  bar.hidden = false
+  bar.removeAttribute('value')
+  status.textContent = `Enviando ${file.name}…`
+  try {
+    const saved = await uploadExerciseVideo(payload)
+    await syncRemoteData()
+    exerciseVideoSelect(form)
+    if (saved?.id) form.elements.videoId.value = String(saved.id)
+    status.textContent = `Vídeo "${saved?.name || name}" enviado e escolhido para este exercício.`
+    showToast('Vídeo MP4 enviado para a biblioteca.')
+  } catch (error) {
+    status.textContent = error.message
+  } finally {
+    bar.hidden = true
+    uploadButton.classList.remove('is-busy')
+  }
 }
 
 function syncExerciseMediaFields(form) {

@@ -2274,3 +2274,29 @@ td {
 .video-library-close:hover {
   background: rgba(8, 13, 24, 0.9);
 }
+
+/* Formulário do exercício: escolher MP4 da biblioteca ou enviar do computador. */
+.exercise-video-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.exercise-video-row select {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.exercise-video-upload {
+  flex: none;
+  cursor: pointer;
+}
+.exercise-video-upload.is-busy {
+  pointer-events: none;
+  opacity: 0.6;
+}
+[data-media-video] progress {
+  width: 100%;
+}
+[data-media-video] .field-hint {
+  color: var(--ink-500);
+  font-size: 0.78rem;
+}
