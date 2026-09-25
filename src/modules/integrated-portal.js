@@ -1444,7 +1444,23 @@ function renderExerciseVideoLibrary() {
         preview.className = 'button button--secondary'
         preview.type = 'button'
         preview.textContent = 'Carregar vídeo'
+        // Abre o vídeo dentro do cartão e o mesmo botão vira "Fechar vídeo"
+        // (antes não havia como fechar depois de abrir).
+        let player = null
+        const closePlayer = () => {
+          if (!player) return
+          player.pause()
+          const url = player.src
+          player.closest('.video-library-player')?.remove()
+          player = null
+          if (url.startsWith('blob:')) URL.revokeObjectURL(url)
+          preview.textContent = 'Carregar vídeo'
+        }
         preview.addEventListener('click', async () => {
+          if (player) {
+            closePlayer()
+            return
+          }
           preview.disabled = true
           preview.textContent = 'Carregando…'
           try {
@@ -1456,12 +1472,24 @@ function renderExerciseVideoLibrary() {
             video.addEventListener('loadedmetadata', () => video.play().catch(() => {}), {
               once: true,
             })
-            card.prepend(video)
-            preview.remove()
+            const wrap = document.createElement('div')
+            wrap.className = 'video-library-player'
+            const close = document.createElement('button')
+            close.type = 'button'
+            close.className = 'video-library-close'
+            close.setAttribute('aria-label', 'Fechar vídeo')
+            close.title = 'Fechar vídeo'
+            close.textContent = '×'
+            close.addEventListener('click', closePlayer)
+            wrap.append(video, close)
+            card.prepend(wrap)
+            player = video
+            preview.textContent = 'Fechar vídeo'
           } catch (error) {
-            preview.disabled = false
             preview.textContent = 'Carregar vídeo'
             showToast(error.message)
+          } finally {
+            preview.disabled = false
           }
         })
         const remove = document.createElement('button')

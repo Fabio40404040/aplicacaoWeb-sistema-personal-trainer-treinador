@@ -2247,3 +2247,30 @@ td {
 .ready-exercise-options {
   overflow-x: hidden;
 }
+
+/* Biblioteca de MP4: vídeo aberto no cartão, com "×" para fechar. */
+.video-library-player {
+  position: relative;
+}
+.video-library-player video {
+  display: block;
+}
+.video-library-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(8, 13, 24, 0.72);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.video-library-close:hover {
+  background: rgba(8, 13, 24, 0.9);
+}
