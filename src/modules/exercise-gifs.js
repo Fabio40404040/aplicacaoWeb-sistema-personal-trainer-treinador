@@ -7,6 +7,7 @@ import {
   deleteMuscleGroup,
   forgetExerciseGif,
   loadExerciseGif,
+  loadExerciseVideo,
   syncRemoteData,
   uploadExerciseGif,
 } from './api-client.js'
@@ -219,6 +220,14 @@ function buildLightboxDialog() {
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) dialog.close()
   })
+  // Fechou com vídeo tocando: para o vídeo e libera a memória.
+  dialog.addEventListener('close', () => {
+    const video = dialog.querySelector('video')
+    if (!video) return
+    video.pause()
+    if (video.src.startsWith('blob:')) URL.revokeObjectURL(video.src)
+    dialog.querySelector('[data-gif-lightbox-body]').replaceChildren()
+  })
   lightboxDialog = dialog
   return dialog
 }
@@ -232,6 +241,39 @@ export function openGifLightbox(id, name) {
     .querySelector('[data-gif-lightbox-body]')
     .replaceChildren(gifImage(id, 'gif-lightbox-image'))
   dialog.showModal()
+}
+
+// Mesmo quadro ampliado, mas com o vídeo MP4 da Biblioteca de MP4.
+export async function openVideoLightbox(id, name) {
+  if (!id) return
+  const dialog = buildLightboxDialog()
+  dialog.querySelector('[data-gif-lightbox-name]').textContent = name || 'Vídeo do exercício'
+  const body = dialog.querySelector('[data-gif-lightbox-body]')
+  const loading = document.createElement('p')
+  loading.className = 'gif-lightbox-loading'
+  loading.textContent = 'Carregando vídeo…'
+  body.replaceChildren(loading)
+  dialog.showModal()
+  try {
+    const video = document.createElement('video')
+    video.className = 'gif-lightbox-image'
+    video.controls = true
+    video.playsInline = true
+    video.preload = 'metadata'
+    video.src = await loadExerciseVideo(id)
+    if (!dialog.open) {
+      URL.revokeObjectURL(video.src)
+      return
+    }
+    body.replaceChildren(video)
+    video.play().catch(() => {})
+  } catch (error) {
+    loading.textContent = error.message
+  }
+}
+
+export function findVideo(id) {
+  return (getData().exerciseVideos || []).find((video) => String(video.id) === String(id)) || null
 }
 
 // Usada pela Biblioteca para trocar o bonequinho pela miniatura do GIF.

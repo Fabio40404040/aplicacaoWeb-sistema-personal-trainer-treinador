@@ -2300,3 +2300,31 @@ td {
   color: var(--ink-500);
   font-size: 0.78rem;
 }
+
+/* Biblioteca de exercícios: "com MP4" abre o vídeo; ícone de play quando
+   o exercício tem vídeo e não tem GIF. */
+.gif-status--button {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+.gif-status--button:hover {
+  filter: brightness(0.95);
+  text-decoration: underline;
+}
+.exercise-glyph--video {
+  color: var(--green-600);
+  background: var(--green-100);
+  font-size: 1rem;
+  font-weight: 800;
+}
+video.gif-lightbox-image {
+  width: min(100%, 720px);
+  max-height: 70vh;
+  background: #0b1220;
+}
+.gif-lightbox-loading {
+  padding: 30px;
+  color: var(--ink-500);
+  text-align: center;
+}

@@ -12,6 +12,8 @@ import { legGroupNames } from '../data/library.js'
 import {
   applyExerciseGifThumb,
   exerciseGifStatus,
+  findVideo,
+  openVideoLightbox,
   folderAddButton,
   folderCreateButton,
 } from './exercise-gifs.js'
@@ -340,12 +342,42 @@ function renderExercises() {
             const badge = document.createElement('span')
             badge.className = `gif-status ${gifStatus === 'com GIF' ? 'gif-status--on' : 'gif-status--off'}`
             badge.textContent = gifStatus
+            // Mesmo esquema para o vídeo MP4. "com MP4" é clicável e abre o vídeo.
+            const video = e.videoId ? findVideo(e.videoId) : null
+            const videoBadge = document.createElement(video ? 'button' : 'span')
+            videoBadge.className = `gif-status ${video ? 'gif-status--on gif-status--button' : 'gif-status--off'}`
+            videoBadge.textContent = video ? '▶ com MP4' : 'sem MP4'
+            if (video) {
+              videoBadge.type = 'button'
+              videoBadge.title = `Assistir o vídeo de ${e.name}`
+              videoBadge.addEventListener('click', (event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                void openVideoLightbox(video.id, e.name)
+              })
+            }
             info.replaceChildren(
               document.createTextNode(`${e.equipment} · ${e.difficulty || 'Intermediário'} · `),
               badge,
+              document.createTextNode(' '),
+              videoBadge,
             )
             item.querySelector('.tag').textContent = exerciseGroups(e).join(' · ') || 'Sem grupo'
             applyExerciseGifThumb(item, e)
+            // Sem GIF mas com vídeo: o ícone vira um "play" que abre o vídeo.
+            if (video && !item.querySelector('.exercise-glyph--gif')) {
+              const glyph = item.querySelector('.exercise-glyph')
+              if (glyph) {
+                glyph.classList.add('exercise-glyph--video', 'exercise-glyph--clickable')
+                glyph.textContent = '▶'
+                glyph.title = 'Clique para assistir o vídeo'
+                glyph.addEventListener('click', (event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  void openVideoLightbox(video.id, e.name)
+                })
+              }
+            }
             const remove = document.createElement('button')
             remove.className = 'icon-button exercise-remove'
             remove.type = 'button'

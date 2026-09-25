@@ -21,6 +21,7 @@ import {
   filesFromDrop,
   groupFromFolder,
   openGifPicker,
+  openVideoLightbox,
 } from './exercise-gifs.js'
 
 const billingCycleLabels = {
@@ -620,6 +621,7 @@ function exerciseVideoSelect(form) {
     wrapper.innerHTML = `<span>Vídeo MP4</span>
       <div class="exercise-video-row">
         <select name="videoId"></select>
+        <button class="button button--secondary" type="button" data-exercise-video-preview>▶ Ver vídeo</button>
         <label class="button button--secondary exercise-video-upload">Enviar MP4 do computador<input type="file" accept=".mp4,video/mp4" hidden data-exercise-video-file></label>
       </div>
       <progress data-exercise-video-progress hidden></progress>
@@ -630,6 +632,18 @@ function exerciseVideoSelect(form) {
     wrapper
       .querySelector('[data-exercise-video-file]')
       .addEventListener('change', (event) => uploadVideoFromExerciseForm(form, event.target))
+    // Assistir o vídeo escolhido sem sair do formulário.
+    const previewButton = wrapper.querySelector('[data-exercise-video-preview]')
+    const selectElement = wrapper.querySelector('select')
+    previewButton.addEventListener('click', () => {
+      const chosen = selectElement.value
+      if (!chosen) return
+      const label = selectElement.selectedOptions[0]?.textContent || form.elements.name.value
+      void openVideoLightbox(chosen, label)
+    })
+    selectElement.addEventListener('change', () => {
+      previewButton.disabled = !selectElement.value
+    })
   }
   const select = wrapper.querySelector('select')
   const current = select.value
@@ -637,6 +651,8 @@ function exerciseVideoSelect(form) {
   const fresh = videoPickerSelect({ group: checked.join(', '), videoId: current })
   select.replaceChildren(...fresh.children)
   select.value = current
+  const previewButton = wrapper.querySelector('[data-exercise-video-preview]')
+  if (previewButton) previewButton.disabled = !select.value
   return wrapper
 }
 
@@ -681,6 +697,7 @@ async function uploadVideoFromExerciseForm(form, input) {
     await syncRemoteData()
     exerciseVideoSelect(form)
     if (saved?.id) form.elements.videoId.value = String(saved.id)
+    form.elements.videoId.dispatchEvent(new Event('change'))
     status.textContent = `Vídeo "${saved?.name || name}" enviado e escolhido para este exercício.`
     showToast('Vídeo MP4 enviado para a biblioteca.')
   } catch (error) {
