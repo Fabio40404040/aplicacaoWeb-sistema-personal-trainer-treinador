@@ -322,25 +322,15 @@ function renderLocked(container, data, onRefresh) {
   });
 }
 
+// Só mostra vídeo para o aluno quando você escolheu o MP4 daquele exercício
+// (no cadastro do exercício ou no montador de ficha). Antes havia um
+// "palpite" pelo nome/grupo do vídeo, e um exercício como "Barra Fixa"
+// ganhava sozinho o vídeo da biblioteca com o mesmo nome.
 function matchingUploadedVideo(exercise, videos) {
-  const normalized = (value) =>
-    String(value || "")
-      .trim()
-      .toLocaleLowerCase("pt-BR");
-  // Desde a migração 017 o vínculo é explícito: você escolhe o MP4 do
-  // exercício dentro do montador de treino. O casamento por nome continua
-  // como reserva, para os exercícios antigos que nunca foram ligados.
-  if (exercise.videoId) {
-    const linked = videos.find(
-      (video) => String(video.id) === String(exercise.videoId),
-    );
-    if (linked) return linked;
-  }
-  return videos.find(
-    (video) =>
-      String(video.id) === String(exercise.id || exercise.exerciseId) ||
-      (normalized(video.name) === normalized(exercise.name) &&
-        normalized(video.group) === normalized(exercise.group)),
+  if (!exercise.videoId) return null;
+  return (
+    videos.find((video) => String(video.id) === String(exercise.videoId)) ||
+    null
   );
 }
 
