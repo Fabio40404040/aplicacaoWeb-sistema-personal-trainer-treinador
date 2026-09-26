@@ -236,3 +236,10 @@ export function initRemoteSync() {
 export function saveTrainerProfile(profile) {
   return request("/profile", { method: "PUT", body: JSON.stringify(profile) });
 }
+// Resposta do personal a um check-in do aluno.
+export function saveCheckinFeedback(id, feedback) {
+  return request(`/checkins/${id}/feedback`, {
+    method: "PUT",
+    body: JSON.stringify({ feedback }),
+  });
+}

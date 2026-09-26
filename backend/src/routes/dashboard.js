@@ -102,9 +102,9 @@ export async function dashboard(db, trainerId) {
       [trainerId],
     ),
     db.query(
-      `SELECT c.id, s.name AS student, c.energy, c.sleep, c.pain, c.notes,
+      `SELECT c.id, c.student_id AS "studentId", s.name AS student, c.energy, c.sleep, c.pain, c.notes,
        c.trainer_feedback AS "trainerFeedback", c.created_at AS "createdAt"
-       FROM checkins c JOIN students s ON s.id=c.student_id WHERE c.trainer_id=$1 ORDER BY c.created_at DESC LIMIT 30`,
+       FROM checkins c JOIN students s ON s.id=c.student_id WHERE c.trainer_id=$1 ORDER BY c.created_at DESC LIMIT 300`,
       [trainerId],
     ),
     db.query(

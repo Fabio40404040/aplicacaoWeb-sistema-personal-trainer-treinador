@@ -15,6 +15,7 @@ import { initIntegratedPortal } from './modules/integrated-portal.js'
 import { initExerciseGifs } from './modules/exercise-gifs.js'
 import { initPwa } from './modules/pwa.js'
 import { initPersonalExtras } from './modules/personal-extras.js'
+import { initCheckins } from './modules/checkins.js'
 
 function initialize(name, initializer) {
   try {
@@ -38,6 +39,7 @@ initialize('portal integrado', initIntegratedPortal)
 initialize('biblioteca de GIFs', initExerciseGifs)
 initialize('painel', initDashboard)
 initialize('perfil e notificações', initPersonalExtras)
+initialize('check-ins', initCheckins)
 initialize('formulários', initForms)
 initialize('atalhos', initShortcuts)
 initialize('sincronização remota', initRemoteSync)

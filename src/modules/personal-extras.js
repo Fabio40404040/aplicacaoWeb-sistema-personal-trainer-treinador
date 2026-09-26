@@ -246,7 +246,7 @@ function trainerNotifications() {
         icon: '📝',
         title: `${checkin.student} enviou o check-in semanal`,
         detail: `Energia ${checkin.energy}/5 · Sono ${checkin.sleep}/5${checkin.pain ? ` · Dor: ${checkin.pain}` : ''} · ${shortDate(created)}`,
-        href: '#painel',
+        href: '#checkins',
       })
     })
 

@@ -6,6 +6,7 @@ import { personalRecovery } from "./routes/personal-recovery.js";
 import { studentAuth } from "./routes/student-auth.js";
 import { studentRecovery } from "./routes/student-recovery.js";
 import { dashboard } from "./routes/dashboard.js";
+import { answerCheckin } from "./routes/checkins.js";
 import {
   trainerProfile,
   updateStudentProfile,
@@ -176,6 +177,13 @@ async function handle(request, env) {
       return { error: "Sessão inválida ou expirada.", status: 401 };
     if (request.method === "GET" && segments[0] === "dashboard")
       return { data: await dashboard(db, session.sub) };
+    if (
+      request.method === "PUT" &&
+      segments[0] === "checkins" &&
+      segments[1] &&
+      segments[2] === "feedback"
+    )
+      return answerCheckin(db, session.sub, segments[1], await readJson(request));
     if (request.method === "GET" && route === "profile") {
       const profile = await trainerProfile(db, session.sub);
       return profile

@@ -661,3 +661,23 @@
   display: inline-flex;
   margin: 0 0 8px;
 }
+
+/* Check-in: resposta do personal. */
+.student-checkin-reply {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-left: 3px solid #5b9bff;
+  border-radius: 10px;
+  background: #18283b;
+}
+.student-checkin-reply strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #dce9f8;
+  font-size: 0.85rem;
+}
+.student-checkin-reply p {
+  margin: 0;
+  color: #c7d5e6;
+  white-space: pre-wrap;
+}

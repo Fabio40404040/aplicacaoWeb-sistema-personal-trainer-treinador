@@ -1735,7 +1735,7 @@ function createOperationsPanel() {
   const heading = document.createElement('div')
   heading.className = 'panel-heading'
   heading.innerHTML =
-    '<div><h2>Solicitações e check-ins</h2><p>Cadastros e retornos enviados pelos alunos</p></div>'
+    '<div><h2>Solicitações e check-ins</h2><p>Cadastros pendentes e resumo dos check-ins</p></div>'
   const content = document.createElement('div')
   content.dataset.operationsContent = ''
   panel.append(heading, content)
@@ -1810,12 +1810,25 @@ function renderOperations() {
     )
     content.append(item)
   })
-  checkins.slice(0, 8).forEach((checkin) => {
+  // Os check-ins agora têm página própria (menu "Check-ins"); aqui fica só
+  // um resumo com o atalho.
+  const waiting = checkins.filter((checkin) => !checkin.trainerFeedback).length
+  if (checkins.length) {
     const item = document.createElement('p')
-    const date = new Intl.DateTimeFormat('pt-BR').format(new Date(checkin.createdAt))
-    item.textContent = `${checkin.student} · ${date} · energia ${checkin.energy}/5 · sono ${checkin.sleep}/5${checkin.pain ? ` · desconforto: ${checkin.pain}` : ''}${checkin.notes ? ` · ${checkin.notes}` : ''}`
+    const link = document.createElement('a')
+    link.href = '#checkins'
+    link.className = 'link-button'
+    link.textContent = 'Abrir check-ins'
+    item.append(
+      document.createTextNode(
+        waiting
+          ? `${waiting} check-in(s) aguardando sua resposta · `
+          : 'Todos os check-ins respondidos · ',
+      ),
+      link,
+    )
     content.append(item)
-  })
+  }
 }
 
 export function initIntegratedPortal() {

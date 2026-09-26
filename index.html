@@ -1339,6 +1339,17 @@
           >
           <a
             class="nav-link"
+            href="#checkins"
+            data-route-link="checkins"
+            ><svg><use href="#icon-message"></use></svg><span>Check-ins</span
+            ><small
+              class="nav-count--alert"
+              data-checkin-count
+              hidden
+            ></small></a
+          >
+          <a
+            class="nav-link"
             href="#evolucao"
             data-route-link="evolucao"
             ><svg><use href="#icon-chart"></use></svg><span>Evolução</span></a
@@ -1771,6 +1782,37 @@
           <div
             class="assessment-grid"
             data-assessments-grid
+          ></div>
+        </section>
+
+        <section
+          class="page"
+          data-route="checkins"
+        >
+          <div class="page-heading">
+            <div>
+              <span class="eyebrow eyebrow--blue">Acompanhamento semanal</span>
+              <h1>Check-ins</h1>
+              <p>Veja como foi a semana de cada aluno e responda direto por aqui.</p>
+            </div>
+            <div class="checkin-filters">
+              <select
+                data-checkin-filter-status
+                aria-label="Filtrar por situação"
+              >
+                <option value="pending">Aguardando resposta</option>
+                <option value="all">Todos os check-ins</option>
+                <option value="answered">Respondidos</option>
+              </select>
+              <select
+                data-checkin-filter-student
+                aria-label="Filtrar por aluno"
+              ></select>
+            </div>
+          </div>
+          <div
+            class="checkin-list"
+            data-checkin-list
           ></div>
         </section>
 

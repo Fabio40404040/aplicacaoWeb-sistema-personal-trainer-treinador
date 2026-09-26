@@ -615,6 +615,22 @@ function renderPortal(container, data) {
         checkin,
         `Último envio: ${new Intl.DateTimeFormat("pt-BR").format(new Date(data.checkins[0].createdAt))}.`,
       );
+    // Respostas do personal aos últimos check-ins.
+    data.checkins
+      .filter((item) => item.trainerFeedback)
+      .slice(0, 3)
+      .forEach((item) => {
+        const reply = element("div", "student-checkin-reply");
+        reply.append(
+          element(
+            "strong",
+            "",
+            `💬 Resposta do personal · check-in de ${new Intl.DateTimeFormat("pt-BR").format(new Date(item.createdAt))}`,
+          ),
+          element("p", "", item.trainerFeedback),
+        );
+        checkin.append(reply);
+      });
     container.append(checkin);
   }
   const unavailable = [
