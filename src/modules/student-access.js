@@ -51,7 +51,22 @@ async function loadStudentExerciseVideo(id) {
 }
 // GIF do exercício na conta do aluno: o animado para a tela e o quadro
 // parado para o PDF da ficha.
+// Os GIFs animados ficam guardados enquanto a página está aberta: assim a
+// atualização automática da área do aluno não baixa tudo de novo (era isso
+// que fazia os GIFs "piscarem" e sumirem por um instante).
+const studentGifUrls = new Map();
 async function loadStudentGif(id, kind = "file") {
+  if (kind === "file") {
+    if (!studentGifUrls.has(id)) {
+      const pending = fetchStudentGif(id, kind);
+      studentGifUrls.set(id, pending);
+      pending.then((url) => !url && studentGifUrls.delete(id)).catch(() => studentGifUrls.delete(id));
+    }
+    return studentGifUrls.get(id);
+  }
+  return fetchStudentGif(id, kind);
+}
+async function fetchStudentGif(id, kind) {
   const token = sessionStorage.getItem(TOKEN_KEY);
   const response = await fetch(
     `${API_URL}/api/student/exercise-gifs/${id}/${kind}`,
@@ -650,6 +665,34 @@ function applyPlanFromHash() {
 export function initStudentAccess() {
   let generation = 0;
   let hasLoadedOnce = false;
+  let hasRendered = false;
+  let lastSignature = "";
+  // Pastas abertas/fechadas, pelo título ("Treino A — Peitoral").
+  const folderState = (container) =>
+    new Map(
+      [...container.querySelectorAll("details")].map((details) => [
+        details.querySelector("summary")?.textContent,
+        details.open,
+      ]),
+    );
+  // Você está digitando ou já preencheu algo num formulário da área?
+  const isEditing = (container) => {
+    const active = document.activeElement;
+    if (
+      active &&
+      container.contains(active) &&
+      ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName)
+    )
+      return true;
+    return [...container.querySelectorAll("form")].some((form) =>
+      [...form.elements].some(
+        (field) =>
+          ["text", "number", "textarea", "email", "tel", "date"].includes(
+            field.type,
+          ) && field.value !== field.defaultValue,
+      ),
+    );
+  };
   async function loadPanel() {
     applyPlanFromHash();
     const current = ++generation;
@@ -681,8 +724,30 @@ export function initStudentAccess() {
             ? "Seu pré-cadastro está ativo. Conclua o pagamento para liberar o acesso."
             : "Seu acompanhamento está aguardando liberação.";
       }
-      if (data.access.active) renderPortal(container, data);
-      else renderLocked(container, data, loadPanel);
+      // A área do aluno se atualiza sozinha (a cada 30 s e ao voltar para a
+      // aba). Antes ela era redesenhada inteira toda vez: a pasta "Treino A"
+      // reabria, a página pulava para o topo e o check-in que você estava
+      // digitando era apagado. Agora só redesenha se algo mudou de verdade e
+      // se você não está no meio de um formulário, mantendo pastas abertas
+      // e a posição da página.
+      const { _reconcileDebug, ...stableData } = data;
+      const signature = JSON.stringify(stableData);
+      const changed = signature !== lastSignature;
+      if (changed && (!hasRendered || !isEditing(container))) {
+        const openFolders = hasRendered ? folderState(container) : null;
+        const scrollY = window.scrollY;
+        if (data.access.active) renderPortal(container, data);
+        else renderLocked(container, data, loadPanel);
+        if (openFolders) {
+          container.querySelectorAll("details").forEach((details) => {
+            const key = details.querySelector("summary")?.textContent;
+            if (openFolders.has(key)) details.open = openFolders.get(key);
+          });
+          window.scrollTo(0, scrollY);
+        }
+        lastSignature = signature;
+        hasRendered = true;
+      }
       // Foto/perfil e sininho de notificações no topo da área do aluno.
       renderStudentExtras(data, { request: studentRequest, reload: loadPanel });
     } catch (error) {
@@ -745,6 +810,8 @@ export function initStudentAccess() {
       generation++;
       sessionStorage.removeItem(TOKEN_KEY);
       hideStudentExtras();
+      hasRendered = false;
+      lastSignature = "";
       document.querySelector("[data-student-name]").textContent =
         "Área do Aluno";
       location.hash = "#entrar-aluno";
