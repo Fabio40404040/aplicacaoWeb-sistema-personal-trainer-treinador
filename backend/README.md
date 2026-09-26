@@ -48,6 +48,6 @@ Os tokens expiram em 30 minutos, são armazenados somente como hash e consumidos
 
 ## Migrações
 
-As migrações ativas ficam em migrations-d1 e são selecionadas pelo Wrangler. A pasta migrations preserva o esquema antigo apenas como histórico; não execute seus arquivos no D1. Não há conversão automática de dados existentes.
+As migrações ficam em migrations-d1 e são aplicadas pelo Wrangler.
 
 Documentação: https://developers.cloudflare.com/d1/get-started/ e https://developers.brevo.com/docs/send-a-transactional-email
