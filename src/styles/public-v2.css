@@ -269,10 +269,9 @@
   height: 100%;
   display: block;
   object-fit: cover;
-  filter: brightness(0.86) contrast(1.12) saturate(0.78) sepia(0.06) hue-rotate(174deg);
-  transition:
-    filter 0.28s ease,
-    transform 0.45s ease;
+  /* Cor real da foto, sempre (antes ficava azulada até passar o mouse). */
+  filter: none;
+  transition: transform 0.45s ease;
 }
 .hero-proof::after {
   content: '';
@@ -308,7 +307,6 @@
     0 0 0 5px rgba(42, 125, 238, 0.14);
 }
 .hero-proof:hover img {
-  filter: brightness(0.98) contrast(1.06) saturate(1);
   transform: scale(1.035);
 }
 .public-kicker,
