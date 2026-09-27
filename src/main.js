@@ -16,6 +16,7 @@ import { initExerciseGifs } from './modules/exercise-gifs.js'
 import { initPwa } from './modules/pwa.js'
 import { initPersonalExtras } from './modules/personal-extras.js'
 import { initCheckins } from './modules/checkins.js'
+import { initAgenda } from './modules/agenda.js'
 
 function initialize(name, initializer) {
   try {
@@ -40,6 +41,7 @@ initialize('biblioteca de GIFs', initExerciseGifs)
 initialize('painel', initDashboard)
 initialize('perfil e notificações', initPersonalExtras)
 initialize('check-ins', initCheckins)
+initialize('agenda', initAgenda)
 initialize('formulários', initForms)
 initialize('atalhos', initShortcuts)
 initialize('sincronização remota', initRemoteSync)

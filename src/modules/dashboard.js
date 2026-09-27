@@ -580,32 +580,34 @@ function sameLocalDay(date, reference) {
   )
 }
 
+// Painel: só um resumo do dia. A agenda completa (semana, concluir,
+// cancelar…) fica na página "Agenda" do menu.
 function renderSchedule() {
   const now = new Date()
   const allUpcoming = (getData().appointments || [])
-    .filter(
-      (item) =>
-        item.status !== 'cancelled' &&
-        new Date(item.endsAt).getTime() >=
-          new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime(),
-    )
+    .filter((item) => item.status !== 'cancelled' && new Date(item.endsAt) >= now)
     .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt))
-  const today = allUpcoming.filter((item) => sameLocalDay(new Date(item.startsAt), now))
-  const appointments = (today.length ? today : allUpcoming).slice(0, 6)
+  const today = (getData().appointments || [])
+    .filter((item) => item.status !== 'cancelled' && sameLocalDay(new Date(item.startsAt), now))
+    .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt))
+  const next = allUpcoming.find((item) => !sameLocalDay(new Date(item.startsAt), now))
+  const appointments = today.length ? today.slice(0, 5) : next ? [next] : []
   const list = document.querySelector('[data-schedule-list]')
-  document.querySelector('[data-schedule-title]').textContent = today.length
-    ? 'Agenda de hoje'
-    : 'Próximos atendimentos'
+  document.querySelector('[data-schedule-title]').textContent = 'Agenda de hoje'
   document.querySelector('[data-schedule-summary]').textContent = today.length
-    ? `${today.length} atendimento${today.length === 1 ? '' : 's'} programado${today.length === 1 ? '' : 's'}`
-    : allUpcoming.length
-      ? `${allUpcoming.length} atendimento${allUpcoming.length === 1 ? '' : 's'} futuro${allUpcoming.length === 1 ? '' : 's'}`
+    ? `${today.length} atendimento${today.length === 1 ? '' : 's'} hoje`
+    : next
+      ? 'Hoje está livre · próximo atendimento:'
       : 'Nenhum atendimento programado'
+  const fullAgenda = document.createElement('a')
+  fullAgenda.className = 'link-button schedule-more'
+  fullAgenda.href = '#agenda'
+  fullAgenda.textContent = 'Ver agenda completa →'
   if (!appointments.length) {
     const empty = document.createElement('p')
     empty.className = 'schedule-empty'
     empty.textContent = 'Use “Novo atendimento” para organizar sua agenda presencial.'
-    list.replaceChildren(empty)
+    list.replaceChildren(empty, fullAgenda)
     return
   }
   list.replaceChildren(
@@ -640,6 +642,7 @@ function renderSchedule() {
       row.append(time, avatar, details, status, actions)
       return row
     }),
+    fullAgenda,
   )
 }
 

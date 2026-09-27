@@ -180,7 +180,7 @@ function trainerNotifications() {
         icon: '📅',
         title: `${today ? 'Hoje' : 'Amanhã'} às ${timeOf(start)} · ${item.student}`,
         detail: [item.service, item.location].filter(Boolean).join(' · '),
-        href: '#painel',
+        href: '#agenda',
       })
     })
 
