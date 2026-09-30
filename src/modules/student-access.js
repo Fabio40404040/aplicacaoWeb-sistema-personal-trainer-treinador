@@ -297,60 +297,106 @@ function matchingUploadedVideo(exercise, videos) {
   return videos.find((video) => String(video.id) === String(exercise.videoId)) || null
 }
 
-function appendExerciseMedia(parent, exercise, uploadedVideo) {
-  if (uploadedVideo) {
-    const media = element('section', 'student-prescription-media')
-    media.append(element('strong', '', 'Vídeo demonstrativo'))
-    const load = element('button', 'button button--secondary', 'Assistir execução')
-    load.type = 'button'
-    load.addEventListener('click', async () => {
-      load.disabled = true
-      load.textContent = 'Carregando vídeo…'
-      try {
-        const video = hardenVideo(element('video', 'student-exercise-video'))
-        video.controls = true
-        video.preload = 'metadata'
-        video.playsInline = true
-        video.src = await loadStudentExerciseVideo(uploadedVideo.id)
-        video.addEventListener('loadedmetadata', () => video.play().catch(() => {}), { once: true })
-        media.append(video)
-        load.remove()
-      } catch (error) {
-        load.disabled = false
-        load.textContent = error.message
-      }
+// Vídeo por endereço direto (biblioteca antiga) na mesma tela cheia do GIF.
+function openStudentUrlVideoViewer(url, title, poster) {
+  const video = hardenVideo(element('video'))
+  video.controls = true
+  video.playsInline = true
+  video.preload = 'metadata'
+  if (poster) video.poster = poster
+  video.src = url
+  openStudentViewer(video, title, () => video.pause())
+  video.play().catch(() => {})
+}
+
+// Miniatura do exercício (lado esquerdo da linha): o GIF pequeno, que abre
+// em tela cheia ao tocar, ou um bloco "▶" quando só existe vídeo.
+function exerciseThumb(exercise, uploadedVideo) {
+  const thumb = element('button', 'student-ex-thumb')
+  thumb.type = 'button'
+  if (exercise.gifId) {
+    thumb.setAttribute('aria-label', `Ver ${exercise.name} em tela cheia`)
+    const animation = element('img')
+    animation.alt = ''
+    animation.loading = 'lazy'
+    thumb.append(animation)
+    thumb.addEventListener('click', () => {
+      if (animation.src) openStudentGifViewer(animation.src, exercise.name)
     })
-    media.append(load)
-    parent.append(media)
-    return
+    void loadStudentGif(exercise.gifId)
+      .then((url) => {
+        if (url) animation.src = url
+        else thumb.classList.add('is-empty')
+      })
+      .catch(() => thumb.classList.add('is-empty'))
+    return thumb
+  }
+  if (uploadedVideo) {
+    thumb.classList.add('is-video')
+    thumb.textContent = '▶'
+    thumb.setAttribute('aria-label', `Ver vídeo de ${exercise.name}`)
+    thumb.addEventListener('click', () => openStudentVideoViewer(uploadedVideo.id, exercise.name))
+    return thumb
   }
   const libraryVideo = findExerciseVideo(exercise)
   const mediaUrl = exercise.mediaUrl || libraryVideo?.videoUrl
   const mediaType = exercise.mediaType || (libraryVideo ? 'video' : '')
-  if (!mediaUrl) {
-    parent.append(element('span', 'exercise-3d-pending', 'Demonstração em preparação'))
-    return
+  if (mediaUrl && mediaType === 'video') {
+    thumb.classList.add('is-video')
+    thumb.textContent = '▶'
+    thumb.setAttribute('aria-label', `Ver vídeo de ${exercise.name}`)
+    thumb.addEventListener('click', () =>
+      openStudentUrlVideoViewer(
+        mediaUrl,
+        exercise.name,
+        exercise.thumbnailUrl || libraryVideo?.posterUrl,
+      ),
+    )
+    return thumb
   }
-  if (mediaType === 'video') {
-    const video = hardenVideo(element('video', 'student-exercise-video'))
-    video.controls = true
-    video.preload = 'metadata'
-    video.playsInline = true
-    video.src = mediaUrl
-    if (exercise.thumbnailUrl || libraryVideo?.posterUrl)
-      video.poster = exercise.thumbnailUrl || libraryVideo.posterUrl
-    parent.append(video)
-    return
+  if (mediaUrl) {
+    const link = element('a', 'student-ex-thumb is-video', '3D')
+    link.href = mediaUrl
+    link.target = '_blank'
+    link.rel = 'noreferrer'
+    link.setAttribute('aria-label', `Abrir demonstração de ${exercise.name}`)
+    return link
   }
-  const media = element(
-    'a',
-    '',
-    mediaType === '3d' ? 'Abrir demonstração 3D' : 'Abrir demonstração',
-  )
-  media.href = mediaUrl
-  media.target = '_blank'
-  media.rel = 'noreferrer'
-  parent.append(media)
+  thumb.classList.add('is-empty')
+  thumb.disabled = true
+  thumb.setAttribute('aria-label', 'Demonstração em preparação')
+  return thumb
+}
+
+// Uma linha por exercício: miniatura à esquerda; nome, séries/repetições,
+// descanso e ações à direita. A orientação fica recolhida em "Ver instruções".
+function exerciseRow(exercise, uploadedVideo) {
+  const li = element('li', 'student-ex')
+  const body = element('div', 'student-ex-body')
+  body.append(element('strong', 'student-ex-name', exercise.name))
+  const chips = element('div', 'student-ex-chips')
+  chips.append(element('span', '', `${exercise.sets} séries`))
+  chips.append(element('span', '', `${exercise.repetitions} reps`))
+  if (exercise.restSeconds) chips.append(element('span', '', `descanso ${exercise.restSeconds}s`))
+  body.append(chips)
+  const actions = element('div', 'student-ex-actions')
+  // GIF na miniatura + vídeo também escolhido: o vídeo vira um botão.
+  if (exercise.gifId && uploadedVideo) {
+    const watch = element('button', 'student-ex-link', '▶ Ver vídeo')
+    watch.type = 'button'
+    watch.addEventListener('click', () => openStudentVideoViewer(uploadedVideo.id, exercise.name))
+    actions.append(watch)
+  }
+  if (exercise.instructions) {
+    const howto = element('details', 'student-ex-howto')
+    howto.dataset.key = `howto:${exercise.id ?? exercise.name}`
+    howto.append(element('summary', '', 'Ver instruções'))
+    howto.append(element('p', '', exercise.instructions))
+    actions.append(howto)
+  }
+  if (actions.childElementCount) body.append(actions)
+  li.append(exerciseThumb(exercise, uploadedVideo), body)
+  return li
 }
 
 function appendExerciseGroups(parent, exercises, uploadedVideos = []) {
@@ -363,73 +409,29 @@ function appendExerciseGroups(parent, exercises, uploadedVideos = []) {
   ;[...sessions.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .forEach(([session, items]) => {
+      // Pastas começam fechadas e só uma fica aberta por vez.
       const section = element('details', 'student-muscle-group')
       const groups = [...new Set(items.map((exercise) => exercise.group).filter(Boolean))]
-      const summary = element('summary', '', `Treino ${session} — ${groups.join(' / ')}`)
+      const summary = element('summary', '')
+      summary.append(
+        element('span', 'student-group-title', `Treino ${session} — ${groups.join(' / ')}`),
+        element(
+          'small',
+          'student-group-count',
+          `${items.length} exercício${items.length === 1 ? '' : 's'}`,
+        ),
+      )
       section.append(summary)
-      const list = element('ol')
-      items.forEach((exercise) => {
-        const li = element('li')
-        // Fechado até o aluno tocar no exercício: a mídia e a orientação só
-        // aparecem quando ele quer ver, em vez de lotar a tela toda aberta.
-        const item = element('details', 'student-exercise-item')
-        const prescription = `${exercise.sets} × ${exercise.repetitions}${exercise.restSeconds ? ` · descanso ${exercise.restSeconds}s` : ''}`
-        item.append(element('summary', '', `${exercise.name} — ${prescription}`))
-        // Quando o exercício tem GIF e vídeo, o personal escolhe (ao montar
-        // a ficha) qual dos dois aparece primeiro para o aluno; o outro fica
-        // disponível atrás de um botão. Só um dos dois: mostra o que existir.
-        const uploadedVideo = matchingUploadedVideo(exercise, uploadedVideos)
-        const showVideoFirst = exercise.preferredMedia === 'video' && uploadedVideo
-        if (uploadedVideo && (!exercise.gifId || showVideoFirst)) {
-          appendExerciseMedia(item, exercise, uploadedVideo)
-          if (exercise.gifId) {
-            const watch = element(
-              'button',
-              'button button--secondary student-watch-video',
-              '▶ Ver GIF',
-            )
-            watch.type = 'button'
-            watch.addEventListener(
-              'click',
-              () =>
-                void loadStudentGif(exercise.gifId).then(
-                  (url) => url && openStudentGifViewer(url, exercise.name),
-                ),
-            )
-            item.append(watch)
-          }
-        } else if (exercise.gifId) {
-          const animation = element('img', 'student-exercise-gif')
-          animation.alt = ''
-          animation.loading = 'lazy'
-          animation.title = 'Toque para ver em tela cheia'
-          animation.addEventListener('click', () =>
-            openStudentGifViewer(animation.src, exercise.name),
-          )
-          void loadStudentGif(exercise.gifId)
-            .then((url) => {
-              if (url) animation.src = url
-              else animation.remove()
-            })
-            .catch(() => animation.remove())
-          item.append(animation)
-          if (uploadedVideo) {
-            const watch = element(
-              'button',
-              'button button--secondary student-watch-video',
-              '▶ Ver vídeo',
-            )
-            watch.type = 'button'
-            watch.addEventListener('click', () =>
-              openStudentVideoViewer(uploadedVideo.id, exercise.name),
-            )
-            item.append(watch)
-          }
-        }
-        addLine(item, exercise.instructions || 'Siga a orientação do personal.')
-        li.append(item)
-        list.append(li)
+      section.addEventListener('toggle', () => {
+        if (!section.open) return
+        parent.querySelectorAll(':scope > .student-muscle-group[open]').forEach((other) => {
+          if (other !== section) other.open = false
+        })
       })
+      const list = element('ol', 'student-ex-list')
+      items.forEach((exercise) =>
+        list.append(exerciseRow(exercise, matchingUploadedVideo(exercise, uploadedVideos))),
+      )
       section.append(list)
       parent.append(section)
     })
@@ -438,6 +440,7 @@ function appendExerciseGroups(parent, exercises, uploadedVideos = []) {
 function renderReadyWorkoutLibrary(container, data) {
   if (data.access.planCode !== 'ready') return
   const card = article('Meus Treinos Prontos')
+  card.classList.add('student-card--wide')
   const workouts = data.readyWorkouts || []
   if (!workouts.length) {
     addLine(
@@ -466,19 +469,27 @@ function renderReadyWorkoutLibrary(container, data) {
 }
 
 function renderPortal(container, data) {
-  const plan = article('Meu plano')
-  addLine(plan, data.access.planName, true)
-  if (billingCycleLabel(data.access)) addLine(plan, billingCycleLabel(data.access))
-  addLine(
-    plan,
-    data.access.accessType === 'permanent'
-      ? 'Acesso permanente.'
-      : `Acesso até ${new Intl.DateTimeFormat('pt-BR').format(new Date(data.access.expiresAt))}.`,
+  // "Meu plano" vira uma faixa de resumo no topo, com a altura do conteúdo.
+  const plan = element('article', 'student-plan-strip')
+  plan.append(element('h2', '', 'Meu plano'))
+  const facts = element('div', 'student-plan-facts')
+  facts.append(element('strong', '', data.access.planName))
+  if (billingCycleLabel(data.access)) facts.append(element('span', '', billingCycleLabel(data.access)))
+  facts.append(
+    element(
+      'span',
+      '',
+      data.access.accessType === 'permanent'
+        ? 'Acesso permanente'
+        : `Acesso até ${new Intl.DateTimeFormat('pt-BR').format(new Date(data.access.expiresAt))}`,
+    ),
   )
+  plan.append(facts)
   container.replaceChildren(plan)
   renderReadyWorkoutLibrary(container, data)
   if (data.access.planCode !== 'ready') {
     const workouts = article('Minha ficha personalizada')
+    workouts.classList.add('student-card--wide')
     if (!data.workouts.length)
       addLine(workouts, 'O personal ainda não publicou uma ficha para você.')
     data.workouts.forEach((workout) => {
@@ -615,7 +626,7 @@ export function initStudentAccess() {
   const folderState = (container) =>
     new Map(
       [...container.querySelectorAll('details')].map((details) => [
-        details.querySelector('summary')?.textContent,
+        details.dataset.key || details.querySelector('summary')?.textContent,
         details.open,
       ]),
     )
@@ -680,7 +691,7 @@ export function initStudentAccess() {
         else renderLocked(container, data, loadPanel)
         if (openFolders) {
           container.querySelectorAll('details').forEach((details) => {
-            const key = details.querySelector('summary')?.textContent
+            const key = details.dataset.key || details.querySelector('summary')?.textContent
             if (openFolders.has(key)) details.open = openFolders.get(key)
           })
           window.scrollTo(0, scrollY)
