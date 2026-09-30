@@ -13,7 +13,7 @@
   gap: 8px;
   padding: 8px 13px;
   border: 1px solid rgba(20, 33, 61, 0.16);
-  border-radius: 11px;
+  border-radius: 12px;
   color: var(--ink-900);
   background: transparent;
   font-weight: 700;
@@ -32,14 +32,14 @@
   align-items: center;
   min-height: 48px;
   padding: 8px 11px;
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--ink-700);
   font-size: 0.9rem;
   font-weight: 700;
 }
 .public-menu a span {
   color: var(--ink-300);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 800;
 }
 .public-menu a:hover,
@@ -107,7 +107,7 @@
 .public-menu .public-menu-login:focus-visible {
   color: var(--blue-700);
   background: var(--blue-50);
-  border-radius: 10px;
+  border-radius: 12px;
 }
 .public-pill {
   display: inline-flex;
@@ -118,7 +118,7 @@
   border-radius: 999px;
   color: var(--blue-700);
   background: rgba(243, 247, 255, 0.8);
-  font-size: 0.76rem;
+  font-size: 0.8125rem;
   font-weight: 750;
 }
 .public-pill i {
@@ -165,7 +165,7 @@
 .performance-card header span,
 .public-float-card small {
   color: var(--ink-500);
-  font-size: 0.76rem;
+  font-size: 0.8125rem;
 }
 .performance-card header strong {
   font-size: 1.1rem;
@@ -204,7 +204,7 @@
   justify-content: space-around;
   padding-top: 10px;
   color: var(--ink-300);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 }
 .public-float-card {
   position: absolute;
@@ -226,7 +226,7 @@
 }
 .public-float-card em {
   color: var(--ink-500);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-style: normal;
 }
 .public-float-card--workout {
@@ -252,7 +252,7 @@
 .goal-ring small {
   display: inline;
   color: inherit;
-  font-size: 0.58rem;
+  font-size: 0.75rem;
 }
 .method-grid article {
   position: relative;
@@ -319,7 +319,7 @@
 .eyebrow {
   display: inline-block;
   color: rgba(255, 255, 255, 0.72);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -335,7 +335,7 @@
   gap: 9px;
   padding: 10px 17px;
   border: 1px solid transparent;
-  border-radius: 11px;
+  border-radius: 12px;
   font-weight: 700;
   transition:
     transform 0.18s,
@@ -368,8 +368,8 @@
 .workout-create-button {
   min-height: 36px;
   padding: 6px 11px;
-  border-radius: 9px;
-  font-size: 0.8rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
   box-shadow: 0 4px 10px rgba(13, 75, 226, 0.16);
 }
 .workout-create-button svg {
@@ -397,7 +397,7 @@
   place-items: center;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--ink-500);
   background: transparent;
 }
@@ -442,7 +442,7 @@
 .profile small,
 .person-cell small {
   color: var(--ink-500);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .avatar {
   flex: 0 0 auto;
@@ -453,7 +453,7 @@
   border-radius: 12px;
   color: var(--blue-900);
   background: var(--blue-100);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 800;
 }
 .avatar--coral {
@@ -475,7 +475,7 @@
 .avatar--large {
   width: 58px;
   height: 58px;
-  border-radius: 17px;
+  border-radius: 16px;
   font-size: 1rem;
 }
 .global-search,
@@ -486,7 +486,7 @@
   min-height: 42px;
   padding: 0 13px;
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 12px;
   color: var(--ink-500);
   background: var(--canvas);
 }
@@ -505,15 +505,15 @@
 .global-search kbd {
   padding: 2px 7px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--ink-500);
   background: var(--white);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 .nav-label {
   margin: 0 0 10px 13px;
   color: var(--ink-300);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -525,7 +525,7 @@
   gap: 13px;
   padding: 10px 13px;
   border: 0;
-  border-radius: 11px;
+  border-radius: 12px;
   color: var(--ink-500);
   background: transparent;
   font-weight: 600;
@@ -569,26 +569,26 @@
 }
 .capacity span {
   color: var(--blue-900);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .capacity small {
   color: var(--ink-500);
-  font-size: 0.73rem;
+  font-size: 0.75rem;
 }
 progress {
   width: 100%;
   height: 6px;
   overflow: hidden;
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #dfe6f4;
 }
 progress::-webkit-progress-bar {
   background: #dfe6f4;
 }
 progress::-webkit-progress-value {
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--blue-600);
 }
 progress::-moz-progress-bar {
@@ -629,7 +629,7 @@ progress::-moz-progress-bar {
   height: 46px;
   display: grid;
   place-items: center;
-  border-radius: 13px;
+  border-radius: 12px;
 }
 .stat-icon--blue {
   color: var(--blue-700);
@@ -648,7 +648,7 @@ progress::-moz-progress-bar {
   background: var(--green-100);
 }
 .trend {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 .trend em {
@@ -682,7 +682,7 @@ select,
 input,
 textarea {
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--ink-900);
   background: var(--white);
 }
@@ -724,14 +724,14 @@ select {
   flex-direction: column;
   justify-content: space-between;
   color: var(--ink-300);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 }
 .chart-x {
   display: flex;
   justify-content: space-between;
   padding-top: 8px;
   color: var(--ink-300);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 .schedule-list {
   margin-top: 18px;
@@ -747,7 +747,7 @@ select {
 }
 .schedule-item time {
   color: var(--ink-500);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
 }
 .schedule-item div {
   display: grid;
@@ -764,13 +764,13 @@ select {
 }
 .schedule-item small {
   color: var(--ink-500);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 .schedule-item.is-current {
   margin-inline: -10px;
   padding-inline: 10px;
   border-color: transparent;
-  border-radius: 11px;
+  border-radius: 12px;
   background: var(--blue-50);
 }
 .status {
@@ -782,7 +782,7 @@ select {
   border-radius: 20px;
   color: var(--ink-500);
   background: var(--canvas);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 .status--now {
@@ -839,7 +839,7 @@ td {
 th {
   color: var(--ink-500);
   background: #fafbfc;
-  font-size: 0.73rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -862,7 +862,7 @@ td {
   min-height: 34px;
   padding: 6px 10px;
   border-radius: 8px;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   white-space: nowrap;
 }
 .toolbar {
@@ -896,12 +896,12 @@ td {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   padding: 15px;
-  border-radius: 11px;
+  border-radius: 12px;
   background: var(--canvas);
 }
 .workout-card dt {
   color: var(--ink-500);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 .workout-card dd {
   margin: 3px 0 0;
@@ -916,7 +916,7 @@ td {
   justify-content: space-between;
   margin-bottom: 7px;
   color: var(--ink-500);
-  font-size: 0.76rem;
+  font-size: 0.8125rem;
 }
 .workout-progress strong {
   color: var(--blue-700);
@@ -968,7 +968,7 @@ td {
 }
 .exercise-folder-count {
   margin-left: auto;
-  font-size: 0.76rem;
+  font-size: 0.8125rem;
   color: var(--ink-500);
 }
 .exercise-item {
@@ -985,7 +985,7 @@ td {
   height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 11px;
+  border-radius: 12px;
   color: var(--blue-700);
   background: var(--blue-50);
 }
@@ -994,7 +994,7 @@ td {
 }
 .exercise-item p {
   margin-bottom: 0;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .media-library-panel {
   margin-top: 22px;
@@ -1017,7 +1017,7 @@ td {
   gap: 12px;
   padding: 14px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 16px;
   background: linear-gradient(145deg, var(--white), var(--blue-50));
 }
 .workout-prescription-row header {
@@ -1030,10 +1030,10 @@ td {
   width: 32px;
   height: 32px;
   place-items: center;
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--white);
   background: var(--blue-600);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 800;
 }
 .workout-prescription-row header strong {
@@ -1043,11 +1043,11 @@ td {
   margin-left: auto;
   padding: 7px 10px;
   border: 1px solid #f2b8b5;
-  border-radius: 9px;
+  border-radius: 8px;
   background: #fff5f4;
   color: #b42318;
   font: inherit;
-  font-size: 0.76rem;
+  font-size: 0.8125rem;
   font-weight: 800;
   cursor: pointer;
 }
@@ -1141,7 +1141,7 @@ td {
 .ready-exercise-group summary span {
   margin-left: auto;
   color: #68758a;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .ready-exercise-options {
   display: grid;
@@ -1156,7 +1156,7 @@ td {
   align-items: start;
   gap: 9px;
   padding: 9px;
-  border-radius: 9px;
+  border-radius: 8px;
   background: #f3f6fb;
   cursor: pointer;
 }
@@ -1210,7 +1210,7 @@ td {
   margin-top: 18px;
   padding: 18px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 16px;
   background: #fafbfc;
 }
 .media-upload-form > .button {
@@ -1221,7 +1221,7 @@ td {
 }
 .media-upload-form [role='status']:not(:empty) {
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--red-600);
   background: var(--red-100);
 }
@@ -1244,7 +1244,7 @@ td {
   gap: 14px;
   padding: 16px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--white);
 }
 .media-library-card h3,
@@ -1283,7 +1283,7 @@ td {
 .video-library-card video {
   width: 100%;
   aspect-ratio: 16 / 9;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #0b1220;
 }
 .tag {
@@ -1291,7 +1291,7 @@ td {
   border-radius: 8px;
   color: var(--blue-700);
   background: var(--blue-50);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 .assessment-card header,
@@ -1303,7 +1303,7 @@ td {
 }
 .assessment-card footer strong {
   color: var(--blue-700);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 .assessment-protocol article {
   display: flex;
@@ -1312,13 +1312,13 @@ td {
   min-height: 82px;
   padding: 14px;
   border: 1px solid var(--line);
-  border-radius: 13px;
+  border-radius: 12px;
   background: linear-gradient(145deg, var(--white), var(--blue-50));
 }
 .assessment-protocol article > span {
   flex: 0 0 auto;
   color: var(--blue-600);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 800;
 }
 .assessment-protocol article div {
@@ -1326,11 +1326,11 @@ td {
   gap: 3px;
 }
 .assessment-protocol strong {
-  font-size: 0.79rem;
+  font-size: 0.8125rem;
 }
 .assessment-protocol small {
   color: var(--ink-500);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1.35;
 }
 .assessment-fieldset {
@@ -1339,12 +1339,12 @@ td {
   margin: 0;
   padding: 16px;
   border: 1px solid var(--line);
-  border-radius: 13px;
+  border-radius: 12px;
 }
 .assessment-fieldset legend {
   padding: 0 7px;
   color: var(--blue-700);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 800;
 }
 .check-field {
@@ -1352,7 +1352,7 @@ td {
   align-items: flex-start;
   gap: 9px;
   color: var(--ink-700);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
 }
 .check-field input {
@@ -1364,7 +1364,7 @@ td {
 }
 .assessment-card p {
   margin: 2px 0 0;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .assessment-values {
   display: grid;
@@ -1374,13 +1374,13 @@ td {
 }
 .assessment-values div {
   padding: 11px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--canvas);
 }
 .assessment-values span {
   display: block;
   color: var(--ink-500);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 .assessment-values strong {
   font-size: 0.95rem;
@@ -1389,7 +1389,7 @@ td {
   padding-top: 15px;
   border-top: 1px solid var(--line);
   color: var(--ink-500);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .progress-profile {
   display: grid;
@@ -1405,7 +1405,7 @@ td {
 }
 .profile-large p {
   margin: 3px 0 0;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
 }
 .progress-profile dl {
   display: grid;
@@ -1415,7 +1415,7 @@ td {
 }
 .progress-profile dt {
   color: var(--ink-500);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 .progress-profile dd {
   margin: 3px 0 0;
@@ -1458,7 +1458,7 @@ td {
   left: 50%;
   transform: translateX(-50%);
   color: var(--ink-700);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-style: normal;
   font-weight: 700;
 }
@@ -1509,7 +1509,7 @@ td {
    pode trabalhar mais de um grupo), não mais um select de escolha única. */
 .group-checkboxes-field .field-hint {
   font-weight: 400;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   color: var(--muted, var(--ink-500, #6b7280));
   margin: -2px 0 2px;
 }
@@ -1519,7 +1519,7 @@ td {
   gap: 6px 16px;
   padding: 12px 14px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--blue-50);
   max-height: 190px;
   overflow-y: auto;
@@ -1555,7 +1555,7 @@ td {
 }
 .login-note {
   text-align: center;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .login-home-button {
   width: fit-content;
@@ -1577,7 +1577,7 @@ td {
   position: absolute;
   padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 18px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.12);
   box-shadow: 0 20px 60px rgba(2, 14, 49, 0.18);
   backdrop-filter: blur(16px);
@@ -1585,7 +1585,7 @@ td {
 .orbit-card span {
   display: block;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .orbit-card strong {
   display: block;
@@ -1604,7 +1604,7 @@ td {
 }
 .orbit-card em {
   color: #aee7ca;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-style: normal;
 }
 .mini-bars {
@@ -1803,11 +1803,11 @@ td {
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: cover;
-  border-radius: 9px;
+  border-radius: 8px;
   background: var(--blue-50);
 }
 .gif-card-name {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   line-height: 1.3;
   color: var(--ink-700);
   word-break: break-word;
@@ -1818,7 +1818,7 @@ td {
   left: 10px;
   background: var(--blue-700);
   color: var(--white);
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 20px;
@@ -1848,7 +1848,7 @@ td {
   height: 62px;
   flex: none;
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 12px;
   background: var(--blue-50);
   overflow: hidden;
 }
@@ -1868,7 +1868,7 @@ td {
   color: var(--ink-700);
 }
 .gif-field-info small {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--ink-500);
 }
 .gif-dropzone {
@@ -1878,7 +1878,7 @@ td {
   margin-top: 14px;
   padding: 26px 18px;
   border: 2px dashed var(--blue-700);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--blue-50);
   text-align: center;
   cursor: pointer;
@@ -1900,13 +1900,13 @@ td {
   align-items: center;
   gap: 8px;
   color: var(--ink-500);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .gif-loose-group {
   min-height: 40px;
   padding: 8px 10px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--ink-700);
   background: var(--white);
   font-size: 0.82rem;
@@ -1947,7 +1947,7 @@ td {
   width: 100%;
   max-height: min(70vh, 560px);
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 .gif-picker form {
   width: 100%;
@@ -1962,7 +1962,7 @@ td {
   min-height: 32px;
   margin-left: 14px;
   padding: 5px 12px;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
 }
 .gif-group-remove:hover {
   color: #b3261e;
@@ -1976,7 +1976,7 @@ td {
   min-height: 32px;
   margin-left: 12px;
   padding: 5px 12px;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
 }
 .folder-add-button:hover {
   color: var(--blue-700);
@@ -2043,7 +2043,7 @@ td {
   height: 44px;
   flex: none;
   object-fit: cover;
-  border-radius: 9px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: var(--blue-50);
 }
@@ -2051,7 +2051,7 @@ td {
   min-height: 34px;
   margin-top: 8px;
   padding: 6px 12px;
-  font-size: 0.76rem;
+  font-size: 0.8125rem;
 }
 
 /* Mídia do exercício dentro do montador de treino ------------------- */
@@ -2064,7 +2064,7 @@ td {
   display: inline-flex;
   gap: 4px;
   padding: 3px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--blue-50);
   margin-bottom: 8px;
 }
@@ -2072,10 +2072,10 @@ td {
   border: none;
   background: transparent;
   padding: 5px 12px;
-  font-size: 0.76rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  border-radius: 7px;
+  border-radius: 8px;
   color: var(--muted);
   cursor: pointer;
 }
@@ -2095,19 +2095,19 @@ td {
   height: 44px;
   flex: none;
   object-fit: cover;
-  border-radius: 9px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: var(--blue-50);
 }
 .prescription-media-empty {
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   color: var(--muted);
   flex: none;
 }
 .prescription-media-button {
   min-height: 34px;
   padding: 6px 12px;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   margin-left: auto;
 }
 .prescription-media-select {
@@ -2116,7 +2116,7 @@ td {
   min-height: 34px;
   padding: 6px 10px;
   font-size: 0.82rem;
-  border-radius: 9px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: #fff;
   color: inherit;
@@ -2127,7 +2127,7 @@ td {
   display: inline-block;
   padding: 1px 8px;
   border-radius: 999px;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
   line-height: 1.5;
   vertical-align: 1px;
@@ -2298,7 +2298,7 @@ td {
 }
 [data-media-video] .field-hint {
   color: var(--ink-500);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 
 /* Biblioteca de exercícios: "com MP4" abre o vídeo; ícone de play quando
@@ -2337,7 +2337,7 @@ video.gif-lightbox-image {
 .prescription-media-label {
   flex-basis: 100%;
   color: var(--ink-500);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -2408,14 +2408,14 @@ video.gif-lightbox-image {
 }
 .checkin-card header small {
   color: var(--ink-500);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   text-transform: capitalize;
 }
 .checkin-status {
   flex: none;
   padding: 3px 10px;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 800;
 }
 .checkin-status--wait {
@@ -2445,7 +2445,7 @@ video.gif-lightbox-image {
 }
 .checkin-scale-bars i {
   height: 9px;
-  border-radius: 5px;
+  border-radius: 8px;
   background: #e6eaf1;
 }
 .checkin-scale--good .checkin-scale-bars i.is-on {
@@ -2460,7 +2460,7 @@ video.gif-lightbox-image {
 .checkin-pain {
   margin: 0;
   padding: 9px 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   color: #9b1c2e;
   background: var(--red-100);
   font-size: 0.86rem;
@@ -2503,7 +2503,7 @@ video.gif-lightbox-image {
 }
 .checkin-reply-actions small {
   color: var(--ink-500);
-  font-size: 0.76rem;
+  font-size: 0.8125rem;
 }
 .progress-checkins {
   margin-top: 20px;
@@ -2555,7 +2555,7 @@ video.gif-lightbox-image {
   min-width: 0;
   min-height: 220px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--white);
 }
 .agenda-day.is-today {
@@ -2583,7 +2583,7 @@ video.gif-lightbox-image {
 }
 .agenda-day header small {
   color: var(--ink-500);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
 }
 .agenda-day.is-today header small {
   color: var(--blue-700);
@@ -2611,7 +2611,7 @@ video.gif-lightbox-image {
 .agenda-empty {
   margin: 8px 0;
   color: var(--ink-300);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   text-align: center;
 }
 .agenda-item {
@@ -2619,21 +2619,21 @@ video.gif-lightbox-image {
   gap: 3px;
   padding: 9px 10px;
   border-left: 3px solid var(--blue-600);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--blue-50);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
 }
 .agenda-item time {
   color: var(--blue-700);
   font-weight: 800;
-  font-size: 0.76rem;
+  font-size: 0.8125rem;
 }
 .agenda-item strong {
   overflow-wrap: anywhere;
 }
 .agenda-item small {
   color: var(--ink-500);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
 }
 .agenda-status {
   justify-self: start;
@@ -2642,7 +2642,7 @@ video.gif-lightbox-image {
   border-radius: 999px;
   color: var(--blue-700);
   background: #fff;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 .agenda-item.is-now {
@@ -2676,7 +2676,7 @@ video.gif-lightbox-image {
 .agenda-notes {
   margin: 2px 0 0;
   color: var(--ink-700);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
 }
 .agenda-actions {
   display: flex;
@@ -2729,15 +2729,15 @@ video.gif-lightbox-image {
   margin-top: 4px;
   padding: 2px 9px;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   line-height: 1.5;
   white-space: nowrap;
   border: 1px solid transparent;
 }
 .student-plan-badge--athlete {
-  color: #92400e;
-  background: #fef3c7;
+  color: var(--amber-600);
+  background: var(--amber-100);
   border-color: #fcd34d;
 }
 .student-plan-badge--premium {
@@ -2752,7 +2752,7 @@ video.gif-lightbox-image {
 }
 .student-plan-badge--ready {
   color: #047857;
-  background: #ecfdf5;
+  background: var(--green-100);
   border-color: #a7f3d0;
 }
 .student-plan-badge--none {
@@ -2786,7 +2786,7 @@ video.gif-lightbox-image {
   margin-bottom: 16px;
   padding: 12px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--white);
 }
 .assessment-search {
@@ -2797,7 +2797,7 @@ video.gif-lightbox-image {
   min-height: 42px;
   padding: 0 12px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--canvas);
 }
 .assessment-search svg {
@@ -2822,7 +2822,7 @@ video.gif-lightbox-image {
   min-height: 42px;
   padding: 0 10px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--white);
   font: inherit;
   font-size: 0.85rem;
@@ -2830,7 +2830,7 @@ video.gif-lightbox-image {
 .assessment-toolbar small {
   margin-left: auto;
   color: var(--ink-500);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 .assessment-groups {
@@ -2849,14 +2849,14 @@ video.gif-lightbox-image {
 .assessment-values .assessment-delta {
   display: block;
   margin-top: 2px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 .assessment-delta.is-good {
-  color: #15803d;
+  color: var(--green-600);
 }
 .assessment-delta.is-bad {
-  color: #dc2626;
+  color: var(--red-600);
 }
 .assessment-delta.is-neutral {
   color: var(--ink-500);
@@ -2869,22 +2869,22 @@ video.gif-lightbox-image {
   border-radius: 999px;
   background: var(--canvas);
   color: var(--ink-700);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 .assessment-due.is-soon {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--amber-100);
+  color: var(--amber-600);
 }
 .assessment-due.is-late {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--red-100);
+  color: var(--red-600);
 }
 .assessment-group footer strong {
   margin-left: auto;
 }
 .assessment-again {
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .assessment-history {
@@ -2895,7 +2895,7 @@ video.gif-lightbox-image {
 .assessment-history summary {
   cursor: pointer;
   color: var(--blue-700);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .assessment-history ol {
@@ -2911,9 +2911,9 @@ video.gif-lightbox-image {
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border-radius: 9px;
+  border-radius: 8px;
   background: var(--canvas);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .assessment-history li span {
   min-width: 0;
@@ -2921,19 +2921,19 @@ video.gif-lightbox-image {
 }
 .assessment-history li small {
   font-weight: 700;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 .assessment-history .is-published {
-  color: #15803d;
+  color: var(--green-600);
 }
 .assessment-history .is-draft {
-  color: #92400e;
+  color: var(--amber-600);
 }
 .assessment-empty {
   grid-column: 1 / -1;
   padding: 28px;
   border: 1px dashed var(--line);
-  border-radius: 14px;
+  border-radius: 16px;
   text-align: center;
   color: var(--ink-500);
 }
@@ -3024,7 +3024,7 @@ video.gif-lightbox-image {
 }
 .workout-group-name small {
   color: var(--ink-500);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .workout-toolbar {
   margin-top: 4px;
@@ -3121,4 +3121,16 @@ video.gif-lightbox-image {
   .workout-toolbar select:not(.student-select) {
     flex-basis: 100%;
   }
+}
+
+/* Resumo dos resultados logo abaixo da barra de filtros, alinhado à esquerda
+   com os cards (antes ficava solto no canto da barra). */
+.results-caption {
+  margin: -6px 0 12px 4px;
+  color: var(--ink-500);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.results-caption:empty {
+  display: none;
 }

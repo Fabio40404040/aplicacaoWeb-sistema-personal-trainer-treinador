@@ -91,3 +91,17 @@ p {
   outline: 3px solid rgba(23, 100, 255, 0.3);
   outline-offset: 2px;
 }
+
+/* Números com a mesma largura (medidas, datas, tabelas) e texto mais nítido. */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+td,
+time,
+.assessment-values strong,
+.assessment-history li,
+.stat-card strong,
+.agenda-item time {
+  font-variant-numeric: tabular-nums;
+}

@@ -119,7 +119,7 @@
   border-radius: 12px;
   background: #fff;
   color: #526477;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .mercado-pago-brand img {
@@ -143,7 +143,7 @@
 }
 .card-order-summary span {
   color: #60758b;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 .card-order-summary > strong {
   flex: 0 0 auto;
@@ -161,7 +161,7 @@
   padding: 0;
   overflow: hidden;
   border: 1px solid #c8d2e1;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fff;
 }
 .mp-secure-field iframe {
@@ -175,7 +175,7 @@
 .secure-card-form .field input,
 .secure-card-form .field select {
   min-height: 48px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fff;
 }
 .installments-field {
@@ -191,7 +191,7 @@
 }
 .installments-field small {
   color: #527089;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 .card-brand-field {
@@ -213,7 +213,7 @@
   min-height: 48px;
   padding: 8px 10px;
   border: 1px solid #c8d2e1;
-  border-radius: 10px;
+  border-radius: 12px;
   color: #526477;
 }
 .card-brand-result img {
@@ -222,7 +222,7 @@
   object-fit: contain;
 }
 .card-brand-result strong {
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .card-document-grid {
   grid-template-columns: 120px minmax(0, 1fr);
@@ -240,10 +240,10 @@
 .card-security-note {
   display: block;
   padding: 11px 13px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #edf8f2;
   color: #66728a;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.45;
 }
 .card-security-note strong {
@@ -464,7 +464,7 @@
   align-items: center;
   gap: 9px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #18283b;
   border: 1px solid #40546e;
   user-select: none;
@@ -549,7 +549,7 @@
   aspect-ratio: 16 / 9;
   display: block;
   margin-top: 10px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #09111d;
 }
 .student-prescription-media {
@@ -595,7 +595,7 @@
   border: 1px dashed #607896;
   border-radius: 8px;
   color: #aebed2;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .student-feature-locked {
   opacity: 0.78;
@@ -713,7 +713,7 @@
   margin-top: 12px;
   padding: 12px 14px;
   border-left: 3px solid #5b9bff;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #18283b;
 }
 .student-checkin-reply strong {
@@ -774,7 +774,7 @@
 }
 .student-plan-strip h2 {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -805,7 +805,7 @@
 .student-group-count {
   flex: none;
   color: #8ea3bd;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
@@ -836,7 +836,7 @@
   padding: 0;
   overflow: hidden;
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fff;
   color: #1d4ed8;
   font-size: 1.4rem;
@@ -883,7 +883,7 @@
   background: #18283b;
   border: 1px solid #40546e;
   color: #c7d5e6;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 .student-ex-actions {

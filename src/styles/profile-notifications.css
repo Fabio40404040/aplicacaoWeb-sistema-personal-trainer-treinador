@@ -24,7 +24,7 @@
 /* Topo do painel: perfil clicável */
 .profile--clickable {
   padding: 4px 10px 4px 4px;
-  border-radius: 14px;
+  border-radius: 16px;
   cursor: pointer;
   transition: background 0.15s ease;
 }
@@ -73,7 +73,7 @@
   place-items: center;
   border-radius: 999px;
   color: #fff;
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 800;
   line-height: 1;
 }
@@ -112,7 +112,7 @@
   padding: 0;
   color: var(--blue-700);
   background: none;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -149,7 +149,7 @@
   height: 34px;
   display: grid;
   place-items: center;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--canvas);
   font-size: 1rem;
 }
@@ -176,7 +176,7 @@
 }
 .notification-body small {
   color: var(--ink-500);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
@@ -199,7 +199,7 @@
 .avatar-field-actions small {
   flex-basis: 100%;
   color: var(--ink-500);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .avatar-field-actions label.button {
   cursor: pointer;
@@ -210,7 +210,7 @@
   margin: 0;
   padding: 14px 16px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 16px;
 }
 .profile-plan-fields legend {
   padding: 0 6px;
@@ -220,11 +220,11 @@
 }
 .profile-plan-fields small {
   color: var(--ink-500);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .profile-modal .field small {
   color: var(--ink-500);
-  font-size: 0.76rem;
+  font-size: 0.8125rem;
 }
 
 /* Área do aluno: faixa com foto, nome e sininho */
@@ -244,7 +244,7 @@
   min-width: 0;
   padding: 6px 12px 6px 6px;
   border: 1px solid #40546e;
-  border-radius: 14px;
+  border-radius: 16px;
   color: #dce9f8;
   background: #18283b;
   text-align: left;
@@ -265,7 +265,7 @@
 }
 .student-profile-chip-text small {
   color: #8ea3bd;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .student-bell {
   flex: none;

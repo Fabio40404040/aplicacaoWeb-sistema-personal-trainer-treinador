@@ -161,7 +161,7 @@
 }
 .public-menu a span {
   color: var(--site-blue-light);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   letter-spacing: 0.08em;
 }
 .public-menu a:hover {
@@ -291,7 +291,7 @@
 }
 .hero-proof figcaption span {
   color: var(--site-blue-light);
-  font-size: 0.58rem;
+  font-size: 0.75rem;
   font-weight: 850;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -315,7 +315,7 @@
 .student-card--login > div:nth-child(2) > span {
   display: inline-block;
   color: var(--site-blue-light);
-  font-size: 0.73rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -441,7 +441,7 @@
   gap: 9px;
   transform: translateX(-50%);
   color: rgba(255, 255, 255, 0.75);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-decoration: none;
@@ -527,7 +527,7 @@
   top: 26px;
   right: 27px;
   color: rgba(191, 211, 237, 0.35);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: 0.12em;
 }
@@ -582,14 +582,14 @@
   border-radius: 20px;
   color: #ddecff;
   background: rgba(61, 139, 253, 0.22);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 .plan-label {
   color: var(--site-blue-light);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -821,7 +821,7 @@
   display: block;
   margin-bottom: 4px;
   color: var(--site-blue-light);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
 }
 .contact-demo-note {
   display: block;
@@ -843,7 +843,7 @@
   border-radius: 13px;
   color: #eaf3ff;
   background: rgba(11, 18, 27, 0.18);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 750;
   text-decoration: none;
   transition:
@@ -883,7 +883,7 @@
   display: flex;
   gap: 8px;
   color: #c9d6e7;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-decoration: none;
 }
@@ -903,7 +903,7 @@
     gap: 14px;
   }
   .public-desktop-nav a {
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
     white-space: nowrap;
   }
 }

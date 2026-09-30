@@ -98,7 +98,7 @@
 .public-numbers dd {
   margin: 1px 0 0;
   color: var(--ink-500);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .public-visual {
   position: relative;
