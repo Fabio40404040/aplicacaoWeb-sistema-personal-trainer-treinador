@@ -286,15 +286,29 @@ const normalizeName = (value) =>
 
 // Fichas personalizadas agrupadas por aluno. Escolher um aluno (na lista do
 // topo ou tocando no nome dele) mostra só as fichas desse aluno.
-// Preenche a lista de sugestões (datalist) de uma busca por nome.
-function fillNameSuggestions(selector, names) {
-  const list = document.querySelector(selector)
-  if (!list) return
-  list.replaceChildren(
-    ...[...new Set(names.filter(Boolean))]
-      .sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'))
-      .map((name) => Object.assign(document.createElement('option'), { value: name })),
+// Lista de alunos (select) que acompanha a busca: só aparecem os nomes que
+// combinam com o que foi digitado. Mantém a escolha atual quando possível e
+// devolve a chave do aluno escolhido ('' = todos).
+function fillStudentSelect(select, groups, search) {
+  if (!select) return ''
+  const current = select.value
+  const options = groups
+    .filter((group) => !search || normalizeName(group.name).includes(search))
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'))
+  select.replaceChildren(
+    Object.assign(document.createElement('option'), {
+      value: '',
+      textContent: options.length ? 'Todos os alunos' : 'Nenhum aluno encontrado',
+    }),
+    ...options.map((group) =>
+      Object.assign(document.createElement('option'), {
+        value: group.key,
+        textContent: `${group.name} (${(group.all || group.items).length})`,
+      }),
+    ),
   )
+  select.value = options.some((group) => group.key === current) ? current : ''
+  return select.value
 }
 
 function workoutCard(w) {
@@ -319,6 +333,7 @@ function renderWorkouts() {
   const workouts = getData().workouts || []
   const grid = document.querySelector('[data-workouts-grid]')
   const searchInput = document.querySelector('[data-workout-search]')
+  const studentSelect = document.querySelector('[data-workout-student]')
   const search = normalizeName(searchInput?.value)
   const status = document.querySelector('[data-workout-status]')?.value || 'all'
   const groups = new Map()
@@ -330,20 +345,25 @@ function renderWorkouts() {
   const ordered = [...groups.values()].sort((a, b) =>
     String(a.name).localeCompare(String(b.name), 'pt-BR'),
   )
-  fillNameSuggestions('[data-workout-search-list]', ordered.map((group) => group.name))
-  const chosen = Boolean(search)
+  const chosenKey = fillStudentSelect(studentSelect, ordered, search)
+  const chosen = Boolean(chosenKey)
   const matchesStatus = (w) =>
     status === 'all' || (status === 'published' ? Boolean(w.publishedAt) : !w.publishedAt)
   const visible = ordered
-    .filter((group) => !search || normalizeName(group.name).includes(search))
+    .filter((group) =>
+      chosenKey ? group.key === chosenKey : !search || normalizeName(group.name).includes(search),
+    )
     .map((group) => ({ ...group, items: group.items.filter(matchesStatus) }))
     .filter((group) => group.items.length)
   const summary = document.querySelector('[data-workout-summary]')
   if (summary)
     summary.textContent = `${ordered.length} aluno${ordered.length === 1 ? '' : 's'} · ${workouts.length} ficha${workouts.length === 1 ? '' : 's'}`
-  const selectStudent = (name) => {
-    if (!searchInput) return
-    searchInput.value = name
+  const selectStudent = (key) => {
+    if (searchInput) searchInput.value = ''
+    if (studentSelect) {
+      fillStudentSelect(studentSelect, ordered, '')
+      studentSelect.value = key
+    }
     renderWorkouts()
     grid.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -366,7 +386,7 @@ function renderWorkouts() {
     count.textContent = `${group.items.length} ficha${group.items.length === 1 ? '' : 's'}`
     text.append(name, count)
     who.append(avatar, text)
-    who.addEventListener('click', () => selectStudent(chosen ? '' : group.name))
+    who.addEventListener('click', () => selectStudent(chosen ? '' : group.key))
     head.append(who)
     if (chosen) {
       const back = document.createElement('button')
@@ -715,7 +735,11 @@ function renderAssessments() {
     groups.get(key).all.push(a)
   })
   // Sugestões da busca: alunos com avaliação, em ordem alfabética.
-  fillNameSuggestions('[data-assessment-search-list]', [...groups.values()].map((g) => g.name))
+  const chosenKey = fillStudentSelect(
+    document.querySelector('[data-assessment-student]'),
+    [...groups.values()],
+    filters.search,
+  )
   const visible = [...groups.values()]
     .map((group) => ({
       ...group,
@@ -727,7 +751,10 @@ function renderAssessments() {
     }))
     .filter(
       (group) =>
-        group.items.length && (!filters.search || normalizeName(group.name).includes(filters.search)),
+        group.items.length &&
+        (chosenKey
+          ? group.key === chosenKey
+          : !filters.search || normalizeName(group.name).includes(filters.search)),
     )
     .map((group) => {
       // "Anterior" é sempre a avaliação imediatamente antes da mostrada.
@@ -1104,7 +1131,7 @@ export function initDashboard() {
   document.querySelector('[data-exercise-filter]').addEventListener('change', renderExercises)
   document.querySelector('[data-assessment-search]')?.addEventListener('input', renderAssessments)
   document.querySelector('[data-workout-search]')?.addEventListener('input', renderWorkouts)
-  ;['[data-assessment-status]', '[data-assessment-sort]'].forEach(
+  ;['[data-assessment-student]', '[data-assessment-status]', '[data-assessment-sort]'].forEach(
     (selector) => document.querySelector(selector)?.addEventListener('change', renderAssessments),
   )
   const filterBox = document.querySelector('[data-exercise-filter]')?.parentElement
@@ -1212,7 +1239,9 @@ export function initDashboard() {
     renderStudentOptions()
     if (select.value && select.value !== before) select.dispatchEvent(new Event('change'))
   })
-  document.querySelector('[data-workout-status]')?.addEventListener('change', renderWorkouts)
+  ;['[data-workout-student]', '[data-workout-status]'].forEach((selector) =>
+    document.querySelector(selector)?.addEventListener('change', renderWorkouts),
+  )
   document.querySelector('[data-progress-student]').addEventListener('change', (event) => {
     const s = getData().students.find((i) => i.name === event.target.value)
     if (!s) return

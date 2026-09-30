@@ -3033,3 +3033,24 @@ video.gif-lightbox-image {
   flex: 1 1 260px;
   min-width: 0;
 }
+
+/* Busca + lista de alunos empilhadas (Avaliação física e Treinos), igual à Evolução. */
+.student-picker {
+  flex: 1 1 280px;
+  max-width: 360px;
+  display: grid;
+  gap: 8px;
+}
+.student-picker .student-search {
+  min-width: 0;
+}
+.student-picker .student-select {
+  width: 100%;
+  min-height: 42px;
+}
+@media (max-width: 560px) {
+  .student-picker {
+    max-width: none;
+    flex-basis: 100%;
+  }
+}

@@ -1737,17 +1737,24 @@
             class="assessment-toolbar workout-toolbar"
             aria-label="Filtrar fichas"
           >
-            <label class="search-box student-search toolbar-search"
-              ><svg><use href="#icon-search"></use></svg
-              ><input
-                type="search"
-                placeholder="Buscar ou escolher aluno"
-                aria-label="Buscar ou escolher aluno pelo nome"
-                autocomplete="off"
-                list="workout-student-names"
-                data-workout-search
-            /></label>
-            <datalist id="workout-student-names" data-workout-search-list></datalist>
+            <div class="student-picker">
+              <label class="search-box student-search"
+                ><svg><use href="#icon-search"></use></svg
+                ><input
+                  type="search"
+                  placeholder="Buscar aluno"
+                  aria-label="Buscar aluno pelo nome"
+                  autocomplete="off"
+                  data-workout-search
+              /></label>
+              <select
+                class="student-select"
+                data-workout-student
+                aria-label="Escolher aluno"
+              >
+                <option value="">Todos os alunos</option>
+              </select>
+            </div>
             <select
               data-workout-status
               aria-label="Situação da ficha"
@@ -1882,17 +1889,24 @@
             class="assessment-toolbar"
             aria-label="Filtrar avaliações"
           >
-            <label class="search-box student-search toolbar-search"
-              ><svg><use href="#icon-search"></use></svg
-              ><input
-                type="search"
-                placeholder="Buscar ou escolher aluno"
-                aria-label="Buscar ou escolher aluno pelo nome"
-                autocomplete="off"
-                list="assessment-student-names"
-                data-assessment-search
-            /></label>
-            <datalist id="assessment-student-names" data-assessment-search-list></datalist>
+            <div class="student-picker">
+              <label class="search-box student-search"
+                ><svg><use href="#icon-search"></use></svg
+                ><input
+                  type="search"
+                  placeholder="Buscar aluno"
+                  aria-label="Buscar aluno pelo nome"
+                  autocomplete="off"
+                  data-assessment-search
+              /></label>
+              <select
+                class="student-select"
+                data-assessment-student
+                aria-label="Escolher aluno"
+              >
+                <option value="">Todos os alunos</option>
+              </select>
+            </div>
             <select
               data-assessment-status
               aria-label="Situação"
