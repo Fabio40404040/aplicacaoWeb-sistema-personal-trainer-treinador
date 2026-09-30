@@ -16,6 +16,14 @@ const dateTime = (date) =>
     minute: '2-digit',
   }).format(date)
 
+// Nome sem acento e em minúsculas, para a busca achar "Antonio" em "Antônio".
+const normalizeName = (value) =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/gu, '')
+    .toLocaleLowerCase('pt-BR')
+    .trim()
+
 const tone = (value) => (value >= 4 ? 'good' : value === 3 ? 'mid' : 'low')
 
 // "Dor" preenchida com algo que não seja "não", "nenhuma", "zero"…
@@ -177,9 +185,11 @@ function renderCheckinsPage() {
 
   if (isTyping(list)) return
   const status = statusFilter.value
+  const search = normalizeName(document.querySelector('[data-checkin-search]')?.value)
   const visible = checkins.filter(
     (checkin) =>
       (!studentFilter.value || checkin.student === studentFilter.value) &&
+      (!search || normalizeName(checkin.student).includes(search)) &&
       (status === 'all' ||
         (status === 'pending' && !checkin.trainerFeedback) ||
         (status === 'answered' && checkin.trainerFeedback)),
@@ -187,8 +197,9 @@ function renderCheckinsPage() {
   if (!visible.length) {
     const empty = document.createElement('p')
     empty.className = 'checkin-empty'
-    empty.textContent =
-      status === 'pending'
+    empty.textContent = search
+      ? 'Nenhum aluno encontrado com esse nome.'
+      : status === 'pending'
         ? 'Nenhum check-in aguardando resposta. Tudo em dia! 🎉'
         : 'Nenhum check-in por aqui ainda.'
     list.replaceChildren(empty)
@@ -244,6 +255,10 @@ export function initCheckins() {
     renderProgressCheckins()
   }
   document.querySelector('[data-checkin-filter-status]')?.addEventListener('change', () => {
+    document.querySelector('[data-checkin-list]')?.replaceChildren()
+    renderCheckinsPage()
+  })
+  document.querySelector('[data-checkin-search]')?.addEventListener('input', () => {
     document.querySelector('[data-checkin-list]')?.replaceChildren()
     renderCheckinsPage()
   })

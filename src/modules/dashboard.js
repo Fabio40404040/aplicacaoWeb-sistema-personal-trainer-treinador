@@ -263,25 +263,118 @@ function renderRecentStudents() {
     })
   document.querySelector('[data-recent-students]').replaceChildren(...rows)
 }
+// Nome sem acento e em minúsculas, para a busca achar "Antonio" em "Antônio".
+const normalizeName = (value) =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/gu, '')
+    .toLocaleLowerCase('pt-BR')
+    .trim()
+
+// Fichas personalizadas agrupadas por aluno. Escolher um aluno (na lista do
+// topo ou tocando no nome dele) mostra só as fichas desse aluno.
+function workoutCard(w) {
+  const card = cloneTemplate('workout-card-template')
+  card.dataset.id = w.id
+  card.querySelector('h2').textContent = w.name
+  card.querySelector('[data-card="student"]').textContent = w.student
+  card.querySelector('[data-card="goal"]').textContent =
+    `${w.goal} · ${w.publishedAt ? 'Publicado' : 'Rascunho'} · ${w.exerciseCount || 0} exercícios`
+  card.querySelector('[data-card="duration"]').textContent = w.duration
+  card.querySelector('.workout-progress strong').textContent = `${w.progress}%`
+  card.querySelector('progress').value = w.progress
+  const pdf = card.querySelector('.button--full')
+  pdf.dataset.action = 'pdf'
+  pdf.firstChild.textContent = 'Baixar PDF visual '
+  return card
+}
+
 function renderWorkouts() {
-  const workouts = getData().workouts
-  document.querySelector('[data-workouts-grid]').replaceChildren(
-    ...workouts.map((w) => {
-      const card = cloneTemplate('workout-card-template')
-      card.dataset.id = w.id
-      card.querySelector('h2').textContent = w.name
-      card.querySelector('[data-card="student"]').textContent = w.student
-      card.querySelector('[data-card="goal"]').textContent =
-        `${w.goal} · ${w.publishedAt ? 'Publicado' : 'Rascunho'} · ${w.exerciseCount || 0} exercícios`
-      card.querySelector('[data-card="duration"]').textContent = w.duration
-      card.querySelector('.workout-progress strong').textContent = `${w.progress}%`
-      card.querySelector('progress').value = w.progress
-      const pdf = card.querySelector('.button--full')
-      pdf.dataset.action = 'pdf'
-      pdf.firstChild.textContent = 'Baixar PDF visual '
-      return card
-    }),
+  const workouts = getData().workouts || []
+  const grid = document.querySelector('[data-workouts-grid]')
+  const studentSelect = document.querySelector('[data-workout-student]')
+  const status = document.querySelector('[data-workout-status]')?.value || 'all'
+  const groups = new Map()
+  workouts.forEach((w) => {
+    const key = w.studentId ? `id:${w.studentId}` : `nome:${w.student}`
+    if (!groups.has(key)) groups.set(key, { key, studentId: w.studentId, name: w.student, items: [] })
+    groups.get(key).items.push(w)
+  })
+  const ordered = [...groups.values()].sort((a, b) =>
+    String(a.name).localeCompare(String(b.name), 'pt-BR'),
   )
+  let chosen = ''
+  if (studentSelect) {
+    const current = studentSelect.value
+    studentSelect.replaceChildren(
+      Object.assign(document.createElement('option'), { value: '', textContent: 'Todos os alunos' }),
+      ...ordered.map((group) =>
+        Object.assign(document.createElement('option'), {
+          value: group.key,
+          textContent: `${group.name} (${group.items.length})`,
+        }),
+      ),
+    )
+    studentSelect.value = groups.has(current) ? current : ''
+    chosen = studentSelect.value
+  }
+  const matchesStatus = (w) =>
+    status === 'all' || (status === 'published' ? Boolean(w.publishedAt) : !w.publishedAt)
+  const visible = ordered
+    .filter((group) => !chosen || group.key === chosen)
+    .map((group) => ({ ...group, items: group.items.filter(matchesStatus) }))
+    .filter((group) => group.items.length)
+  const summary = document.querySelector('[data-workout-summary]')
+  if (summary)
+    summary.textContent = `${ordered.length} aluno${ordered.length === 1 ? '' : 's'} · ${workouts.length} ficha${workouts.length === 1 ? '' : 's'}`
+  const selectStudent = (key) => {
+    if (!studentSelect) return
+    studentSelect.value = key
+    renderWorkouts()
+    grid.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+  const sections = visible.map((group) => {
+    const section = document.createElement('section')
+    section.className = 'workout-group'
+    const head = document.createElement('header')
+    head.className = 'workout-group-head'
+    const who = document.createElement('button')
+    who.type = 'button'
+    who.className = 'workout-group-name'
+    who.title = chosen ? 'Voltar para todos os alunos' : `Ver só as fichas de ${group.name}`
+    const avatar = document.createElement('span')
+    avatar.className = 'avatar'
+    paintAvatar(avatar, studentPhoto(group.studentId, group.name))
+    const text = document.createElement('span')
+    const name = document.createElement('strong')
+    name.textContent = group.name
+    const count = document.createElement('small')
+    count.textContent = `${group.items.length} ficha${group.items.length === 1 ? '' : 's'}`
+    text.append(name, count)
+    who.append(avatar, text)
+    who.addEventListener('click', () => selectStudent(chosen ? '' : group.key))
+    head.append(who)
+    if (chosen) {
+      const back = document.createElement('button')
+      back.type = 'button'
+      back.className = 'link-button'
+      back.textContent = '← Todos os alunos'
+      back.addEventListener('click', () => selectStudent(''))
+      head.append(back)
+    }
+    const cards = document.createElement('div')
+    cards.className = 'cards-grid'
+    cards.append(...group.items.map(workoutCard))
+    section.append(head, cards)
+    return section
+  })
+  if (!sections.length && workouts.length) {
+    const empty = document.createElement('p')
+    empty.className = 'assessment-empty'
+    empty.textContent = 'Nenhuma ficha encontrada com esses filtros.'
+    sections.push(empty)
+  }
+  grid.replaceChildren(...sections)
   document.querySelector('[data-workouts-empty]').hidden = workouts.length > 0
 }
 const openExerciseFolders = new Set()
@@ -678,9 +771,14 @@ function renderAssessments() {
 function renderStudentOptions() {
   const students = getData().students
   document.querySelectorAll('[data-student-options],[data-progress-student]').forEach((select) => {
-    const available = select.closest('[data-form="workout"]')
+    let available = select.closest('[data-form="workout"]')
       ? students.filter((student) => student.planCode !== 'ready')
       : students
+    // Evolução: a busca por nome deixa na lista só quem combina.
+    if (select.matches('[data-progress-student]')) {
+      const search = normalizeName(document.querySelector('[data-progress-search]')?.value)
+      if (search) available = available.filter((s) => normalizeName(s.name).includes(search))
+    }
     const selected = select.value
     select.replaceChildren(
       ...available.map((s) => {
@@ -693,6 +791,15 @@ function renderStudentOptions() {
       }),
     )
     if (available.some((s) => s.name === selected)) select.value = selected
+    if (!available.length && select.matches('[data-progress-student]'))
+      select.append(
+        Object.assign(document.createElement('option'), {
+          value: '',
+          textContent: 'Nenhum aluno encontrado',
+          disabled: true,
+          selected: true,
+        }),
+      )
   })
 }
 function renderExerciseOptions() {
@@ -1109,6 +1216,15 @@ export function initDashboard() {
       showToast(error.message)
     }
   })
+  document.querySelector('[data-progress-search]')?.addEventListener('input', () => {
+    const select = document.querySelector('[data-progress-student]')
+    const before = select.value
+    renderStudentOptions()
+    if (select.value && select.value !== before) select.dispatchEvent(new Event('change'))
+  })
+  ;['[data-workout-student]', '[data-workout-status]'].forEach((selector) =>
+    document.querySelector(selector)?.addEventListener('change', renderWorkouts),
+  )
   document.querySelector('[data-progress-student]').addEventListener('change', (event) => {
     const s = getData().students.find((i) => i.name === event.target.value)
     if (!s) return

@@ -1734,7 +1734,28 @@
             </button>
           </div>
           <div
-            class="cards-grid"
+            class="assessment-toolbar workout-toolbar"
+            aria-label="Filtrar fichas"
+          >
+            <select
+              class="assessment-student"
+              data-workout-student
+              aria-label="Escolher aluno"
+            >
+              <option value="">Todos os alunos</option>
+            </select>
+            <select
+              data-workout-status
+              aria-label="Situação da ficha"
+            >
+              <option value="all">Todas as fichas</option>
+              <option value="published">Publicadas</option>
+              <option value="draft">Rascunhos</option>
+            </select>
+            <small data-workout-summary></small>
+          </div>
+          <div
+            class="workout-groups"
             data-workouts-grid
           ></div>
           <div
@@ -1908,6 +1929,14 @@
               <p>Veja como foi a semana de cada aluno e responda direto por aqui.</p>
             </div>
             <div class="checkin-filters">
+              <label class="search-box student-search"
+                ><svg><use href="#icon-search"></use></svg
+                ><input
+                  type="search"
+                  placeholder="Buscar aluno"
+                  aria-label="Buscar aluno pelo nome"
+                  data-checkin-search
+              /></label>
               <select
                 data-checkin-filter-status
                 aria-label="Filtrar por situação"
@@ -1938,11 +1967,21 @@
               <h1>Evolução</h1>
               <p>Compare indicadores e visualize o progresso individual.</p>
             </div>
-            <select
-              class="student-select"
-              data-progress-student
-              aria-label="Selecionar aluno"
-            ></select>
+            <div class="progress-picker">
+              <label class="search-box student-search"
+                ><svg><use href="#icon-search"></use></svg
+                ><input
+                  type="search"
+                  placeholder="Buscar aluno"
+                  aria-label="Buscar aluno pelo nome"
+                  data-progress-search
+              /></label>
+              <select
+                class="student-select"
+                data-progress-student
+                aria-label="Selecionar aluno"
+              ></select>
+            </div>
           </div>
           <div class="progress-summary">
             <article class="progress-profile panel">

@@ -2955,3 +2955,77 @@ video.gif-lightbox-image {
     grid-column: 2;
   }
 }
+
+/* ── Busca de aluno (Check-ins e Evolução) ─────────────────────────────── */
+.student-search {
+  min-width: 200px;
+  background: var(--white);
+}
+.student-search svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+.progress-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 560px) {
+  .student-search,
+  .progress-picker,
+  .progress-picker > * {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}
+
+/* ── Fichas personalizadas agrupadas por aluno ─────────────────────────── */
+.workout-groups {
+  display: grid;
+  gap: 22px;
+}
+.workout-group {
+  display: grid;
+  gap: 12px;
+}
+.workout-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.workout-group-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px 8px 4px 4px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.workout-group-name:hover {
+  background: var(--blue-50);
+}
+.workout-group-name > span:last-child {
+  display: grid;
+  min-width: 0;
+}
+.workout-group-name strong {
+  color: var(--ink-900);
+  font-size: 1rem;
+}
+.workout-group-name small {
+  color: var(--ink-500);
+  font-size: 0.78rem;
+}
+.workout-toolbar {
+  margin-top: 4px;
+}
