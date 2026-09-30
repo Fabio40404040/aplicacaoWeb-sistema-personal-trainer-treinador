@@ -40,7 +40,7 @@ function syncManifest() {
       personal ? '/icons/painel-apple-touch-icon.png' : '/icons/apple-touch-icon.png',
     )
   const title = document.querySelector('meta[name="apple-mobile-web-app-title"]')
-  if (title) title.setAttribute('content', personal ? 'FRS Painel' : 'FRS Personal')
+  if (title) title.setAttribute('content', personal ? 'FRS Painel' : 'FRS - Aluno')
 }
 
 export function initPwa() {
@@ -87,7 +87,7 @@ export function initPwa() {
     if (dialogTitle)
       dialogTitle.textContent = panel
         ? 'Instalar o app FRS Painel'
-        : 'Adicionar FRS Personal à tela inicial'
+        : 'Adicionar FRS - Aluno à tela inicial'
     instructions.textContent = isStandalone
       ? 'Você está dentro de um app instalado. Abra este endereço no navegador (Chrome ou Safari) e instale por lá: ' +
         `${location.origin}/painel/#acesso-frs`
