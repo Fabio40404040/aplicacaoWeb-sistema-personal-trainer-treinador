@@ -15,7 +15,7 @@ import { getData } from './state.js'
 import { exerciseCatalog } from '../data/exercises.js'
 import { exerciseVideoLibrary, legGroupNames, muscleGroups } from '../data/library.js'
 import { askConfirm, exerciseGroups, showToast } from './utils.js'
-import { createWhatsappUrl, planNames } from './whatsapp.js'
+import { createWhatsappUrl } from './whatsapp.js'
 import {
   exerciseGifThumb,
   filesFromDrop,
@@ -1006,7 +1006,7 @@ function renderReadyWizard(form) {
       : `Montando Treino ${form.readyActiveSession}`
 }
 
-function openReadyProgramDialog(program = null) {
+function openReadyProgramDialog(program = null, { asPreview = false } = {}) {
   const dialog = document.querySelector('[data-ready-program-dialog]')
   const form = dialog.querySelector('form')
   editingReadyProgram = program?.id || null
@@ -1020,7 +1020,9 @@ function openReadyProgramDialog(program = null) {
   form.elements.durationWeeks.value = Number.parseInt(program?.duration, 10) || 12
   form.elements.description.value = program?.description || ''
   form.elements.colorTheme.value = program?.colorTheme || 'red'
-  form.elements.published.checked = program ? Boolean(program.published) : true
+  form.elements.published.checked = program ? Boolean(program.published) : !asPreview
+  form.elements.isPreview.checked = program ? Boolean(program.isPreview) : asPreview
+  if (asPreview && !program) form.elements.name.value = 'Prévia — Treino pronto'
   let prescriptions
   try {
     prescriptions =
@@ -1058,13 +1060,13 @@ function createReadyWorkoutLibraryPanel() {
   const panel = document.createElement('article')
   panel.className = 'panel media-library-panel'
   panel.dataset.readyWorkoutLibrary = ''
-  panel.innerHTML = `<div class="panel-heading"><div><span class="eyebrow eyebrow--blue">Produto de valor único</span><h2>Treinos Prontos — acesso permanente</h2><p>Monte o PDF completo dentro do sistema. Ao publicar, ele aparece automaticamente para todos os compradores desta modalidade.</p></div><button class="button button--primary workout-create-button" type="button" data-new-ready-program>+ Novo treino</button></div><div class="media-library-grid" data-ready-workout-grid></div>`
+  panel.innerHTML = `<div class="panel-heading"><div><span class="eyebrow eyebrow--blue">Produto de valor único</span><h2>Treinos Prontos — acesso permanente</h2><p>Monte o PDF completo dentro do sistema. Ao publicar, ele aparece automaticamente para todos os compradores desta modalidade.</p></div><div class="ready-heading-actions"><button class="button button--secondary" type="button" data-new-ready-preview>+ Montar prévia do site</button><button class="button button--primary workout-create-button" type="button" data-new-ready-program>+ Novo treino</button></div></div><div class="media-library-grid" data-ready-workout-grid></div>`
   page.append(panel)
 
   const dialog = document.createElement('dialog')
   dialog.className = 'modal modal--wide'
   dialog.dataset.readyProgramDialog = ''
-  dialog.innerHTML = `<form method="dialog"><header><div><span class="eyebrow eyebrow--blue">Ficha geral</span><h2>Montar treino pronto completo</h2></div><button class="icon-button" type="button" data-ready-close aria-label="Fechar">×</button></header><div class="modal-body"><label class="field"><span>Nome do programa</span><input name="name" required placeholder="Ex.: Hipertrofia avançada"></label><div class="field-grid field-grid--three"><label class="field"><span>Objetivo</span><select name="goal"><option>Hipertrofia</option><option>Emagrecimento</option><option>Condicionamento</option><option>Força</option></select></label><label class="field"><span>Nível</span><select name="level"><option>Iniciante</option><option selected>Intermediário</option><option>Avançado</option></select></label><label class="field"><span>Quantidade de semanas</span><input name="durationWeeks" type="number" min="1" max="104" value="12" required></label></div><div class="field-grid field-grid--three"><label class="field"><span>Divisão do treino</span><select name="division"><option value="fullbody">Full body</option><option value="ab">AB</option><option value="abc">ABC</option><option value="abcd">ABCD</option><option value="abcde" selected>ABCDE</option><option value="abcdef">ABCDEF</option></select></label><label class="field"><span>Cor da ficha</span><select name="colorTheme"><option value="red">Vermelho e grafite</option><option value="blue">Azul FRS</option><option value="green">Verde</option><option value="black">Preto</option></select></label><label class="field"><span>Descrição</span><input name="description" placeholder="Resumo e orientações gerais"></label></div><section class="ready-workout-wizard"><div class="ready-session-tabs" data-ready-session-tabs></div><div class="ready-wizard-heading"><div><span class="eyebrow eyebrow--blue">Etapa atual</span><h3 data-ready-current-title></h3></div><p>Abra um grupo muscular e marque os exercícios desta etapa.</p></div><div class="ready-exercise-catalog" data-ready-exercise-catalog></div><button class="button button--secondary ready-next-button" type="button" data-ready-next></button><div class="workout-prescription-builder" data-ready-prescriptions></div></section><label class="check-field"><input name="published" type="checkbox" value="1"><span>Publicar para todos que compraram Treinos Prontos</span></label><p role="status" aria-live="polite"></p></div><footer><button class="button button--secondary" type="button" data-ready-close>Cancelar</button><button class="button button--primary" type="submit">Salvar treino pronto</button></footer></form>`
+  dialog.innerHTML = `<form method="dialog"><header><div><span class="eyebrow eyebrow--blue">Ficha geral</span><h2>Montar treino pronto completo</h2></div><button class="icon-button" type="button" data-ready-close aria-label="Fechar">×</button></header><div class="modal-body"><label class="field"><span>Nome do programa</span><input name="name" required placeholder="Ex.: Hipertrofia avançada"></label><div class="field-grid field-grid--three"><label class="field"><span>Objetivo</span><select name="goal"><option>Hipertrofia</option><option>Emagrecimento</option><option>Condicionamento</option><option>Força</option></select></label><label class="field"><span>Nível</span><select name="level"><option>Iniciante</option><option selected>Intermediário</option><option>Avançado</option></select></label><label class="field"><span>Quantidade de semanas</span><input name="durationWeeks" type="number" min="1" max="104" value="12" required></label></div><div class="field-grid field-grid--three"><label class="field"><span>Divisão do treino</span><select name="division"><option value="fullbody">Full body</option><option value="ab">AB</option><option value="abc">ABC</option><option value="abcd">ABCD</option><option value="abcde" selected>ABCDE</option><option value="abcdef">ABCDEF</option></select></label><label class="field"><span>Cor da ficha</span><select name="colorTheme"><option value="red">Vermelho e grafite</option><option value="blue">Azul FRS</option><option value="green">Verde</option><option value="black">Preto</option></select></label><label class="field"><span>Descrição</span><input name="description" placeholder="Resumo e orientações gerais"></label></div><section class="ready-workout-wizard"><div class="ready-session-tabs" data-ready-session-tabs></div><div class="ready-wizard-heading"><div><span class="eyebrow eyebrow--blue">Etapa atual</span><h3 data-ready-current-title></h3></div><p>Abra um grupo muscular e marque os exercícios desta etapa.</p></div><div class="ready-exercise-catalog" data-ready-exercise-catalog></div><button class="button button--secondary ready-next-button" type="button" data-ready-next></button><div class="workout-prescription-builder" data-ready-prescriptions></div></section><label class="check-field"><input name="published" type="checkbox" value="1"><span>Publicar para todos que compraram Treinos Prontos</span></label><label class="check-field"><input name="isPreview" type="checkbox" value="1"><span>Usar como prévia do site (botão “Ver prévia” do plano Treinos Prontos). Só um treino pode ser a prévia.</span></label><p role="status" aria-live="polite"></p></div><footer><button class="button button--secondary" type="button" data-ready-close>Cancelar</button><button class="button button--primary" type="submit">Salvar treino pronto</button></footer></form>`
   document.body.append(dialog)
   const form = dialog.querySelector('form')
   form.elements.division.addEventListener('change', () => {
@@ -1107,15 +1109,18 @@ function createReadyWorkoutLibraryPanel() {
           description: form.elements.description.value,
           colorTheme: form.elements.colorTheme.value,
           published: form.elements.published.checked,
+          isPreview: form.elements.isPreview.checked,
           exercisePrescriptions,
         },
         editingReadyProgram,
       )
       dialog.close()
       showToast(
-        form.elements.published.checked
-          ? 'Treino pronto publicado para os compradores.'
-          : 'Treino pronto salvo como rascunho.',
+        form.elements.isPreview.checked
+          ? 'Salvo. Este treino agora é a prévia do site (“Ver prévia”).'
+          : form.elements.published.checked
+            ? 'Treino pronto publicado para os compradores.'
+            : 'Treino pronto salvo como rascunho.',
       )
       window.dispatchEvent(new Event('frs:remote-refresh'))
     } catch (error) {
@@ -1127,6 +1132,9 @@ function createReadyWorkoutLibraryPanel() {
   panel
     .querySelector('[data-new-ready-program]')
     .addEventListener('click', () => openReadyProgramDialog())
+  panel
+    .querySelector('[data-new-ready-preview]')
+    ?.addEventListener('click', () => openReadyProgramDialog(null, { asPreview: true }))
   renderReadyWorkoutLibrary()
 }
 
@@ -1146,7 +1154,8 @@ function renderReadyWorkoutLibrary() {
     ].sort()
     const card = document.createElement('section')
     card.className = 'media-library-card'
-    card.innerHTML = `<div><span class="tag">${program.published ? 'Publicado' : 'Rascunho'}</span><h3></h3><p></p><small></small></div><div class="media-library-actions"></div>`
+    card.innerHTML = `<div><span class="tag">${program.published ? 'Publicado' : 'Rascunho'}</span>${program.isPreview ? ' <span class="tag tag--preview">Prévia do site</span>' : ''}<h3></h3><p></p><small></small></div><div class="media-library-actions"></div>`
+    if (program.isPreview) card.classList.add('is-preview')
     card.querySelector('h3').textContent = program.name
     card.querySelector('p').textContent =
       program.description || `${program.goal} · ${program.level}`
@@ -1207,6 +1216,7 @@ function renderReadyWorkoutLibrary() {
             description: program.description,
             colorTheme: program.colorTheme,
             published: !program.published,
+            isPreview: Boolean(program.isPreview),
             exercisePrescriptions: program.exercisePrescriptions,
           },
           program.id,
@@ -1223,7 +1233,41 @@ function renderReadyWorkoutLibrary() {
         toggle.disabled = false
       }
     })
-    actions.append(toggle, pdf, edit, remove)
+    // Usar este treino como a prévia do site (ou deixar de usar).
+    const previewToggle = document.createElement('button')
+    previewToggle.className = 'button button--secondary'
+    previewToggle.type = 'button'
+    previewToggle.textContent = program.isPreview ? 'Tirar da prévia do site' : 'Usar como prévia do site'
+    previewToggle.addEventListener('click', async () => {
+      previewToggle.disabled = true
+      try {
+        await persistReadyProgram(
+          {
+            name: program.name,
+            goal: program.goal,
+            level: program.level,
+            duration: program.duration,
+            description: program.description,
+            colorTheme: program.colorTheme,
+            published: Boolean(program.published),
+            isPreview: !program.isPreview,
+            exercisePrescriptions: program.exercisePrescriptions,
+          },
+          program.id,
+        )
+        showToast(
+          program.isPreview
+            ? 'O site ficou sem prévia. Marque outro treino quando quiser.'
+            : `“${program.name}” agora é a prévia do site.`,
+        )
+        window.dispatchEvent(new Event('frs:remote-refresh'))
+      } catch (error) {
+        showToast(error.message)
+      } finally {
+        previewToggle.disabled = false
+      }
+    })
+    actions.append(toggle, previewToggle, pdf, edit, remove)
     grid.append(card)
   })
   if (!programs.length) {
@@ -1723,20 +1767,12 @@ function connectPlanCards() {
     const link = card.querySelector('a:not(.plan-whatsapp-link)')
     if (!link || !mapping[index]) return
     link.href = `#cadastro-aluno?plan=${mapping[index]}`
-    link.textContent = index === 0 ? 'Escolher Treinos Prontos' : 'Escolher este plano'
-    if (card.querySelector('.plan-whatsapp-link')) return
-    const whatsapp = document.createElement('a')
-    whatsapp.className = 'plan-whatsapp-link'
-    whatsapp.href = createWhatsappUrl({ planCode: mapping[index] })
-    whatsapp.target = '_blank'
-    whatsapp.rel = 'noreferrer'
-    whatsapp.textContent = 'Tirar dúvidas pelo WhatsApp'
-    whatsapp.setAttribute(
-      'aria-label',
-      `Tirar dúvidas sobre ${planNames[mapping[index]]} pelo WhatsApp`,
-    )
-    card.append(whatsapp)
+    link.textContent = index === 0 ? 'Escolher plano' : 'Escolher este plano'
+    // As dúvidas agora vão pelo botão flutuante do WhatsApp (canto da tela).
+    card.querySelector('.plan-whatsapp-link')?.remove()
   })
+  const floating = document.querySelector('[data-whatsapp-float]')
+  if (floating) floating.href = createWhatsappUrl({ purpose: 'duvida' })
 }
 
 function createOperationsPanel() {

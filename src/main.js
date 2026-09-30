@@ -17,6 +17,7 @@ import { initPwa } from './modules/pwa.js'
 import { initPersonalExtras } from './modules/personal-extras.js'
 import { initCheckins } from './modules/checkins.js'
 import { initAgenda } from './modules/agenda.js'
+import { initPublicPreview } from './modules/public-preview.js'
 
 function initialize(name, initializer) {
   try {
@@ -42,6 +43,7 @@ initialize('painel', initDashboard)
 initialize('perfil e notificações', initPersonalExtras)
 initialize('check-ins', initCheckins)
 initialize('agenda', initAgenda)
+initialize('prévia do Treinos Prontos', initPublicPreview)
 initialize('formulários', initForms)
 initialize('atalhos', initShortcuts)
 initialize('sincronização remota', initRemoteSync)

@@ -10,6 +10,10 @@ const whatsappNumber = String(import.meta.env.VITE_WHATSAPP_NUMBER || '').replac
 export function createWhatsappUrl({ name = '', planCode = '', planName = '', purpose = '' } = {}) {
   const selectedPlan = planName || planNames[planCode] || 'consultoria online'
   const greeting = name ? `Olá, Fabio! Meu nome é ${name}.` : 'Olá, Fabio!'
+  if (purpose === 'duvida') {
+    const destination = whatsappNumber ? `https://wa.me/${whatsappNumber}` : 'https://wa.me/'
+    return `${destination}?text=${encodeURIComponent('Olá, Fabio! Vim pelo site e gostaria de tirar uma dúvida sobre os planos.')}`
+  }
   const request =
     purpose === 'card'
       ? 'Gostaria de receber o link seguro para pagamento no cartão de crédito.'

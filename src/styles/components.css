@@ -3402,3 +3402,25 @@ video.gif-lightbox-image {
 .login-install-button {
   width: 100%;
 }
+
+/* Treinos Prontos: prévia do site. */
+.ready-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.tag.tag--preview {
+  color: var(--violet-600);
+  background: var(--violet-100);
+}
+.media-library-card.is-preview {
+  border-color: var(--violet-600);
+  box-shadow: 0 0 0 1px var(--violet-600) inset;
+}
+@media (max-width: 560px) {
+  .ready-heading-actions,
+  .ready-heading-actions .button {
+    width: 100%;
+  }
+}

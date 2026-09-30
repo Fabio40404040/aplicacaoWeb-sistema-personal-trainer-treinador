@@ -785,3 +785,12 @@ export function previewWorkoutPdf(workout, studentName) {
   });
   dialog.showModal();
 }
+
+// Prévia com as imagens dos GIFs (usada no "Ver prévia" do site). Em
+// navegadores que não mostram PDF dentro da página (celular), baixa o arquivo.
+export async function showWorkoutPdfPreview(workout, studentName, loadFrame) {
+  const prepared = await withGifFrames(workout, loadFrame);
+  if (navigator.pdfViewerEnabled === false || /Android|iPhone|iPad|iPod/u.test(navigator.userAgent))
+    return downloadWorkoutPdf(prepared, studentName);
+  previewWorkoutPdf(prepared, studentName);
+}
