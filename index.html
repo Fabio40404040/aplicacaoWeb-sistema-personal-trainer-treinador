@@ -1737,13 +1737,17 @@
             class="assessment-toolbar workout-toolbar"
             aria-label="Filtrar fichas"
           >
-            <select
-              class="assessment-student"
-              data-workout-student
-              aria-label="Escolher aluno"
-            >
-              <option value="">Todos os alunos</option>
-            </select>
+            <label class="search-box student-search toolbar-search"
+              ><svg><use href="#icon-search"></use></svg
+              ><input
+                type="search"
+                placeholder="Buscar ou escolher aluno"
+                aria-label="Buscar ou escolher aluno pelo nome"
+                autocomplete="off"
+                list="workout-student-names"
+                data-workout-search
+            /></label>
+            <datalist id="workout-student-names" data-workout-search-list></datalist>
             <select
               data-workout-status
               aria-label="Situação da ficha"
@@ -1878,13 +1882,17 @@
             class="assessment-toolbar"
             aria-label="Filtrar avaliações"
           >
-            <select
-              class="assessment-student"
-              data-assessment-student
-              aria-label="Escolher aluno"
-            >
-              <option value="">Todos os alunos</option>
-            </select>
+            <label class="search-box student-search toolbar-search"
+              ><svg><use href="#icon-search"></use></svg
+              ><input
+                type="search"
+                placeholder="Buscar ou escolher aluno"
+                aria-label="Buscar ou escolher aluno pelo nome"
+                autocomplete="off"
+                list="assessment-student-names"
+                data-assessment-search
+            /></label>
+            <datalist id="assessment-student-names" data-assessment-search-list></datalist>
             <select
               data-assessment-status
               aria-label="Situação"
@@ -1892,15 +1900,6 @@
               <option value="all">Todas as situações</option>
               <option value="published">Publicadas</option>
               <option value="draft">Rascunhos</option>
-            </select>
-            <select
-              data-assessment-period
-              aria-label="Período"
-            >
-              <option value="all">Todo o período</option>
-              <option value="30">Últimos 30 dias</option>
-              <option value="90">Últimos 90 dias</option>
-              <option value="year">Este ano</option>
             </select>
             <select
               data-assessment-sort

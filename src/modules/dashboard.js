@@ -273,16 +273,29 @@ const normalizeName = (value) =>
 
 // Fichas personalizadas agrupadas por aluno. Escolher um aluno (na lista do
 // topo ou tocando no nome dele) mostra só as fichas desse aluno.
+// Preenche a lista de sugestões (datalist) de uma busca por nome.
+function fillNameSuggestions(selector, names) {
+  const list = document.querySelector(selector)
+  if (!list) return
+  list.replaceChildren(
+    ...[...new Set(names.filter(Boolean))]
+      .sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'))
+      .map((name) => Object.assign(document.createElement('option'), { value: name })),
+  )
+}
+
 function workoutCard(w) {
   const card = cloneTemplate('workout-card-template')
   card.dataset.id = w.id
   card.querySelector('h2').textContent = w.name
-  card.querySelector('[data-card="student"]').textContent = w.student
+  // O nome do aluno já está no cabeçalho do grupo; e o "Progresso" não era
+  // calculado (ficava sempre igual), então os dois saem do card.
+  card.querySelector('[data-card="student"]')?.remove()
   card.querySelector('[data-card="goal"]').textContent =
     `${w.goal} · ${w.publishedAt ? 'Publicado' : 'Rascunho'} · ${w.exerciseCount || 0} exercícios`
   card.querySelector('[data-card="duration"]').textContent = w.duration
-  card.querySelector('.workout-progress strong').textContent = `${w.progress}%`
-  card.querySelector('progress').value = w.progress
+  card.querySelector('.workout-progress')?.remove()
+  card.querySelector('progress')?.remove()
   const pdf = card.querySelector('.button--full')
   pdf.dataset.action = 'pdf'
   pdf.firstChild.textContent = 'Baixar PDF visual '
@@ -292,7 +305,8 @@ function workoutCard(w) {
 function renderWorkouts() {
   const workouts = getData().workouts || []
   const grid = document.querySelector('[data-workouts-grid]')
-  const studentSelect = document.querySelector('[data-workout-student]')
+  const searchInput = document.querySelector('[data-workout-search]')
+  const search = normalizeName(searchInput?.value)
   const status = document.querySelector('[data-workout-status]')?.value || 'all'
   const groups = new Map()
   workouts.forEach((w) => {
@@ -303,33 +317,20 @@ function renderWorkouts() {
   const ordered = [...groups.values()].sort((a, b) =>
     String(a.name).localeCompare(String(b.name), 'pt-BR'),
   )
-  let chosen = ''
-  if (studentSelect) {
-    const current = studentSelect.value
-    studentSelect.replaceChildren(
-      Object.assign(document.createElement('option'), { value: '', textContent: 'Todos os alunos' }),
-      ...ordered.map((group) =>
-        Object.assign(document.createElement('option'), {
-          value: group.key,
-          textContent: `${group.name} (${group.items.length})`,
-        }),
-      ),
-    )
-    studentSelect.value = groups.has(current) ? current : ''
-    chosen = studentSelect.value
-  }
+  fillNameSuggestions('[data-workout-search-list]', ordered.map((group) => group.name))
+  const chosen = Boolean(search)
   const matchesStatus = (w) =>
     status === 'all' || (status === 'published' ? Boolean(w.publishedAt) : !w.publishedAt)
   const visible = ordered
-    .filter((group) => !chosen || group.key === chosen)
+    .filter((group) => !search || normalizeName(group.name).includes(search))
     .map((group) => ({ ...group, items: group.items.filter(matchesStatus) }))
     .filter((group) => group.items.length)
   const summary = document.querySelector('[data-workout-summary]')
   if (summary)
     summary.textContent = `${ordered.length} aluno${ordered.length === 1 ? '' : 's'} · ${workouts.length} ficha${workouts.length === 1 ? '' : 's'}`
-  const selectStudent = (key) => {
-    if (!studentSelect) return
-    studentSelect.value = key
+  const selectStudent = (name) => {
+    if (!searchInput) return
+    searchInput.value = name
     renderWorkouts()
     grid.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -352,7 +353,7 @@ function renderWorkouts() {
     count.textContent = `${group.items.length} ficha${group.items.length === 1 ? '' : 's'}`
     text.append(name, count)
     who.append(avatar, text)
-    who.addEventListener('click', () => selectStudent(chosen ? '' : group.key))
+    who.addEventListener('click', () => selectStudent(chosen ? '' : group.name))
     head.append(who)
     if (chosen) {
       const back = document.createElement('button')
@@ -540,19 +541,10 @@ const assessmentDateText = (a) => {
 
 function assessmentFilters() {
   return {
-    student: document.querySelector('[data-assessment-student]')?.value || '',
+    search: normalizeName(document.querySelector('[data-assessment-search]')?.value),
     status: document.querySelector('[data-assessment-status]')?.value || 'all',
-    period: document.querySelector('[data-assessment-period]')?.value || 'all',
     sort: document.querySelector('[data-assessment-sort]')?.value || 'recent',
   }
-}
-
-function inPeriod(a, period) {
-  if (period === 'all') return true
-  const date = assessmentDate(a)
-  if (!date) return false
-  if (period === 'year') return date.getFullYear() === new Date().getFullYear()
-  return Date.now() - date.getTime() <= Number(period) * DAY_MS
 }
 
 function metricTile(metric, latest, previous) {
@@ -709,37 +701,20 @@ function renderAssessments() {
       groups.set(key, { key, studentId: a.studentId, name: a.student, all: [], items: [] })
     groups.get(key).all.push(a)
   })
-  // Lista de alunos com avaliação (mantém a escolha atual).
-  const studentSelect = document.querySelector('[data-assessment-student]')
-  if (studentSelect) {
-    const options = [...groups.values()].sort((a, b) =>
-      String(a.name).localeCompare(String(b.name), 'pt-BR'),
-    )
-    studentSelect.replaceChildren(
-      Object.assign(document.createElement('option'), { value: '', textContent: 'Todos os alunos' }),
-      ...options.map((group) =>
-        Object.assign(document.createElement('option'), {
-          value: group.key,
-          textContent: `${group.name} (${group.all.length})`,
-        }),
-      ),
-    )
-    studentSelect.value = groups.has(filters.student) ? filters.student : ''
-    filters.student = studentSelect.value
-  }
+  // Sugestões da busca: alunos com avaliação, em ordem alfabética.
+  fillNameSuggestions('[data-assessment-search-list]', [...groups.values()].map((g) => g.name))
   const visible = [...groups.values()]
     .map((group) => ({
       ...group,
       items: group.all.filter(
         (a) =>
-          inPeriod(a, filters.period) &&
           (filters.status === 'all' ||
             (filters.status === 'published' ? Boolean(a.publishedAt) : !a.publishedAt)),
       ),
     }))
     .filter(
       (group) =>
-        group.items.length && (!filters.student || group.key === filters.student),
+        group.items.length && (!filters.search || normalizeName(group.name).includes(filters.search)),
     )
     .map((group) => {
       // "Anterior" é sempre a avaliação imediatamente antes da mostrada.
@@ -1114,7 +1089,9 @@ export function initDashboard() {
     .querySelector('[data-table-search="exercises"]')
     .addEventListener('input', renderExercises)
   document.querySelector('[data-exercise-filter]').addEventListener('change', renderExercises)
-  ;['[data-assessment-student]', '[data-assessment-status]', '[data-assessment-period]', '[data-assessment-sort]'].forEach(
+  document.querySelector('[data-assessment-search]')?.addEventListener('input', renderAssessments)
+  document.querySelector('[data-workout-search]')?.addEventListener('input', renderWorkouts)
+  ;['[data-assessment-status]', '[data-assessment-sort]'].forEach(
     (selector) => document.querySelector(selector)?.addEventListener('change', renderAssessments),
   )
   const filterBox = document.querySelector('[data-exercise-filter]')?.parentElement
@@ -1222,9 +1199,7 @@ export function initDashboard() {
     renderStudentOptions()
     if (select.value && select.value !== before) select.dispatchEvent(new Event('change'))
   })
-  ;['[data-workout-student]', '[data-workout-status]'].forEach((selector) =>
-    document.querySelector(selector)?.addEventListener('change', renderWorkouts),
-  )
+  document.querySelector('[data-workout-status]')?.addEventListener('change', renderWorkouts)
   document.querySelector('[data-progress-student]').addEventListener('change', (event) => {
     const s = getData().students.find((i) => i.name === event.target.value)
     if (!s) return

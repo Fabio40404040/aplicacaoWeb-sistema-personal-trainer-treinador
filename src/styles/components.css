@@ -3029,3 +3029,7 @@ video.gif-lightbox-image {
 .workout-toolbar {
   margin-top: 4px;
 }
+.assessment-toolbar .toolbar-search {
+  flex: 1 1 260px;
+  min-width: 0;
+}
