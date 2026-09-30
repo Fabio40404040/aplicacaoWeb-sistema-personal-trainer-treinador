@@ -137,13 +137,15 @@ function planBadge(student) {
 // permanente…) já aparece no selo do plano embaixo do nome; o motivo de
 // ainda não estar liberado fica na dica ao passar o mouse.
 function accessLabel(student) {
-  return student.accessStatus === 'active' && student.paymentStatus === 'paid'
+  return student.accessStatus === 'active'
     ? 'Liberado'
     : 'Liberar'
 }
 function accessDetail(student) {
-  if (student.accessStatus === 'active' && student.paymentStatus === 'paid')
-    return 'Acesso liberado'
+  if (student.accessStatus === 'active')
+    return student.paymentStatus === 'paid'
+      ? 'Acesso liberado'
+      : 'Liberado pelo personal (pagamento não confirmado)'
   if (student.accessStatus === 'paused') return 'Acesso pausado'
   if (student.accessStatus === 'cancelled') return 'Acesso cancelado'
   return student.paymentStatus === 'pending' ? 'Pagamento pendente' : 'Aguardando liberação'
@@ -217,7 +219,7 @@ function renderStudents() {
       status.textContent = accessLabel(student)
       status.title = accessDetail(student)
       status.classList.add(
-        student.accessStatus === 'active' && student.paymentStatus === 'paid'
+        student.accessStatus === 'active'
           ? 'status--active'
           : 'status--paused',
       )
@@ -225,8 +227,7 @@ function renderStudents() {
       // não importa se foi cadastrado presencialmente ou se ele mesmo se
       // cadastrou pelo site. Antes só o presencial ganhava um botão grande;
       // o do WebApp ficava só com um "✓" pequeno, fácil de não perceber.
-      const needsRelease =
-        student.accessStatus !== 'active' || student.paymentStatus !== 'paid'
+      const needsRelease = student.accessStatus !== 'active'
       const manage = document.createElement('button')
       manage.className = needsRelease
         ? 'button button--primary student-release-button'

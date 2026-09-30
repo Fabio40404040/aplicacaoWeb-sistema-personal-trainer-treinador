@@ -56,7 +56,9 @@ export async function updateStudentAccess(db, trainerId, studentId, body) {
     ? body.paymentStatus
     : 'paid'
   const paymentMethod = String(body?.paymentMethod || 'manual')
-  const active = accessStatus === 'active' && paymentStatus === 'paid'
+  // O personal manda: liberou no painel, o aluno fica ativo mesmo sem o
+  // pagamento confirmado (o pagamento fica só como informação).
+  const active = accessStatus === 'active'
   const expiresAt = active ? expiryFor(plan, body?.expiresAt, billingCycle) : null
   const updated = (
     await db.query(

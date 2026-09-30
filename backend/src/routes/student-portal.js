@@ -16,8 +16,9 @@ function featuresFor(row) {
 }
 
 function hasCurrentAccess(student) {
-  if (!student || student.accessStatus !== 'active' || student.paymentStatus !== 'paid')
-    return false
+  // Vale o que o personal decidiu no painel (liberado/pausado/cancelado),
+  // com ou sem pagamento confirmado.
+  if (!student || student.accessStatus !== 'active') return false
   if (student.accessType === 'permanent') return true
   return Boolean(
     student.accessExpiresAt && new Date(student.accessExpiresAt).getTime() > Date.now(),

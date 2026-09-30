@@ -1752,7 +1752,7 @@ function renderOperations() {
   if (!content) return
   const data = getData()
   const pending = (data.students || []).filter(
-    (student) => student.accessStatus !== 'active' || student.paymentStatus !== 'paid',
+    (student) => student.accessStatus !== 'active',
   )
   const checkins = data.checkins || []
   content.replaceChildren()

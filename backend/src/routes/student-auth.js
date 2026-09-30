@@ -63,7 +63,8 @@ export async function studentAuth(request, env, db, action) {
       const existing = (
         await db.query(
           `SELECT a.id,a.name,a.email,a.password_hash,a.auth_version AS "authVersion",
-             s.plan_code AS "planCode",s.billing_cycle AS "billingCycle",s.payment_status AS "paymentStatus"
+             s.plan_code AS "planCode",s.billing_cycle AS "billingCycle",s.payment_status AS "paymentStatus",
+             s.access_status AS "accessStatus"
            FROM student_accounts a LEFT JOIN students s ON s.id=a.student_id
            WHERE lower(a.email)=lower($1) LIMIT 1`,
           [email.trim()],
@@ -71,7 +72,7 @@ export async function studentAuth(request, env, db, action) {
       ).rows[0]
       if (!existing || !(await verifyPassword(password, existing.password_hash)))
         return { error: 'Este e-mail já está em uso. Confira a senha informada.', status: 409 }
-      if (existing.paymentStatus === 'paid')
+      if (existing.paymentStatus === 'paid' || existing.accessStatus === 'active')
         return { error: 'Este e-mail já possui cadastro. Entre na sua conta.', status: 409 }
       if (existing.planCode !== planCode || existing.billingCycle !== billingCycle)
         return {
@@ -123,7 +124,7 @@ export async function studentAuth(request, env, db, action) {
   } else {
     const result = await db.query(
       `SELECT a.id,a.name,a.email,a.password_hash,a.auth_version AS "authVersion",
-         s.payment_status AS "paymentStatus"
+         s.payment_status AS "paymentStatus", s.access_status AS "accessStatus"
        FROM student_accounts a LEFT JOIN students s ON s.id=a.student_id
        WHERE lower(a.email)=lower($1) LIMIT 1`,
       [email.trim()],
@@ -140,7 +141,10 @@ export async function studentAuth(request, env, db, action) {
         'student',
       ),
       user: { id: account.id, name: account.name, email: account.email },
-      registrationStatus: account.paymentStatus === 'paid' ? 'complete' : 'awaiting_payment',
+      registrationStatus:
+        account.paymentStatus === 'paid' || account.accessStatus === 'active'
+          ? 'complete'
+          : 'awaiting_payment',
     },
     status: action === 'register' ? 201 : 200,
   }

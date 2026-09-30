@@ -188,8 +188,7 @@ function trainerNotifications() {
   students
     .filter(
       (student) =>
-        student.accessStatus !== 'cancelled' &&
-        (student.accessStatus !== 'active' || student.paymentStatus !== 'paid'),
+        student.accessStatus !== 'cancelled' && student.accessStatus !== 'active',
     )
     .forEach((student) =>
       items.push({
