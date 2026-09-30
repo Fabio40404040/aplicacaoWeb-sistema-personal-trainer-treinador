@@ -20,7 +20,10 @@ const configs = {
       FROM students WHERE trainer_id=$1 ORDER BY created_at DESC`,
     insert: `INSERT INTO students (trainer_id,name,email,goal,status,assessment_date) VALUES ($1,$2,$3,$4,$5,$6)
       RETURNING id,name,email,goal,status,assessment_date AS "assessmentDate"`,
-    update: `UPDATE students SET name=$3,email=$4,goal=$5,status=$6,assessment_date=$7,updated_at=CURRENT_TIMESTAMP
+    // A situação segue o acesso (liberado pelo personal = Ativo); editar
+    // nome/e-mail/objetivo não pausa mais o aluno.
+    update: `UPDATE students SET name=$3,email=$4,goal=$5,
+      status=CASE WHEN access_status='active' THEN 'Ativo' ELSE $6 END,assessment_date=$7,updated_at=CURRENT_TIMESTAMP
       WHERE id=$2 AND trainer_id=$1 RETURNING id`,
     values: (b) => [b.name, b.email, b.goal, 'Pausado', b.assessmentDate || null],
   },

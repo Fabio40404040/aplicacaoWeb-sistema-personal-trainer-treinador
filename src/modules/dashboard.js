@@ -202,7 +202,9 @@ function renderStudents() {
   const filtered = students.filter(
     (s) =>
       `${s.name} ${s.goal} ${s.email}`.toLocaleLowerCase('pt-BR').includes(query) &&
-      (filter === 'all' || s.status === filter),
+      // "Ativo" = liberado pelo personal (acesso ativo), igual à coluna de situação.
+      (filter === 'all' ||
+        (filter === 'Ativo' ? s.accessStatus === 'active' : s.accessStatus !== 'active')),
   )
   const table = document.querySelector('[data-students-table]')
   table.replaceChildren(
