@@ -189,9 +189,7 @@ function renderWorkoutSessionTabs(form) {
 // outro.
 
 function currentExercise(exerciseId) {
-  return (getData().exercises || []).find(
-    (item) => String(item.id) === String(exerciseId),
-  )
+  return (getData().exercises || []).find((item) => String(item.id) === String(exerciseId))
 }
 
 async function saveExerciseMedia(exercise, patch, control) {
@@ -218,8 +216,8 @@ function videoPickerSelect(exercise) {
   none.textContent = 'Sem vídeo MP4'
   select.append(none)
   const videos = getData().exerciseVideos || []
-  const groups = [...new Set(videos.map((video) => video.group || 'Outros'))].sort(
-    (a, b) => a.localeCompare(b, 'pt-BR'),
+  const groups = [...new Set(videos.map((video) => video.group || 'Outros'))].sort((a, b) =>
+    a.localeCompare(b, 'pt-BR'),
   )
   // O grupo do próprio exercício vem primeiro, que é onde você vai olhar.
   groups.sort((a, b) => {
@@ -314,6 +312,22 @@ function prescriptionMediaRow(exerciseId, rerender) {
   return row
 }
 
+// Só aparece quando o exercício tem GIF e vídeo cadastrados: escolhe qual
+// dos dois abre primeiro para o aluno naquela ficha (o outro continua
+// disponível por trás de um botão, na área do aluno).
+function preferredMediaField(prescription) {
+  const field = document.createElement('label')
+  field.className = 'field'
+  field.innerHTML =
+    '<span>Mídia mostrada primeiro para o aluno</span><select><option value="gif">GIF</option><option value="video">Vídeo</option></select>'
+  const select = field.querySelector('select')
+  select.value = prescription.preferredMedia === 'video' ? 'video' : 'gif'
+  select.addEventListener('change', () => {
+    prescription.preferredMedia = select.value
+  })
+  return field
+}
+
 // Dentro do montador de ficha: cadastra um exercício novo naquele grupo sem
 // fechar a ficha. Ao salvar, o catálogo aqui se atualiza sozinho.
 function catalogAddButton(groupName) {
@@ -322,9 +336,7 @@ function catalogAddButton(groupName) {
   button.className = 'button button--secondary catalog-add-button'
   button.textContent = '+ Novo exercício neste grupo'
   button.addEventListener('click', () =>
-    window.dispatchEvent(
-      new CustomEvent('frs:new-exercise', { detail: groupName }),
-    ),
+    window.dispatchEvent(new CustomEvent('frs:new-exercise', { detail: groupName })),
   )
   return button
 }
@@ -385,6 +397,7 @@ function renderWorkoutExerciseCatalog(form) {
               restSeconds: assignment?.restSeconds ?? '60',
               notes: assignment?.notes || '',
               position: assignment?.position || form.workoutPrescriptionMap.size + 1,
+              preferredMedia: assignment?.preferredMedia === 'video' ? 'video' : 'gif',
             })
           } else if (assignment?.sessionLabel === form.workoutActiveSession) {
             form.workoutPrescriptionMap.delete(exerciseId)
@@ -447,9 +460,8 @@ function renderWorkoutPrescriptionBuilder(form) {
       form.workoutPrescriptionMap.delete(String(current.exerciseId))
       renderWorkoutWizard(form)
     })
-    row.append(
-      prescriptionMediaRow(current.exerciseId, () => renderWorkoutWizard(form)),
-    )
+    if (exercise?.gifId && exercise?.videoId) row.append(preferredMediaField(current))
+    row.append(prescriptionMediaRow(current.exerciseId, () => renderWorkoutWizard(form)))
     builder.append(row)
   })
 }
@@ -475,6 +487,7 @@ function resetWorkoutWizard(form, saved = []) {
         exerciseId: String(item.exerciseId),
         sessionLabel: item.sessionLabel || 'A',
         position: item.position || index + 1,
+        preferredMedia: item.preferredMedia === 'video' ? 'video' : 'gif',
       },
     ]),
   )
@@ -621,7 +634,9 @@ function exerciseVideoSelect(form) {
   }
   const select = wrapper.querySelector('select')
   const current = select.value
-  const checked = [...form.querySelectorAll('input[name="group"]:checked')].map((input) => input.value)
+  const checked = [...form.querySelectorAll('input[name="group"]:checked')].map(
+    (input) => input.value,
+  )
   const fresh = videoPickerSelect({ group: checked.join(', '), videoId: current })
   select.replaceChildren(...fresh.children)
   select.value = current
@@ -649,7 +664,10 @@ async function uploadVideoFromExerciseForm(form, input) {
   }
   const name =
     form.elements.name.value.trim() ||
-    file.name.replace(/\.mp4$/iu, '').replace(/[-_+]+/gu, ' ').trim() ||
+    file.name
+      .replace(/\.mp4$/iu, '')
+      .replace(/[-_+]+/gu, ' ')
+      .trim() ||
     'Exercício'
   const payload = new FormData()
   payload.append('video', file)
@@ -740,9 +758,7 @@ function configureMuscleGroupFields() {
   const customNames = (getData().customGroups || []).map((item) => item.name)
   const values = [
     ...muscleGroups.map((group) => group.name),
-    ...customNames.filter(
-      (name) => !muscleGroups.some((group) => group.name === name),
-    ),
+    ...customNames.filter((name) => !muscleGroups.some((group) => group.name === name)),
   ]
   // Um exercício pode trabalhar mais de um grupo (ex.: afundo no smith =
   // quadríceps e glúteos), então isto é uma lista de caixas de marcar, não
@@ -771,9 +787,7 @@ function configureMuscleGroupFields() {
     const all = document.createElement('option')
     all.value = 'all'
     all.textContent = 'Todos os grupos'
-    const catalogNames = workoutCatalogGroups(getData().exercises || []).map(
-      (group) => group.name,
-    )
+    const catalogNames = workoutCatalogGroups(getData().exercises || []).map((group) => group.name)
     const filterValues = [
       ...catalogNames,
       ...customNames.filter((name) => !catalogNames.includes(name)),
@@ -910,6 +924,7 @@ function renderReadyExerciseCatalog(form) {
               restSeconds: assignment?.restSeconds ?? 60,
               notes: assignment?.notes || '',
               position: assignment?.position || form.readyPrescriptionMap.size + 1,
+              preferredMedia: assignment?.preferredMedia === 'video' ? 'video' : 'gif',
             })
           } else if (assignment?.sessionLabel === form.readyActiveSession) {
             form.readyPrescriptionMap.delete(String(exercise.id))
@@ -953,6 +968,7 @@ function renderReadyPrescriptionBuilder(form) {
       form.readyPrescriptionMap.delete(String(current.exerciseId))
       renderReadyWizard(form)
     })
+    if (exercise?.gifId && exercise?.videoId) row.append(preferredMediaField(current))
     row.append(
       prescriptionMediaRow(current.exerciseId, () => {
         captureReadyPrescriptionFields(form)
@@ -1026,6 +1042,7 @@ function openReadyProgramDialog(program = null) {
         ...item,
         exerciseId: String(item.exerciseId),
         position: item.position || index + 1,
+        preferredMedia: item.preferredMedia === 'video' ? 'video' : 'gif',
       },
     ]),
   )
@@ -1140,16 +1157,18 @@ function renderReadyWorkoutLibrary() {
     pdf.className = 'button button--secondary'
     pdf.type = 'button'
     pdf.textContent = 'Baixar PDF completo'
-    pdf.addEventListener('click', () =>
-      void downloadWorkoutPdf(
-        {
-          ...program,
-          exercises: program.exercisePrescriptions,
-          readyProgram: true,
-        },
-        'Treino Pronto',
-        loadExerciseGifFrame,
-      ).catch((error) => showToast(error.message)),
+    pdf.addEventListener(
+      'click',
+      () =>
+        void downloadWorkoutPdf(
+          {
+            ...program,
+            exercises: program.exercisePrescriptions,
+            readyProgram: true,
+          },
+          'Treino Pronto',
+          loadExerciseGifFrame,
+        ).catch((error) => showToast(error.message)),
     )
     const edit = document.createElement('button')
     edit.className = 'button button--secondary'
@@ -1238,9 +1257,7 @@ function createExerciseVideoLibraryPanel() {
   const sendVideos = async (files, forceGroup = '') => {
     const recebidos = [...files]
     const chosen = recebidos.filter(
-      (file) =>
-        file.type === 'video/mp4' ||
-        file.name.toLocaleLowerCase('pt-BR').endsWith('.mp4'),
+      (file) => file.type === 'video/mp4' || file.name.toLocaleLowerCase('pt-BR').endsWith('.mp4'),
     )
     if (!chosen.length) {
       const amostra = recebidos
@@ -1269,10 +1286,7 @@ function createExerciseVideoLibraryPanel() {
         const file = fila.shift()
         const folder = (file.webkitRelativePath || '').split('/').slice(-2, -1)[0]
         const group =
-          forceGroup ||
-          groupFromFolder(folder) ||
-          groupFromFolder(file.name) ||
-          groupSelect.value
+          forceGroup || groupFromFolder(folder) || groupFromFolder(file.name) || groupSelect.value
         try {
           const payload = new FormData()
           payload.append('video', file)
@@ -1319,9 +1333,7 @@ function createExerciseVideoLibraryPanel() {
       dropzone.classList.add('is-over')
     }),
   )
-  dropzone.addEventListener('dragleave', () =>
-    dropzone.classList.remove('is-over'),
-  )
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('is-over'))
   dropzone.addEventListener('drop', async (event) => {
     event.preventDefault()
     dropzone.classList.remove('is-over')
@@ -1375,9 +1387,7 @@ function confirmExerciseVideoDeletion(exercise) {
 
 async function removeVideoGroup(groupName, videos, ownedGroup) {
   if (!videos.length && !ownedGroup) {
-    showToast(
-      `A pasta ${groupName} é do catálogo e já está vazia — não há nada para excluir.`,
-    )
+    showToast(`A pasta ${groupName} é do catálogo e já está vazia — não há nada para excluir.`)
     return
   }
   const ok = await askConfirm({
@@ -1400,8 +1410,7 @@ async function removeVideoGroup(groupName, videos, ownedGroup) {
       bar.value = apagados + falhas.length
       bar.hidden = false
     }
-    if (status)
-      status.textContent = `Excluindo ${apagados + falhas.length} de ${videos.length}…`
+    if (status) status.textContent = `Excluindo ${apagados + falhas.length} de ${videos.length}…`
   }
   paint()
   const fila = videos.slice()
@@ -1525,9 +1534,7 @@ function renderExerciseVideoLibrary() {
       groupCount.className = 'exercise-folder-count'
       groupCount.textContent = `${group.exercises.length} vídeo(s)`
       summary.append(groupName, groupCount, videoUploadHereButton(group.name))
-      const ownedGroup = (getData().customGroups || []).find(
-        (item) => item.name === group.name,
-      )
+      const ownedGroup = (getData().customGroups || []).find((item) => item.name === group.name)
       const wipe = document.createElement('button')
       wipe.type = 'button'
       wipe.className = 'button button--secondary gif-group-remove'
@@ -1681,9 +1688,7 @@ function createAccessDialog() {
     }
   })
   window.addEventListener('frs:manage-access', (event) => {
-    const student = getData().students.find(
-      (item) => String(item.id) === String(event.detail),
-    )
+    const student = getData().students.find((item) => String(item.id) === String(event.detail))
     if (!student) return
     const form = dialog.querySelector('form')
     form.dataset.studentId = student.id
@@ -1845,9 +1850,7 @@ export function initIntegratedPortal() {
   createOperationsPanel()
   renderOperations()
   window.addEventListener('frs:edit-workout', (event) => {
-    const workout = getData().workouts.find(
-      (item) => String(item.id) === String(event.detail),
-    )
+    const workout = getData().workouts.find((item) => String(item.id) === String(event.detail))
     if (!workout) return
     if (!Array.isArray(workout.exerciseIds))
       try {

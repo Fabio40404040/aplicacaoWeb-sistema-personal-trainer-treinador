@@ -3,44 +3,42 @@
 // sem os GIFs em vez de quebrar inteiro.
 async function customGroupsReady(db) {
   try {
-    await db.query("SELECT 1 FROM trainer_muscle_groups LIMIT 1");
-    return true;
+    await db.query('SELECT 1 FROM trainer_muscle_groups LIMIT 1')
+    return true
   } catch {
-    return false;
+    return false
   }
 }
 
 async function gifSchemaReady(db) {
   try {
-    await db.query("SELECT 1 FROM exercise_gifs LIMIT 1");
-    return true;
+    await db.query('SELECT 1 FROM exercise_gifs LIMIT 1')
+    return true
   } catch {
-    return false;
+    return false
   }
 }
 
 // O vínculo com o MP4 chegou na migração 017.
 async function videoLinkReady(db) {
   try {
-    await db.query("SELECT video_id FROM exercises LIMIT 1");
-    return true;
+    await db.query('SELECT video_id FROM exercises LIMIT 1')
+    return true
   } catch {
-    return false;
+    return false
   }
 }
 
-import { trainerProfile } from "./profile.js";
+import { trainerProfile } from './profile.js'
 
 export async function dashboard(db, trainerId) {
-  const withGifs = await gifSchemaReady(db);
-  const withCustomGroups = await customGroupsReady(db);
-  const withVideoLink = await videoLinkReady(db);
+  const withGifs = await gifSchemaReady(db)
+  const withCustomGroups = await customGroupsReady(db)
+  const withVideoLink = await videoLinkReady(db)
   const gifColumn =
-    (withGifs ? ',gif_id AS "gifId"' : "") +
-    (withVideoLink ? ',video_id AS "videoId"' : "");
+    (withGifs ? ',gif_id AS "gifId"' : '') + (withVideoLink ? ',video_id AS "videoId"' : '')
   const gifJson =
-    (withGifs ? "'gifId',e.gif_id," : "") +
-    (withVideoLink ? "'videoId',e.video_id," : "");
+    (withGifs ? "'gifId',e.gif_id," : '') + (withVideoLink ? "'videoId',e.video_id," : '')
   const [
     students,
     exercises,
@@ -83,7 +81,7 @@ export async function dashboard(db, trainerId) {
          'instructions',e.instructions,'difficulty',e.difficulty,'mediaType',e.media_type,
          'mediaUrl',e.media_url,'thumbnailUrl',e.thumbnail_url,${gifJson}'position',we.position,
          'sets',we.sets,'repetitions',we.repetitions,'restSeconds',we.rest_seconds,'notes',we.notes,
-         'sessionLabel',we.session_label
+         'sessionLabel',we.session_label,'preferredMedia',we.preferred_media
        )) FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id
        WHERE we.workout_id=w.id ORDER BY we.position),'[]') AS "exercisePrescriptionsJson"
        FROM workouts w JOIN students s ON s.id=w.student_id WHERE w.trainer_id=$1 ORDER BY w.created_at DESC`,
@@ -131,7 +129,7 @@ export async function dashboard(db, trainerId) {
            'instructions',e.instructions,'difficulty',e.difficulty,'mediaType',e.media_type,
            'mediaUrl',e.media_url,'thumbnailUrl',e.thumbnail_url,${gifJson}'position',r.position,
            'sets',r.sets,'repetitions',r.repetitions,'restSeconds',r.rest_seconds,
-           'notes',r.notes,'sessionLabel',r.session_label
+           'notes',r.notes,'sessionLabel',r.session_label,'preferredMedia',r.preferred_media
          )) FROM ready_program_exercises r JOIN exercises e ON e.id=r.exercise_id
          WHERE r.program_id=p.id ORDER BY r.position),'[]') AS "exercisePrescriptionsJson"
          FROM ready_workout_programs p WHERE p.trainer_id=$1 ORDER BY p.created_at DESC`,
@@ -152,12 +150,11 @@ export async function dashboard(db, trainerId) {
         )
       : { rows: [] },
     withCustomGroups
-      ? db.query(
-          `SELECT id,name FROM trainer_muscle_groups WHERE trainer_id=$1 ORDER BY name`,
-          [trainerId],
-        )
+      ? db.query(`SELECT id,name FROM trainer_muscle_groups WHERE trainer_id=$1 ORDER BY name`, [
+          trainerId,
+        ])
       : { rows: [] },
-  ]);
+  ])
   return {
     students: students.rows,
     exercises: exercises.rows,
@@ -173,5 +170,5 @@ export async function dashboard(db, trainerId) {
     customGroups: customGroups.rows,
     // Perfil do personal (foto, nome, limite de alunos). null sem a migração 018.
     profile: await trainerProfile(db, trainerId),
-  };
+  }
 }

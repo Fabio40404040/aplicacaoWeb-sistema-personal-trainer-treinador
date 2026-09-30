@@ -108,6 +108,7 @@ function handleWorkout(form) {
       repetitions: String(prescription.repetitions || '10-12').trim(),
       restSeconds: String(prescription.restSeconds ?? '60'),
       notes: String(prescription.notes || '').trim(),
+      preferredMedia: prescription.preferredMedia === 'video' ? 'video' : 'gif',
     }
   })
   const record = {

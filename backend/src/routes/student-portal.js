@@ -1,59 +1,52 @@
-import { studentProfileFields } from "./profile.js";
+import { studentProfileFields } from './profile.js'
 
 const PLAN_FEATURES = {
-  ready: ["workouts", "exercises"],
-  basic: ["workouts", "exercises", "assessments", "progress"],
-  premium: ["workouts", "exercises", "assessments", "progress", "checkins"],
-  athlete: ["workouts", "exercises", "assessments", "progress", "checkins"],
-};
+  ready: ['workouts', 'exercises'],
+  basic: ['workouts', 'exercises', 'assessments', 'progress'],
+  premium: ['workouts', 'exercises', 'assessments', 'progress', 'checkins'],
+  athlete: ['workouts', 'exercises', 'assessments', 'progress', 'checkins'],
+}
 
 function featuresFor(row) {
   try {
-    return JSON.parse(row.featuresJson || "[]");
+    return JSON.parse(row.featuresJson || '[]')
   } catch {
-    return PLAN_FEATURES[row.planCode] || [];
+    return PLAN_FEATURES[row.planCode] || []
   }
 }
 
 function hasCurrentAccess(student) {
-  if (
-    !student ||
-    student.accessStatus !== "active" ||
-    student.paymentStatus !== "paid"
-  )
-    return false;
-  if (student.accessType === "permanent") return true;
+  if (!student || student.accessStatus !== 'active' || student.paymentStatus !== 'paid')
+    return false
+  if (student.accessType === 'permanent') return true
   return Boolean(
-    student.accessExpiresAt &&
-    new Date(student.accessExpiresAt).getTime() > Date.now(),
-  );
+    student.accessExpiresAt && new Date(student.accessExpiresAt).getTime() > Date.now(),
+  )
 }
 
 // Mesma protecao do painel: sem a migracao 015 aplicada, a area do aluno
 // segue funcionando, apenas sem os GIFs.
 async function gifSchemaReady(db) {
   try {
-    await db.query("SELECT 1 FROM exercise_gifs LIMIT 1");
-    return true;
+    await db.query('SELECT 1 FROM exercise_gifs LIMIT 1')
+    return true
   } catch {
-    return false;
+    return false
   }
 }
 
 export async function studentPortal(db, accountId, version) {
-  const withGifs = await gifSchemaReady(db);
-  let withVideoLink = true;
+  const withGifs = await gifSchemaReady(db)
+  let withVideoLink = true
   try {
-    await db.query("SELECT video_id FROM exercises LIMIT 1");
+    await db.query('SELECT video_id FROM exercises LIMIT 1')
   } catch {
-    withVideoLink = false;
+    withVideoLink = false
   }
   const gifJson =
-    (withGifs ? "'gifId',e.gif_id," : "") +
-    (withVideoLink ? "'videoId',e.video_id," : "");
+    (withGifs ? "'gifId',e.gif_id," : '') + (withVideoLink ? "'videoId',e.video_id," : '')
   const gifColumn =
-    (withGifs ? 'e.gif_id AS "gifId",' : "") +
-    (withVideoLink ? 'e.video_id AS "videoId",' : "");
+    (withGifs ? 'e.gif_id AS "gifId",' : '') + (withVideoLink ? 'e.video_id AS "videoId",' : '')
   const account = (
     await db.query(
       `SELECT a.id, a.name, a.email, a.auth_version AS "authVersion",
@@ -68,11 +61,11 @@ export async function studentPortal(db, accountId, version) {
       WHERE a.id=$1 AND a.auth_version=$2 LIMIT 1`,
       [accountId, version || 0],
     )
-  ).rows[0];
-  if (!account) return null;
+  ).rows[0]
+  if (!account) return null
 
-  const features = featuresFor(account);
-  const accessActive = hasCurrentAccess(account);
+  const features = featuresFor(account)
+  const accessActive = hasCurrentAccess(account)
   const response = {
     id: account.id,
     name: account.name,
@@ -80,13 +73,13 @@ export async function studentPortal(db, accountId, version) {
     studentId: account.studentId,
     access: {
       active: accessActive,
-      status: account.accessStatus || "pending",
-      paymentStatus: account.paymentStatus || "pending",
+      status: account.accessStatus || 'pending',
+      paymentStatus: account.paymentStatus || 'pending',
       paymentMethod: account.paymentMethod || null,
-      planCode: account.planCode || "basic",
-      planName: account.planName || "Consultoria Básica",
-      accessType: account.accessType || "subscription",
-      billingCycle: account.billingCycle || "quarterly",
+      planCode: account.planCode || 'basic',
+      planName: account.planName || 'Consultoria Básica',
+      accessType: account.accessType || 'subscription',
+      billingCycle: account.billingCycle || 'quarterly',
       expiresAt: account.accessExpiresAt || null,
       features,
     },
@@ -98,8 +91,8 @@ export async function studentPortal(db, accountId, version) {
     appointments: [],
     // Foto, telefone, nascimento e dia do check-in (null sem a migração 018).
     profile: await studentProfileFields(db, accountId),
-  };
-  if (!accessActive || !account.studentId) return response;
+  }
+  if (!accessActive || !account.studentId) return response
 
   // Próximos atendimentos (usados nas notificações do aluno).
   response.appointments = (
@@ -110,9 +103,9 @@ export async function studentPortal(db, accountId, version) {
        ORDER BY starts_at LIMIT 10`,
       [account.studentId],
     )
-  ).rows;
+  ).rows
 
-  if (account.planCode === "ready") {
+  if (account.planCode === 'ready') {
     response.readyWorkouts = (
       await db.query(
         `SELECT p.id,p.name,p.goal,p.level,p.duration,p.description,p.color_theme AS "colorTheme",
@@ -122,26 +115,24 @@ export async function studentPortal(db, accountId, version) {
            'instructions',e.instructions,'difficulty',e.difficulty,'mediaType',e.media_type,
            'mediaUrl',e.media_url,'thumbnailUrl',e.thumbnail_url,${gifJson}'position',r.position,
            'sets',r.sets,'repetitions',r.repetitions,'restSeconds',r.rest_seconds,
-           'notes',r.notes,'sessionLabel',r.session_label
+           'notes',r.notes,'sessionLabel',r.session_label,'preferredMedia',r.preferred_media
          )) FROM ready_program_exercises r JOIN exercises e ON e.id=r.exercise_id
          WHERE r.program_id=p.id ORDER BY r.position),'[]') AS "exercisePrescriptionsJson"
          FROM ready_workout_programs p WHERE p.trainer_id=$1 AND p.published=1 ORDER BY p.created_at DESC`,
         [account.trainerId],
       )
-    ).rows;
+    ).rows
     response.readyWorkouts.forEach((workout) => {
       try {
-        workout.exercises = JSON.parse(
-          workout.exercisePrescriptionsJson || "[]",
-        );
+        workout.exercises = JSON.parse(workout.exercisePrescriptionsJson || '[]')
       } catch {
-        workout.exercises = [];
+        workout.exercises = []
       }
-      delete workout.exercisePrescriptionsJson;
-    });
+      delete workout.exercisePrescriptionsJson
+    })
   }
 
-  if (features.includes("exercises")) {
+  if (features.includes('exercises')) {
     response.exerciseVideos = (
       await db.query(
         `SELECT id,name,muscle_group AS "group",equipment,difficulty,instructions,
@@ -149,16 +140,16 @@ export async function studentPortal(db, accountId, version) {
          FROM exercise_videos WHERE trainer_id=$1 AND published=1 ORDER BY muscle_group,name`,
         [account.trainerId],
       )
-    ).rows;
+    ).rows
   }
 
-  if (features.includes("workouts")) {
+  if (features.includes('workouts')) {
     const workouts = await db.query(
       `SELECT id, name, goal, duration, progress, published_at AS "publishedAt"
        FROM workouts WHERE student_id=$1 AND published_at IS NOT NULL ORDER BY created_at DESC`,
       [account.studentId],
-    );
-    response.workouts = workouts.rows;
+    )
+    response.workouts = workouts.rows
     for (const workout of response.workouts) {
       workout.exercises = (
         await db.query(
@@ -167,15 +158,15 @@ export async function studentPortal(db, accountId, version) {
              e.thumbnail_url AS "thumbnailUrl", e.animation_clip AS "animationClip",
              ${gifColumn}
              we.position, we.sets, we.repetitions, we.rest_seconds AS "restSeconds", we.notes,
-             we.session_label AS "sessionLabel"
+             we.session_label AS "sessionLabel", we.preferred_media AS "preferredMedia"
            FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id
            WHERE we.workout_id=$1 AND e.is_active=1 ORDER BY we.position`,
           [workout.id],
         )
-      ).rows;
+      ).rows
     }
   }
-  if (features.includes("assessments")) {
+  if (features.includes('assessments')) {
     response.assessments = (
       await db.query(
         `SELECT id, protocol, weight_kg AS "weightKg", height_cm AS "heightCm", bmi,
@@ -185,18 +176,18 @@ export async function studentPortal(db, accountId, version) {
          FROM assessments WHERE student_id=$1 AND published_at IS NOT NULL ORDER BY assessed_at DESC`,
         [account.studentId],
       )
-    ).rows;
+    ).rows
   }
-  if (features.includes("checkins")) {
+  if (features.includes('checkins')) {
     response.checkins = (
       await db.query(
         `SELECT id, energy, sleep, pain, notes, trainer_feedback AS "trainerFeedback", created_at AS "createdAt"
          FROM checkins WHERE student_id=$1 ORDER BY created_at DESC LIMIT 8`,
         [account.studentId],
       )
-    ).rows;
+    ).rows
   }
-  return response;
+  return response
 }
 
 export async function submitCheckin(db, accountId, body) {
@@ -207,57 +198,42 @@ export async function submitCheckin(db, accountId, body) {
        FROM student_accounts a JOIN students s ON s.id=a.student_id WHERE a.id=$1 LIMIT 1`,
       [accountId],
     )
-  ).rows[0];
-  if (
-    !profile ||
-    !hasCurrentAccess(profile) ||
-    !["premium", "athlete"].includes(profile.planCode)
-  )
+  ).rows[0]
+  if (!profile || !hasCurrentAccess(profile) || !['premium', 'athlete'].includes(profile.planCode))
     return {
-      error: "Seu plano atual não possui check-in semanal ativo.",
+      error: 'Seu plano atual não possui check-in semanal ativo.',
       status: 403,
-    };
-  const energy = Number(body?.energy);
-  const sleep = Number(body?.sleep);
+    }
+  const energy = Number(body?.energy)
+  const sleep = Number(body?.sleep)
   if (![1, 2, 3, 4, 5].includes(energy) || ![1, 2, 3, 4, 5].includes(sleep))
-    return { error: "Informe energia e sono entre 1 e 5.", status: 400 };
+    return { error: 'Informe energia e sono entre 1 e 5.', status: 400 }
   const result = await db.query(
     `INSERT INTO checkins (trainer_id, student_id, energy, sleep, pain, notes)
      VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, created_at AS "createdAt"`,
-    [
-      profile.trainerId,
-      profile.id,
-      energy,
-      sleep,
-      body.pain || null,
-      body.notes || null,
-    ],
-  );
-  return { data: result.rows[0], status: 201 };
+    [profile.trainerId, profile.id, energy, sleep, body.pain || null, body.notes || null],
+  )
+  return { data: result.rows[0], status: 201 }
 }
 
 export async function requestPlan(db, accountId, body) {
-  const planCode = String(body?.planCode || "");
-  const channel = ["webapp", "whatsapp", "pix", "card_whatsapp"].includes(
-    body?.paymentChannel,
-  )
+  const planCode = String(body?.planCode || '')
+  const channel = ['webapp', 'whatsapp', 'pix', 'card_whatsapp'].includes(body?.paymentChannel)
     ? body.paymentChannel
-    : "whatsapp";
+    : 'whatsapp'
   const plan = (
     await db.query(
       'SELECT code, access_type AS "accessType" FROM plans WHERE code=$1 AND active=1',
       [planCode],
     )
-  ).rows[0];
-  if (!plan) return { error: "Plano inválido.", status: 400 };
+  ).rows[0]
+  if (!plan) return { error: 'Plano inválido.', status: 400 }
   const billingCycle =
-    plan.accessType === "permanent"
-      ? "permanent"
-      : ["monthly", "quarterly", "semiannual", "annual"].includes(
-            body?.billingCycle,
-          )
+    plan.accessType === 'permanent'
+      ? 'permanent'
+      : ['monthly', 'quarterly', 'semiannual', 'annual'].includes(body?.billingCycle)
         ? body.billingCycle
-        : "quarterly";
+        : 'quarterly'
   await db.batch([
     {
       sql: `UPDATE student_accounts SET requested_plan_code=$2, requested_payment_channel=$3, requested_billing_cycle=$4 WHERE id=$1`,
@@ -269,13 +245,13 @@ export async function requestPlan(db, accountId, body) {
             WHERE id=(SELECT student_id FROM student_accounts WHERE id=$1)`,
       values: [accountId, planCode, plan.accessType, billingCycle, channel],
     },
-  ]);
+  ])
   return {
     data: {
       message:
-        channel === "webapp"
-          ? "Plano solicitado. O pagamento online será liberado quando o provedor for conectado."
-          : "Plano solicitado. Combine o pagamento com o personal pelo WhatsApp.",
+        channel === 'webapp'
+          ? 'Plano solicitado. O pagamento online será liberado quando o provedor for conectado.'
+          : 'Plano solicitado. Combine o pagamento com o personal pelo WhatsApp.',
     },
-  };
+  }
 }
