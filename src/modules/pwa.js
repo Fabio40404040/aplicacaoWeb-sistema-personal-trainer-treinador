@@ -32,6 +32,13 @@ function syncManifest() {
   const link = document.querySelector('link[rel="manifest"]')
   const href = personal ? '/painel.webmanifest' : '/app.webmanifest'
   if (link && link.getAttribute('href') !== href) link.setAttribute('href', href)
+  // Ícone roxo "FRS PAINEL" no iPhone (Adicionar à Tela de Início).
+  const touch = document.querySelector('link[rel="apple-touch-icon"]')
+  if (touch)
+    touch.setAttribute(
+      'href',
+      personal ? '/icons/painel-apple-touch-icon.png' : '/icons/apple-touch-icon.png',
+    )
   const title = document.querySelector('meta[name="apple-mobile-web-app-title"]')
   if (title) title.setAttribute('content', personal ? 'FRS Painel' : 'FRS Personal')
 }
