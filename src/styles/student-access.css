@@ -312,7 +312,7 @@
 .password-eye-slash {
   display: none;
 }
-.password-toggle[aria-pressed="true"] .password-eye-slash {
+.password-toggle[aria-pressed='true'] .password-eye-slash {
   display: block;
 }
 .password-toggle:focus-visible {
@@ -377,7 +377,7 @@
 .student-access-card .field > span {
   color: #eef4ff;
 }
-.student-access-card [role="status"]:empty {
+.student-access-card [role='status']:empty {
   display: none;
 }
 .student-access-card--panel {
@@ -453,7 +453,7 @@
   padding-top: 14px;
   border-top: 1px solid #40546e;
 }
-.student-muscle-group summary {
+.student-muscle-group > summary {
   margin: 0;
   color: #dce9f8;
   font-size: 1rem;
@@ -469,18 +469,18 @@
   border: 1px solid #40546e;
   user-select: none;
 }
-.student-muscle-group summary::-webkit-details-marker {
+.student-muscle-group > summary::-webkit-details-marker {
   display: none;
 }
-.student-muscle-group summary::before {
-  content: "📁";
+.student-muscle-group > summary::before {
+  content: '📁';
   font-size: 1.05rem;
 }
 .student-muscle-group[open] > summary::before {
-  content: "📂";
+  content: '📂';
 }
-.student-muscle-group summary::after {
-  content: "";
+.student-muscle-group > summary::after {
+  content: '';
   margin-left: auto;
   width: 8px;
   height: 8px;
@@ -492,11 +492,57 @@
 .student-muscle-group[open] > summary::after {
   transform: rotate(45deg);
 }
-.student-muscle-group summary:hover {
+.student-muscle-group > summary:hover {
   border-color: #5c7396;
 }
 .student-muscle-group > ol {
   margin-top: 12px;
+}
+
+/* Cada exercício também começa fechado: só o nome e a prescrição aparecem
+   até o aluno tocar, aí a mídia e a orientação abrem embutidas ali mesmo. */
+.student-exercise-item summary {
+  margin: 0;
+  color: #eef4ff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  user-select: none;
+}
+.student-exercise-item summary::-webkit-details-marker {
+  display: none;
+}
+.student-exercise-item summary::after {
+  content: '›';
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  margin-left: auto;
+  border: 1px solid #c3d7ff;
+  border-radius: 999px;
+  color: var(--blue-700, #1d4ed8);
+  background: var(--blue-50, #eef4ff);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+}
+.student-exercise-item[open] > summary::after {
+  transform: rotate(-90deg);
+}
+.student-exercise-item > *:not(summary) {
+  margin-top: 8px;
+  padding-left: 4px;
 }
 .student-exercise-video {
   width: min(100%, 520px);
@@ -626,8 +672,8 @@
 
 /* Seta das pastas do treino: a mesma bolinha das bibliotecas do painel
    (fundo azul-claro, contorno fino e seta azul), no lugar do risquinho. */
-.student-muscle-group summary::after {
-  content: "›";
+.student-muscle-group > summary::after {
+  content: '›';
   flex: none;
   width: 28px;
   height: 28px;
@@ -680,4 +726,30 @@
   margin: 0;
   color: #c7d5e6;
   white-space: pre-wrap;
+}
+/* Respostas mais antigas do check-in: embutidas e fechadas, só a mais
+   recente fica à mostra fora daqui. */
+.student-checkin-history {
+  margin-top: 12px;
+}
+.student-checkin-history summary {
+  margin: 0;
+  color: #aebed2;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.student-checkin-history summary::-webkit-details-marker {
+  display: none;
+}
+.student-checkin-history summary::before {
+  content: '› ';
+}
+.student-checkin-history[open] summary::before {
+  content: '⌄ ';
+}
+.student-checkin-history .student-checkin-reply {
+  margin-top: 10px;
 }

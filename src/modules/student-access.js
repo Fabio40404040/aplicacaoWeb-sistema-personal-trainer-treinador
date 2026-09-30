@@ -369,9 +369,12 @@ function appendExerciseGroups(parent, exercises, uploadedVideos = []) {
       section.append(summary)
       const list = element('ol')
       items.forEach((exercise) => {
-        const item = element('li')
+        const li = element('li')
+        // Fechado até o aluno tocar no exercício: a mídia e a orientação só
+        // aparecem quando ele quer ver, em vez de lotar a tela toda aberta.
+        const item = element('details', 'student-exercise-item')
         const prescription = `${exercise.sets} × ${exercise.repetitions}${exercise.restSeconds ? ` · descanso ${exercise.restSeconds}s` : ''}`
-        addLine(item, `${exercise.name} — ${prescription}`, true)
+        item.append(element('summary', '', `${exercise.name} — ${prescription}`))
         // Quando o exercício tem GIF e vídeo, o personal escolhe (ao montar
         // a ficha) qual dos dois aparece primeiro para o aluno; o outro fica
         // disponível atrás de um botão. Só um dos dois: mostra o que existir.
@@ -424,7 +427,8 @@ function appendExerciseGroups(parent, exercises, uploadedVideos = []) {
           }
         }
         addLine(item, exercise.instructions || 'Siga a orientação do personal.')
-        list.append(item)
+        li.append(item)
+        list.append(li)
       })
       section.append(list)
       parent.append(section)
@@ -548,22 +552,31 @@ function renderPortal(container, data) {
         checkin,
         `Último envio: ${new Intl.DateTimeFormat('pt-BR').format(new Date(data.checkins[0].createdAt))}.`,
       )
-    // Respostas do personal aos últimos check-ins.
-    data.checkins
-      .filter((item) => item.trainerFeedback)
-      .slice(0, 3)
-      .forEach((item) => {
+    // Respostas do personal aos últimos check-ins: só a mais recente fica à
+    // mostra; as anteriores ficam embutidas, fechadas até o aluno abrir.
+    const replyLine = (item) =>
+      element(
+        'strong',
+        '',
+        `💬 Resposta do personal · check-in de ${new Intl.DateTimeFormat('pt-BR').format(new Date(item.createdAt))}`,
+      )
+    const feedbacks = data.checkins.filter((item) => item.trainerFeedback).slice(0, 3)
+    const [latest, ...older] = feedbacks
+    if (latest) {
+      const reply = element('div', 'student-checkin-reply')
+      reply.append(replyLine(latest), element('p', '', latest.trainerFeedback))
+      checkin.append(reply)
+    }
+    if (older.length) {
+      const history = element('details', 'student-checkin-history')
+      history.append(element('summary', '', `Respostas anteriores (${older.length})`))
+      older.forEach((item) => {
         const reply = element('div', 'student-checkin-reply')
-        reply.append(
-          element(
-            'strong',
-            '',
-            `💬 Resposta do personal · check-in de ${new Intl.DateTimeFormat('pt-BR').format(new Date(item.createdAt))}`,
-          ),
-          element('p', '', item.trainerFeedback),
-        )
-        checkin.append(reply)
+        reply.append(replyLine(item), element('p', '', item.trainerFeedback))
+        history.append(reply)
       })
+      checkin.append(history)
+    }
     container.append(checkin)
   }
   const unavailable = [
