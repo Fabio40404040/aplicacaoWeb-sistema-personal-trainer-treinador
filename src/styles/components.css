@@ -3402,6 +3402,11 @@ video.gif-lightbox-image {
 .login-install-button {
   width: 100%;
 }
+.login-install-button svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
 
 /* Treinos Prontos: prévia do site. */
 .ready-heading-actions {

@@ -99,15 +99,50 @@ export function initPwa() {
     dialog.showModal()
   }
 
-  // Botão do app do painel (tela de login do personal): sempre visível.
+  // Botão do app do painel (tela de login do personal). Só aparece quando
+  // dá para instalar: no Chrome/Edge/Android, quando o navegador avisa que o
+  // app ainda não está instalado; no iPhone, fora do app já instalado. Some
+  // depois de instalar e dentro do próprio app.
+  const INSTALLED_KEY = 'frs-painel-instalado'
+  const remembered = () => {
+    try {
+      return localStorage.getItem(INSTALLED_KEY) === '1'
+    } catch {
+      return false
+    }
+  }
+  const rememberInstalled = () => {
+    try {
+      localStorage.setItem(INSTALLED_KEY, '1')
+    } catch {
+      /* sem armazenamento: só esconde nesta visita */
+    }
+  }
+  const inPainel = () => location.pathname.startsWith('/painel/')
+  const supportsPrompt = 'onbeforeinstallprompt' in window
+  const showPanel = (visible) => {
+    if (panelButton) panelButton.hidden = !visible
+  }
+  if (!isStandalone && !supportsPrompt && isIos && !remembered()) showPanel(true)
   panelButton?.addEventListener('click', async () => {
     if (installPrompt && !isStandalone) {
       installPrompt.prompt()
-      await installPrompt.userChoice
+      const choice = await installPrompt.userChoice
       installPrompt = null
+      if (choice?.outcome === 'accepted') {
+        rememberInstalled()
+        showPanel(false)
+      }
       return
     }
     explain(true)
+  })
+  window.addEventListener('beforeinstallprompt', () => {
+    if (!isStandalone && inPainel()) showPanel(true)
+  })
+  window.addEventListener('appinstalled', () => {
+    if (inPainel()) rememberInstalled()
+    showPanel(false)
   })
 
   if (isStandalone) {
