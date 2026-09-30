@@ -1804,8 +1804,37 @@
               <svg><use href="#icon-plus"></use></svg>Novo exercício
             </button>
           </div>
+          <nav
+            class="library-tabs"
+            role="tablist"
+            aria-label="Bibliotecas"
+            data-library-tabs
+          >
+            <button
+              type="button"
+              role="tab"
+              class="is-active"
+              data-library-tab="exercicios"
+            >
+              Exercícios <span data-library-count="exercicios"></span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              data-library-tab="gifs"
+            >
+              GIFs <span data-library-count="gifs"></span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              data-library-tab="videos"
+            >
+              Vídeos <span data-library-count="videos"></span>
+            </button>
+          </nav>
           <article class="panel content-panel">
-            <div class="toolbar">
+            <div class="toolbar exercise-toolbar">
               <label class="search-box"
                 ><svg><use href="#icon-search"></use></svg
                 ><input
@@ -1815,6 +1844,7 @@
               ><select
                 data-exercise-filter
                 aria-label="Filtrar grupo muscular"
+                hidden
               >
                 <option value="all">Todos os grupos</option>
                 <option>Peitoral</option>
@@ -1823,7 +1853,38 @@
                 <option>Ombros</option>
                 <option>Braços</option>
               </select>
+              <select
+                data-exercise-media
+                aria-label="Filtrar por mídia"
+              >
+                <option value="all">Todas as mídias</option>
+                <option value="no-gif">Sem GIF</option>
+                <option value="no-video">Sem vídeo</option>
+                <option value="complete">Completos (GIF e vídeo)</option>
+              </select>
+              <select
+                data-exercise-equipment
+                aria-label="Filtrar por equipamento"
+              >
+                <option value="all">Todos os equipamentos</option>
+              </select>
+              <select
+                data-exercise-sort
+                aria-label="Ordenar exercícios"
+              >
+                <option value="az">Nome A–Z</option>
+                <option value="used">Mais usados</option>
+              </select>
             </div>
+            <div
+              class="group-pills"
+              data-exercise-pills
+              aria-label="Grupos musculares"
+            ></div>
+            <p
+              class="results-caption exercise-summary"
+              data-exercise-summary
+            ></p>
             <div
               class="exercise-list"
               data-exercises-list

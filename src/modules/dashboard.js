@@ -412,14 +412,153 @@ function renderWorkouts() {
   document.querySelector('[data-workouts-empty]').hidden = workouts.length > 0
 }
 const openExerciseFolders = new Set()
+
+// Equipamento em categorias (o campo é texto livre: "Barra e banco", "Polia alta"…).
+const EQUIPMENT_KINDS = [
+  ['Smith', /smith/u],
+  ['Máquina', /maquina|aparelho|cadeira|mesa|leg ?press|hack|voador|peck|graviton|articulad/u],
+  ['Polia / cabo', /polia|cabo|cross|corda/u],
+  ['Halteres', /halter/u],
+  ['Barra', /barra/u],
+  ['Kettlebell', /kettle/u],
+  ['Elástico', /elastic|faixa|miniband/u],
+  ['Peso corporal', /corporal|solo|livre|colchonete|peso do corpo|sem equip/u],
+]
+function equipmentKinds(exercise) {
+  const text = normalizeName(exercise.equipment)
+  const kinds = EQUIPMENT_KINDS.filter(([, pattern]) => pattern.test(text)).map(([name]) => name)
+  return kinds.length ? kinds : ['Outros']
+}
+
+// Em quantas fichas (de alunos e treinos prontos) cada exercício aparece.
+function exerciseUsage() {
+  const usage = new Map()
+  const add = (id) => usage.set(String(id), (usage.get(String(id)) || 0) + 1)
+  const idsOf = (item) => {
+    try {
+      const ids = JSON.parse(item.exerciseIdsJson || 'null')
+      if (Array.isArray(ids)) return ids
+    } catch {
+      /* segue para as prescrições */
+    }
+    try {
+      return JSON.parse(item.exercisePrescriptionsJson || '[]').map((entry) => entry.exerciseId)
+    } catch {
+      return []
+    }
+  }
+  ;[...(getData().workouts || []), ...(getData().readyPrograms || [])].forEach((item) =>
+    new Set(idsOf(item).map(String)).forEach(add),
+  )
+  return usage
+}
+
+function exerciseMediaState(exercise) {
+  const hasGif = exerciseGifStatus(exercise) === 'com GIF'
+  const hasVideo = Boolean(exercise.videoId && findVideo(exercise.videoId))
+  return { hasGif, hasVideo }
+}
+
+// Menu "⋯" de cada exercício: Editar, Duplicar e Excluir.
+function exerciseMenu(exercise) {
+  const menu = document.createElement('details')
+  menu.className = 'row-menu'
+  const toggle = document.createElement('summary')
+  toggle.textContent = '⋯'
+  toggle.title = 'Mais ações'
+  toggle.setAttribute('aria-label', `Ações de ${exercise.name}`)
+  const list = document.createElement('div')
+  list.className = 'row-menu-list'
+  ;[
+    ['edit', 'Editar'],
+    ['duplicate-exercise', 'Duplicar'],
+    ['delete-exercise', 'Excluir'],
+  ].forEach(([action, label]) => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.dataset.action = action
+    button.textContent = label
+    if (action === 'delete-exercise') button.className = 'is-danger'
+    list.append(button)
+  })
+  menu.append(toggle, list)
+  return menu
+}
+
+function renderExerciseFilters(exercises) {
+  // Pílulas dos grupos, a partir das pastas reais (filtro escondido é a fonte).
+  const select = document.querySelector('[data-exercise-filter]')
+  const pills = document.querySelector('[data-exercise-pills]')
+  if (select && pills) {
+    const countFor = (value) =>
+      value === 'all'
+        ? exercises.length
+        : exercises.filter((e) => {
+            const groups = exerciseGroups(e)
+            return (
+              groups.includes(value) ||
+              (value === 'Pernas' && groups.some((name) => legGroups.includes(name)))
+            )
+          }).length
+    pills.replaceChildren(
+      ...[...select.options].map((option) => {
+        const pill = document.createElement('button')
+        pill.type = 'button'
+        pill.className = `group-pill${option.value === select.value ? ' is-active' : ''}`
+        pill.dataset.group = option.value
+        pill.textContent = option.value === 'all' ? 'Todos' : option.textContent
+        const count = document.createElement('small')
+        count.textContent = countFor(option.value)
+        pill.append(count)
+        return pill
+      }),
+    )
+  }
+  // Equipamentos que existem de verdade na biblioteca.
+  const equipment = document.querySelector('[data-exercise-equipment]')
+  if (equipment) {
+    const current = equipment.value
+    const kinds = [...new Set(exercises.flatMap(equipmentKinds))].sort((a, b) =>
+      a === 'Outros' ? 1 : b === 'Outros' ? -1 : a.localeCompare(b, 'pt-BR'),
+    )
+    equipment.replaceChildren(
+      Object.assign(document.createElement('option'), {
+        value: 'all',
+        textContent: 'Todos os equipamentos',
+      }),
+      ...kinds.map((kind) => Object.assign(document.createElement('option'), { value: kind, textContent: kind })),
+    )
+    equipment.value = kinds.includes(current) ? current : 'all'
+  }
+  // Resumo do que falta completar.
+  const summary = document.querySelector('[data-exercise-summary]')
+  if (summary) {
+    const states = exercises.map(exerciseMediaState)
+    const withGif = states.filter((state) => state.hasGif).length
+    const withVideo = states.filter((state) => state.hasVideo).length
+    summary.textContent = exercises.length
+      ? `${exercises.length} exercícios · ${withGif} com GIF · ${withVideo} com vídeo`
+      : ''
+  }
+}
+
 function renderExercises() {
-  const query = document
-      .querySelector('[data-table-search="exercises"]')
-      .value.trim()
-      .toLocaleLowerCase('pt-BR'),
-    group = document.querySelector('[data-exercise-filter]').value
-  const filtered = getData().exercises.filter((e) => {
-    if (!e.name.toLocaleLowerCase('pt-BR').includes(query)) return false
+  const all = getData().exercises || []
+  renderExerciseFilters(all)
+  const query = normalizeName(document.querySelector('[data-table-search="exercises"]').value),
+    group = document.querySelector('[data-exercise-filter]').value,
+    media = document.querySelector('[data-exercise-media]')?.value || 'all',
+    equipmentKind = document.querySelector('[data-exercise-equipment]')?.value || 'all',
+    sort = document.querySelector('[data-exercise-sort]')?.value || 'az'
+  const usage = exerciseUsage()
+  const usedIn = (e) => usage.get(String(e.id)) || 0
+  const filtered = all.filter((e) => {
+    if (query && !normalizeName(e.name).includes(query)) return false
+    const state = exerciseMediaState(e)
+    if (media === 'no-gif' && state.hasGif) return false
+    if (media === 'no-video' && state.hasVideo) return false
+    if (media === 'complete' && !(state.hasGif && state.hasVideo)) return false
+    if (equipmentKind !== 'all' && !equipmentKinds(e).includes(equipmentKind)) return false
     if (group === 'all') return true
     const groups = exerciseGroups(e)
     return (
@@ -446,10 +585,10 @@ function renderExercises() {
     return [...names]
   }
   const folders = new Map()
+  const filtering = Boolean(query) || group !== 'all' || media !== 'all' || equipmentKind !== 'all'
   // Pastas criadas por você aparecem mesmo sem exercício dentro.
   const custom = getData().customGroups || []
-  if (!query && group === 'all')
-    custom.forEach((item) => folders.set(item.name, []))
+  if (!filtering) custom.forEach((item) => folders.set(item.name, []))
   filtered.forEach((exercise) => {
     folderNamesFor(exercise).forEach((name) => {
       if (!folders.has(name)) folders.set(name, [])
@@ -460,7 +599,10 @@ function renderExercises() {
     const index = filterOptions.indexOf(name)
     return index === -1 ? filterOptions.length : index
   }
-  const expandAll = Boolean(query) || group !== 'all'
+  const order = (a, b) =>
+    sort === 'used'
+      ? usedIn(b) - usedIn(a) || a.name.localeCompare(b.name, 'pt-BR')
+      : a.name.localeCompare(b.name, 'pt-BR')
   list.replaceChildren(
     ...[...folders.entries()]
       .sort(([a], [b]) => position(a) - position(b) || a.localeCompare(b, 'pt-BR'))
@@ -468,7 +610,7 @@ function renderExercises() {
         const folder = document.createElement('details')
         folder.className = 'exercise-folder'
         folder.dataset.group = name
-        folder.open = expandAll || openExerciseFolders.has(name)
+        folder.open = filtering || openExerciseFolders.has(name)
         const summary = document.createElement('summary')
         const label = document.createElement('span')
         label.className = 'exercise-folder-name'
@@ -486,19 +628,25 @@ function renderExercises() {
         const body = document.createElement('div')
         body.className = 'exercise-folder-body'
         body.append(
-          ...exercises.map((e) => {
+          ...[...exercises].sort(order).map((e) => {
             const item = cloneTemplate('exercise-item-template')
             item.dataset.id = e.id
+            item.classList.add('exercise-item--row')
+            item.title = 'Clique para editar'
             item.querySelector('h3').textContent = e.name
-            // "com GIF" em verde e "sem GIF" em vermelho, para achar rápido
-            // quais exercícios ainda estão faltando GIF.
             const info = item.querySelector('p')
-            const gifStatus = exerciseGifStatus(e)
+            const { hasGif, hasVideo } = exerciseMediaState(e)
+            // Dificuldade com cor.
+            const level = e.difficulty || 'Intermediário'
+            const difficulty = document.createElement('span')
+            difficulty.className = `difficulty-badge difficulty-badge--${normalizeName(level)}`
+            difficulty.textContent = level
+            // "com GIF" em verde e "sem GIF" em vermelho.
             const badge = document.createElement('span')
-            badge.className = `gif-status ${gifStatus === 'com GIF' ? 'gif-status--on' : 'gif-status--off'}`
-            badge.textContent = gifStatus
+            badge.className = `gif-status ${hasGif ? 'gif-status--on' : 'gif-status--off'}`
+            badge.textContent = hasGif ? 'com GIF' : 'sem GIF'
             // Mesmo esquema para o vídeo MP4. "com MP4" é clicável e abre o vídeo.
-            const video = e.videoId ? findVideo(e.videoId) : null
+            const video = hasVideo ? findVideo(e.videoId) : null
             const videoBadge = document.createElement(video ? 'button' : 'span')
             videoBadge.className = `gif-status ${video ? 'gif-status--on gif-status--button' : 'gif-status--off'}`
             videoBadge.textContent = video ? '▶ com MP4' : 'sem MP4'
@@ -511,13 +659,23 @@ function renderExercises() {
                 void openVideoLightbox(video.id, e.name)
               })
             }
+            const parts = [difficulty, badge, videoBadge]
+            const uses = usedIn(e)
+            if (uses) {
+              const used = document.createElement('span')
+              used.className = 'exercise-usage'
+              used.textContent = `em ${uses} ficha${uses === 1 ? '' : 's'}`
+              parts.push(used)
+            }
             info.replaceChildren(
-              document.createTextNode(`${e.equipment} · ${e.difficulty || 'Intermediário'} · `),
-              badge,
-              document.createTextNode(' '),
-              videoBadge,
+              ...(e.equipment ? [document.createTextNode(e.equipment)] : []),
+              ...parts,
             )
-            item.querySelector('.tag').textContent = exerciseGroups(e).join(' · ') || 'Sem grupo'
+            // Nas outras pastas em que ele também aparece.
+            const others = folderNamesFor(e).filter((other) => other !== name)
+            const tag = item.querySelector('.tag')
+            tag.textContent = others.length ? `também em ${others.join(', ')}` : ''
+            tag.classList.toggle('tag--empty', !others.length)
             applyExerciseGifThumb(item, e)
             // Sem GIF mas com vídeo: o ícone vira um "play" que abre o vídeo.
             if (video && !item.querySelector('.exercise-glyph--gif')) {
@@ -533,14 +691,9 @@ function renderExercises() {
                 })
               }
             }
-            const remove = document.createElement('button')
-            remove.className = 'icon-button exercise-remove'
-            remove.type = 'button'
-            remove.dataset.action = 'delete-exercise'
-            remove.textContent = '×'
-            remove.title = `Excluir ${e.name}`
-            remove.setAttribute('aria-label', `Excluir ${e.name}`)
-            item.append(remove)
+            // O lápis e o × soltos dão lugar ao menu "⋯".
+            item.querySelector('[data-action="edit"]')?.remove()
+            item.append(exerciseMenu(e))
             return item
           }),
         )
@@ -549,6 +702,28 @@ function renderExercises() {
       }),
   )
   document.querySelector('[data-exercises-empty]').hidden = filtered.length > 0
+}
+
+// Abas da página Biblioteca: Exercícios | GIFs | Vídeos MP4. As bibliotecas
+// de GIF e de vídeo são criadas por outros módulos; a aba só esconde/mostra.
+let libraryTab = 'exercicios'
+function paintLibraryTabs() {
+  const page = document.querySelector('[data-route="exercicios"]')
+  if (!page) return
+  page.dataset.libraryTab = libraryTab
+  page.querySelectorAll('[data-library-tab]').forEach((tab) => {
+    const active = tab.dataset.libraryTab === libraryTab
+    tab.classList.toggle('is-active', active)
+    tab.setAttribute('aria-selected', String(active))
+  })
+  const counts = {
+    exercicios: (getData().exercises || []).length,
+    gifs: (getData().exerciseGifs || []).length,
+    videos: (getData().exerciseVideos || []).length,
+  }
+  page.querySelectorAll('[data-library-count]').forEach((badge) => {
+    badge.textContent = counts[badge.dataset.libraryCount] ?? ''
+  })
 }
 // ── Avaliações agrupadas por aluno ──────────────────────────────────────────
 // Um card por aluno com a avaliação mais recente, a variação desde a anterior,
@@ -1111,6 +1286,7 @@ export function renderAll() {
   renderRecentStudents()
   renderWorkouts()
   renderExercises()
+  paintLibraryTabs()
   renderAssessments()
   renderStudentOptions()
   renderExerciseOptions()
@@ -1129,6 +1305,30 @@ export function initDashboard() {
     .querySelector('[data-table-search="exercises"]')
     .addEventListener('input', renderExercises)
   document.querySelector('[data-exercise-filter]').addEventListener('change', renderExercises)
+  ;['[data-exercise-media]', '[data-exercise-equipment]', '[data-exercise-sort]'].forEach((selector) =>
+    document.querySelector(selector)?.addEventListener('change', renderExercises),
+  )
+  // Pílulas dos grupos: um clique filtra (e clicar de novo volta para Todos).
+  document.querySelector('[data-exercise-pills]')?.addEventListener('click', (event) => {
+    const pill = event.target.closest('[data-group]')
+    if (!pill) return
+    const select = document.querySelector('[data-exercise-filter]')
+    select.value = select.value === pill.dataset.group ? 'all' : pill.dataset.group
+    renderExercises()
+  })
+  // Abas da biblioteca.
+  document.querySelector('[data-library-tabs]')?.addEventListener('click', (event) => {
+    const tab = event.target.closest('[data-library-tab]')
+    if (!tab) return
+    libraryTab = tab.dataset.libraryTab
+    paintLibraryTabs()
+  })
+  // Fecha o menu "⋯" aberto ao clicar fora dele.
+  document.addEventListener('click', (event) => {
+    document.querySelectorAll('.row-menu[open]').forEach((menu) => {
+      if (!menu.contains(event.target)) menu.open = false
+    })
+  })
   document.querySelector('[data-assessment-search]')?.addEventListener('input', renderAssessments)
   document.querySelector('[data-workout-search]')?.addEventListener('input', renderWorkouts)
   ;['[data-assessment-student]', '[data-assessment-status]', '[data-assessment-sort]'].forEach(
@@ -1202,20 +1402,55 @@ export function initDashboard() {
     }
   })
   document.querySelector('[data-exercises-list]').addEventListener('click', async (event) => {
-    const edit = event.target.closest('[data-action="edit"]')
-    if (edit) {
-      window.dispatchEvent(
-        new CustomEvent('frs:edit-exercise', {
-          detail: edit.closest('[data-id]').dataset.id,
-        }),
+    const row = event.target.closest('.exercise-item[data-id]')
+    if (!row) return
+    const exercise = getData().exercises.find((item) => String(item.id) === row.dataset.id)
+    if (!exercise) return
+    const menu = row.querySelector('.row-menu')
+    const action = event.target.closest('[data-action]')?.dataset.action
+    // Clique na linha (fora de botões, do menu e da miniatura) abre a edição.
+    const onControl = event.target.closest(
+      'button, summary, a, .row-menu, .exercise-glyph--clickable',
+    )
+    if (action === 'edit' || !onControl) {
+      if (menu) menu.open = false
+      window.dispatchEvent(new CustomEvent('frs:edit-exercise', { detail: row.dataset.id }))
+      return
+    }
+    if (action === 'duplicate-exercise') {
+      if (menu) menu.open = false
+      const copy = {
+        name: `${exercise.name} (cópia)`,
+        group: exercise.group,
+        equipment: exercise.equipment || '',
+        instructions: exercise.instructions || '',
+        difficulty: exercise.difficulty || 'Intermediário',
+        mediaType: exercise.mediaType || '',
+        mediaUrl: exercise.mediaUrl || '',
+        animationClip: exercise.animationClip || '',
+        gifId: exercise.gifId || '',
+        videoId: exercise.videoId || '',
+      }
+      try {
+        await persistRecord('exercises', copy)
+        await syncRemoteData()
+        showToast(`“${copy.name}” criado. Edite o nome e o que mudar.`)
+      } catch (error) {
+        showToast(error.message)
+      }
+      return
+    }
+    if (action !== 'delete-exercise') return
+    if (menu) menu.open = false
+    const remove = event.target.closest('[data-action]')
+    // Exercício em uso não pode ser excluído (o servidor recusa): avisa antes.
+    const uses = exerciseUsage().get(String(exercise.id)) || 0
+    if (uses) {
+      showToast(
+        `“${exercise.name}” está em ${uses} ficha${uses === 1 ? '' : 's'} de treino. Tire ele de lá antes de excluir.`,
       )
       return
     }
-    const remove = event.target.closest('[data-action="delete-exercise"]')
-    if (!remove) return
-    const row = remove.closest('[data-id]')
-    const exercise = getData().exercises.find((item) => item.id === row.dataset.id)
-    if (!exercise) return
     const ok = await askConfirm({
       eyebrow: 'Biblioteca de exercícios',
       title: 'Excluir exercício?',

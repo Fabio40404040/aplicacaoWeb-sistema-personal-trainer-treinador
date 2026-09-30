@@ -1510,11 +1510,18 @@ function videoUploadHereButton(group) {
   return button
 }
 
+const openVideoFolders = new Set()
 function renderExerciseVideoLibrary() {
   syncVideoGroupOptions()
   const groups = document.querySelector('[data-exercise-video-groups]')
   if (!groups) return
   const videos = getData().exerciseVideos || []
+  // Pastas começam fechadas; só abrem quando você clica (e continuam como
+  // você deixou quando a biblioteca se atualiza).
+  groups.querySelectorAll('.video-muscle-group').forEach((folder) => {
+    if (folder.open) openVideoFolders.add(folder.dataset.group)
+    else openVideoFolders.delete(folder.dataset.group)
+  })
   groups.replaceChildren()
   workoutCatalogGroups(videos)
     .map((group) => ({
@@ -1525,7 +1532,8 @@ function renderExerciseVideoLibrary() {
       // Mesmo formato das pastas da Biblioteca de GIFs.
       const section = document.createElement('details')
       section.className = 'exercise-folder video-muscle-group'
-      if (group.exercises.length) section.open = true
+      section.dataset.group = group.name
+      section.open = openVideoFolders.has(group.name)
       const summary = document.createElement('summary')
       const groupName = document.createElement('span')
       groupName.className = 'exercise-folder-name'
