@@ -447,9 +447,7 @@ const assessmentDateText = (a) => {
 
 function assessmentFilters() {
   return {
-    search: (document.querySelector('[data-assessment-search]')?.value || '')
-      .trim()
-      .toLocaleLowerCase('pt-BR'),
+    student: document.querySelector('[data-assessment-student]')?.value || '',
     status: document.querySelector('[data-assessment-status]')?.value || 'all',
     period: document.querySelector('[data-assessment-period]')?.value || 'all',
     sort: document.querySelector('[data-assessment-sort]')?.value || 'recent',
@@ -471,7 +469,9 @@ function metricTile(metric, latest, previous) {
   const value = document.createElement('strong')
   const current = metric.value(latest)
   value.textContent =
-    current === null ? '—' : `${decimal(current, 2)}${metric.unit ? ` ${metric.unit}` : ''}`
+    current === null
+      ? '—'
+      : `${decimal(current, 2)}${metric.unit === '%' ? '%' : metric.unit ? ` ${metric.unit}` : ''}`
   tile.append(label, value)
   const before = previous ? metric.value(previous) : null
   if (current !== null && before !== null) {
@@ -616,6 +616,24 @@ function renderAssessments() {
       groups.set(key, { key, studentId: a.studentId, name: a.student, all: [], items: [] })
     groups.get(key).all.push(a)
   })
+  // Lista de alunos com avaliação (mantém a escolha atual).
+  const studentSelect = document.querySelector('[data-assessment-student]')
+  if (studentSelect) {
+    const options = [...groups.values()].sort((a, b) =>
+      String(a.name).localeCompare(String(b.name), 'pt-BR'),
+    )
+    studentSelect.replaceChildren(
+      Object.assign(document.createElement('option'), { value: '', textContent: 'Todos os alunos' }),
+      ...options.map((group) =>
+        Object.assign(document.createElement('option'), {
+          value: group.key,
+          textContent: `${group.name} (${group.all.length})`,
+        }),
+      ),
+    )
+    studentSelect.value = groups.has(filters.student) ? filters.student : ''
+    filters.student = studentSelect.value
+  }
   const visible = [...groups.values()]
     .map((group) => ({
       ...group,
@@ -628,8 +646,7 @@ function renderAssessments() {
     }))
     .filter(
       (group) =>
-        group.items.length &&
-        (!filters.search || String(group.name).toLocaleLowerCase('pt-BR').includes(filters.search)),
+        group.items.length && (!filters.student || group.key === filters.student),
     )
     .map((group) => {
       // "Anterior" é sempre a avaliação imediatamente antes da mostrada.
@@ -990,8 +1007,7 @@ export function initDashboard() {
     .querySelector('[data-table-search="exercises"]')
     .addEventListener('input', renderExercises)
   document.querySelector('[data-exercise-filter]').addEventListener('change', renderExercises)
-  document.querySelector('[data-assessment-search]')?.addEventListener('input', renderAssessments)
-  ;['[data-assessment-status]', '[data-assessment-period]', '[data-assessment-sort]'].forEach(
+  ;['[data-assessment-student]', '[data-assessment-status]', '[data-assessment-period]', '[data-assessment-sort]'].forEach(
     (selector) => document.querySelector(selector)?.addEventListener('change', renderAssessments),
   )
   const filterBox = document.querySelector('[data-exercise-filter]')?.parentElement

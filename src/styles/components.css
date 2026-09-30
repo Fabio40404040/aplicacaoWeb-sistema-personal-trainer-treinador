@@ -2814,6 +2814,10 @@ video.gif-lightbox-image {
   background: transparent;
   font: inherit;
 }
+.assessment-toolbar .assessment-student {
+  flex: 1 1 240px;
+  font-weight: 600;
+}
 .assessment-toolbar select {
   min-height: 42px;
   padding: 0 10px;
