@@ -1,0 +1,26 @@
+{
+  "id": "/painel",
+  "name": "FRS Painel do Personal",
+  "short_name": "FRS Painel",
+  "description": "Painel do personal: alunos, fichas, agenda, avaliações e check-ins.",
+  "lang": "pt-BR",
+  "start_url": "/#acesso-frs",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0d4be2",
+  "theme_color": "#0d4be2",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

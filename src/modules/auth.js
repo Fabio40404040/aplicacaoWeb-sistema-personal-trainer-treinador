@@ -1,12 +1,15 @@
 import { clearApiSession, login, syncRemoteData } from './api-client.js'
 
 const SESSION_KEY = 'frs-coach-session-v2'
+// Endereço do login do personal. Não aparece em nenhum link do site público;
+// para entrar, use o endereço direto (salve nos favoritos): seu-site/#acesso-frs
+export const PERSONAL_LOGIN_ROUTE = 'acesso-frs'
 
 function showApp() {
   document.querySelector('[data-public-screen]').hidden = true
   document.querySelector('[data-login-screen]').hidden = true
   document.querySelector('[data-app-shell]').hidden = false
-  if (!location.hash || location.hash === '#login') location.hash = '#painel'
+  if (!location.hash || location.hash === `#${PERSONAL_LOGIN_ROUTE}`) location.hash = '#painel'
 }
 
 function showLogin() {
@@ -14,7 +17,7 @@ function showLogin() {
   document.querySelector('[data-login-screen]').hidden = false
   document.querySelector('[data-app-shell]').hidden = true
   document.title = 'FRS Personal Trainer'
-  location.hash = '#login'
+  location.hash = `#${PERSONAL_LOGIN_ROUTE}`
 }
 
 function showPublic() {
@@ -55,19 +58,46 @@ function handleLocation() {
     document.title = 'FRS Personal Trainer'
     return
   }
-  if (!route || ['inicio', 'consultoria', 'planos', 'aluno', 'faq', 'contato'].includes(route)) {
+  // O antigo "#login" agora leva ao site (o login do personal mudou de endereço).
+  if (
+    !route ||
+    route === 'login' ||
+    ['inicio', 'consultoria', 'planos', 'aluno', 'faq', 'contato'].includes(route)
+  ) {
     showPublic()
     return
   }
-  if (route === 'login') {
-    showLogin()
+  if (route === PERSONAL_LOGIN_ROUTE) {
+    // Já logado (ex.: abriu o app "FRS Painel"): vai direto para o painel.
+    if (sessionStorage.getItem(SESSION_KEY)) showApp()
+    else showLogin()
     return
   }
   if (sessionStorage.getItem(SESSION_KEY)) showApp()
   else showLogin()
 }
 
+// Atalho escondido: 5 toques seguidos no logo "FRS" do site público abrem o
+// login do personal (útil no app instalado, que não tem barra de endereço).
+function initSecretShortcut() {
+  const logo = document.querySelector('.public-brand')
+  if (!logo) return
+  let taps = 0
+  let timer = 0
+  logo.addEventListener('click', (event) => {
+    taps += 1
+    window.clearTimeout(timer)
+    timer = window.setTimeout(() => (taps = 0), 2000)
+    if (taps >= 5) {
+      taps = 0
+      event.preventDefault()
+      location.hash = `#${PERSONAL_LOGIN_ROUTE}`
+    }
+  })
+}
+
 export function initAuth() {
+  initSecretShortcut()
   const form = document.querySelector('[data-login-form]')
   let pendingLogin = null
   const status = form.querySelector('[data-personal-login-status]')
@@ -75,7 +105,7 @@ export function initAuth() {
 
   handleLocation()
   window.addEventListener('hashchange', () => {
-    if (location.hash !== '#login' && pendingLogin) {
+    if (location.hash !== `#${PERSONAL_LOGIN_ROUTE}` && pendingLogin) {
       pendingLogin.abort()
       pendingLogin = null
       clearApiSession()
@@ -97,7 +127,7 @@ export function initAuth() {
     try {
       await login(credentials, controller.signal)
       await syncRemoteData()
-      if (controller.signal.aborted || location.hash !== '#login') return
+      if (controller.signal.aborted || location.hash !== `#${PERSONAL_LOGIN_ROUTE}`) return
       pendingLogin = null
       sessionStorage.setItem(SESSION_KEY, 'active')
       status.textContent = ''

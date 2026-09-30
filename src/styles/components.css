@@ -3397,3 +3397,8 @@ video.gif-lightbox-image {
     padding: 0 8px;
   }
 }
+
+/* Botão "Instalar o app do painel" na tela de login do personal. */
+.login-install-button {
+  width: 100%;
+}
