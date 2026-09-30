@@ -113,8 +113,26 @@ const billingCycleLabels = {
   annual: 'anual',
   permanent: 'permanente',
 }
-const planSummary = (student) =>
-  `${student.planCode || 'sem plano'} · ${billingCycleLabels[student.billingCycle] || 'período não definido'}`
+const planLabels = {
+  ready: 'Treinos Prontos',
+  basic: 'Consultoria Básica',
+  premium: 'Consultoria Premium',
+  athlete: 'Performance Atleta',
+}
+// Selo colorido com o nome do plano e o período ("Performance Atleta · anual").
+function planBadge(student) {
+  const code = planLabels[student.planCode] ? student.planCode : 'none'
+  const badge = document.createElement('span')
+  badge.className = `plan-badge plan-badge--${code}`
+  const period =
+    student.planCode === 'ready' || student.accessType === 'permanent'
+      ? 'permanente'
+      : billingCycleLabels[student.billingCycle]
+  badge.textContent = code === 'none'
+    ? 'Sem plano'
+    : [planLabels[code], period].filter(Boolean).join(' · ')
+  return badge
+}
 function accessLabel(student) {
   if (student.accessStatus === 'active' && student.paymentStatus === 'paid')
     return student.accessType === 'permanent' ? 'Permanente' : 'Liberado'
@@ -183,8 +201,8 @@ function renderStudents() {
       row.dataset.id = student.id
       paintAvatar(row.querySelector('.avatar'), student)
       row.querySelector('.person-cell strong').textContent = student.name
-      row.querySelector('.person-cell small').textContent =
-        `${student.email} · ${planSummary(student)}`
+      row.querySelector('.person-cell small').textContent = student.email
+      row.querySelector('.person-cell small').after(planBadge(student))
       row.querySelector('[data-cell="goal"]').textContent = student.goal
       row.querySelector('[data-cell="date"]').textContent = formatDate(student.assessmentDate)
       const status = row.querySelector('.status')
@@ -228,7 +246,8 @@ function renderRecentStudents() {
       row.dataset.id = s.id
       paintAvatar(row.querySelector('.avatar'), s)
       row.querySelector('.person-cell strong').textContent = s.name
-      row.querySelector('.person-cell small').textContent = `${s.email} · ${planSummary(s)}`
+      row.querySelector('.person-cell small').textContent = s.email
+      row.querySelector('.person-cell small').after(planBadge(s))
       row.querySelector('[data-cell="goal"]').textContent = s.goal
       row.querySelector('[data-cell="workout"]').textContent = s.workout || 'Aguardando ficha'
       row.querySelector('[data-cell="activity"]').textContent = s.activity || 'Novo cadastro'
@@ -404,26 +423,240 @@ function renderExercises() {
   )
   document.querySelector('[data-exercises-empty]').hidden = filtered.length > 0
 }
+// ── Avaliações agrupadas por aluno ──────────────────────────────────────────
+// Um card por aluno com a avaliação mais recente, a variação desde a anterior,
+// o prazo da reavaliação (90 dias) e o histórico recolhido.
+const REASSESS_DAYS = 90
+const openAssessmentHistory = new Set()
+const DAY_MS = 86_400_000
+// Métricas do card. better: 'down' = menor é melhor; null = depende do objetivo.
+const assessmentMetrics = [
+  { label: 'Peso', unit: 'kg', better: null, value: (a) => numberFrom(a.weightKg ?? a.weight) },
+  { label: 'IMC', unit: '', better: null, value: (a) => numberFrom(a.bmi) },
+  { label: 'Gordura', unit: '%', better: 'down', value: (a) => numberFrom(a.bodyFatPercent ?? a.fat) },
+  { label: 'Cintura', unit: 'cm', better: 'down', value: (a) => numberFrom(a.waistCm ?? a.waist) },
+  { label: 'RCQ', unit: '', better: 'down', value: (a) => numberFrom(a.whr) },
+  { label: 'FC repouso', unit: 'bpm', better: 'down', value: (a) => numberFrom(a.restingHR) },
+]
+const decimal = (value, digits = 1) =>
+  new Intl.NumberFormat('pt-BR', { maximumFractionDigits: digits }).format(value)
+const assessmentDateText = (a) => {
+  const date = assessmentDate(a)
+  return date ? new Intl.DateTimeFormat('pt-BR').format(date) : a.date || '—'
+}
+
+function assessmentFilters() {
+  return {
+    search: (document.querySelector('[data-assessment-search]')?.value || '')
+      .trim()
+      .toLocaleLowerCase('pt-BR'),
+    status: document.querySelector('[data-assessment-status]')?.value || 'all',
+    period: document.querySelector('[data-assessment-period]')?.value || 'all',
+    sort: document.querySelector('[data-assessment-sort]')?.value || 'recent',
+  }
+}
+
+function inPeriod(a, period) {
+  if (period === 'all') return true
+  const date = assessmentDate(a)
+  if (!date) return false
+  if (period === 'year') return date.getFullYear() === new Date().getFullYear()
+  return Date.now() - date.getTime() <= Number(period) * DAY_MS
+}
+
+function metricTile(metric, latest, previous) {
+  const tile = document.createElement('div')
+  const label = document.createElement('span')
+  label.textContent = metric.label
+  const value = document.createElement('strong')
+  const current = metric.value(latest)
+  value.textContent =
+    current === null ? '—' : `${decimal(current, 2)}${metric.unit ? ` ${metric.unit}` : ''}`
+  tile.append(label, value)
+  const before = previous ? metric.value(previous) : null
+  if (current !== null && before !== null) {
+    const diff = Math.round((current - before) * 100) / 100
+    const delta = document.createElement('small')
+    delta.className = 'assessment-delta'
+    if (diff === 0) {
+      delta.textContent = '= igual'
+      delta.classList.add('is-neutral')
+    } else {
+      delta.textContent = `${diff < 0 ? '▼' : '▲'} ${decimal(Math.abs(diff), 2)}`
+      delta.classList.add(
+        metric.better === null ? 'is-neutral' : (diff < 0) === (metric.better === 'down') ? 'is-good' : 'is-bad',
+      )
+    }
+    delta.title = 'Diferença desde a avaliação anterior'
+    tile.append(delta)
+  }
+  return tile
+}
+
+function reassessBadge(latest) {
+  const badge = document.createElement('span')
+  badge.className = 'assessment-due'
+  const date = assessmentDate(latest)
+  if (!date) {
+    badge.textContent = 'Sem data'
+    return badge
+  }
+  const days = Math.ceil((date.getTime() + REASSESS_DAYS * DAY_MS - Date.now()) / DAY_MS)
+  if (days < 0) {
+    badge.textContent = `Reavaliação atrasada ${-days} dia${days === -1 ? '' : 's'}`
+    badge.classList.add('is-late')
+  } else if (days === 0) {
+    badge.textContent = 'Reavaliar hoje'
+    badge.classList.add('is-late')
+  } else {
+    badge.textContent = `Reavaliar em ${days} dia${days === 1 ? '' : 's'}`
+    if (days <= 14) badge.classList.add('is-soon')
+  }
+  return badge
+}
+
+function openReassessment(name) {
+  const trigger = document.querySelector('[data-route="avaliacoes"] [data-open-modal="assessment"]')
+  if (!trigger) return
+  trigger.click()
+  queueMicrotask(() => {
+    const select = document.querySelector('[data-form="assessment"] [name="student"]')
+    if (select && [...select.options].some((option) => option.value === name)) select.value = name
+  })
+}
+
+function assessmentGroupCard(group) {
+  const [latest, previous] = group.items
+  const card = document.createElement('article')
+  card.className = 'assessment-card assessment-group panel'
+
+  const header = document.createElement('header')
+  const person = document.createElement('div')
+  person.className = 'person-cell'
+  const avatar = document.createElement('span')
+  avatar.className = 'avatar'
+  paintAvatar(avatar, studentPhoto(group.studentId, group.name))
+  const who = document.createElement('div')
+  const title = document.createElement('h2')
+  title.textContent = group.name
+  const sub = document.createElement('p')
+  sub.textContent = `${group.all.length} avaliaç${group.all.length === 1 ? 'ão' : 'ões'} · última em ${assessmentDateText(latest)}`
+  who.append(title, sub)
+  person.append(avatar, who)
+  const status = document.createElement('span')
+  status.className = `status ${latest.publishedAt ? 'status--success' : 'status--paused'}`
+  status.textContent = latest.publishedAt ? 'Publicada' : 'Rascunho'
+  header.append(person, status)
+
+  const values = document.createElement('div')
+  values.className = 'assessment-values'
+  values.append(...assessmentMetrics.map((metric) => metricTile(metric, latest, previous)))
+
+  const footer = document.createElement('footer')
+  const protocol = document.createElement('strong')
+  protocol.textContent = latest.protocol || 'Avaliação física'
+  const again = document.createElement('button')
+  again.type = 'button'
+  again.className = 'link-button assessment-again'
+  again.textContent = '+ Reavaliar'
+  again.addEventListener('click', () => openReassessment(group.name))
+  footer.append(reassessBadge(latest), protocol, again)
+
+  card.append(header, values, footer)
+
+  if (group.all.length > 1) {
+    const history = document.createElement('details')
+    history.className = 'assessment-history'
+    history.open = openAssessmentHistory.has(group.key)
+    history.addEventListener('toggle', () => {
+      if (history.open) openAssessmentHistory.add(group.key)
+      else openAssessmentHistory.delete(group.key)
+    })
+    const summary = document.createElement('summary')
+    summary.textContent = `Ver histórico (${group.all.length})`
+    const list = document.createElement('ol')
+    group.all.forEach((a) => {
+      const row = document.createElement('li')
+      const date = document.createElement('strong')
+      date.textContent = assessmentDateText(a)
+      const info = document.createElement('span')
+      const weight = numberFrom(a.weightKg ?? a.weight)
+      const fat = numberFrom(a.bodyFatPercent ?? a.fat)
+      info.textContent = [
+        a.protocol || 'Avaliação física',
+        weight !== null ? `${decimal(weight, 2)} kg` : null,
+        fat !== null ? `${decimal(fat, 2)}% gordura` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+      const state = document.createElement('small')
+      state.className = a.publishedAt ? 'is-published' : 'is-draft'
+      state.textContent = a.publishedAt ? 'Publicada' : 'Rascunho'
+      row.append(date, info, state)
+      list.append(row)
+    })
+    history.append(summary, list)
+    card.append(history)
+  }
+  return card
+}
+
 function renderAssessments() {
-  document.querySelector('[data-assessments-grid]').replaceChildren(
-    ...getData().assessments.map((a) => {
-      const card = cloneTemplate('assessment-card-template')
-      paintAvatar(card.querySelector('.avatar'), studentPhoto(a.studentId, a.student))
-      card.querySelector('h2').textContent = a.student
-      card.querySelector('.person-cell p').textContent = a.publishedAt
-        ? 'Publicada para o aluno'
-        : 'Rascunho do personal'
-      card.querySelector('[data-value="weight"]').textContent = a.weight
-      card.querySelector('[data-value="bmi"]').textContent = a.bmi || '—'
-      card.querySelector('[data-value="fat"]').textContent = a.fat
-      card.querySelector('[data-value="waist"]').textContent = a.waist
-      card.querySelector('[data-value="whr"]').textContent = a.whr || '—'
-      card.querySelector('[data-value="restingHR"]').textContent = a.restingHR || '—'
-      card.querySelector('[data-value="date"]').textContent = a.date
-      card.querySelector('[data-value="protocol"]').textContent = a.protocol || 'Avaliação física'
-      return card
-    }),
+  const grid = document.querySelector('[data-assessments-grid]')
+  if (!grid) return
+  const filters = assessmentFilters()
+  const all = [...(getData().assessments || [])].sort(
+    (a, b) => (assessmentDate(b)?.getTime() || 0) - (assessmentDate(a)?.getTime() || 0),
   )
+  // Agrupa todas as avaliações por aluno (id; nome como reserva).
+  const groups = new Map()
+  all.forEach((a) => {
+    const key = a.studentId ? `id:${a.studentId}` : `nome:${a.student}`
+    if (!groups.has(key))
+      groups.set(key, { key, studentId: a.studentId, name: a.student, all: [], items: [] })
+    groups.get(key).all.push(a)
+  })
+  const visible = [...groups.values()]
+    .map((group) => ({
+      ...group,
+      items: group.all.filter(
+        (a) =>
+          inPeriod(a, filters.period) &&
+          (filters.status === 'all' ||
+            (filters.status === 'published' ? Boolean(a.publishedAt) : !a.publishedAt)),
+      ),
+    }))
+    .filter(
+      (group) =>
+        group.items.length &&
+        (!filters.search || String(group.name).toLocaleLowerCase('pt-BR').includes(filters.search)),
+    )
+    .map((group) => {
+      // "Anterior" é sempre a avaliação imediatamente antes da mostrada.
+      const index = group.all.indexOf(group.items[0])
+      return { ...group, items: [group.items[0], group.all[index + 1]].filter(Boolean) }
+    })
+  const time = (group) => assessmentDate(group.items[0])?.getTime() || 0
+  visible.sort((a, b) =>
+    filters.sort === 'name'
+      ? String(a.name).localeCompare(String(b.name), 'pt-BR')
+      : filters.sort === 'due'
+        ? time(a) - time(b)
+        : time(b) - time(a),
+  )
+  const summary = document.querySelector('[data-assessment-summary]')
+  if (summary)
+    summary.textContent = `${visible.length} aluno${visible.length === 1 ? '' : 's'} · ${all.length} avaliaç${all.length === 1 ? 'ão' : 'ões'}`
+  if (!visible.length) {
+    const empty = document.createElement('p')
+    empty.className = 'assessment-empty'
+    empty.textContent = all.length
+      ? 'Nenhuma avaliação encontrada com esses filtros.'
+      : 'Nenhuma avaliação registrada ainda. Clique em "Nova avaliação" para começar.'
+    grid.replaceChildren(empty)
+    return
+  }
+  grid.replaceChildren(...visible.map(assessmentGroupCard))
 }
 function renderStudentOptions() {
   const students = getData().students
@@ -757,6 +990,10 @@ export function initDashboard() {
     .querySelector('[data-table-search="exercises"]')
     .addEventListener('input', renderExercises)
   document.querySelector('[data-exercise-filter]').addEventListener('change', renderExercises)
+  document.querySelector('[data-assessment-search]')?.addEventListener('input', renderAssessments)
+  ;['[data-assessment-status]', '[data-assessment-period]', '[data-assessment-sort]'].forEach(
+    (selector) => document.querySelector(selector)?.addEventListener('change', renderAssessments),
+  )
   const filterBox = document.querySelector('[data-exercise-filter]')?.parentElement
   if (filterBox && !filterBox.querySelector('.folder-create-button'))
     filterBox.append(folderCreateButton())
