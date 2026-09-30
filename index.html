@@ -35,6 +35,12 @@
       rel="manifest"
       href="/app.webmanifest"
     />
+    <script>
+      // Abriu direto no login do personal: o navegador já lê o manifesto do
+      // app "FRS Painel" (para oferecer a instalação dele, não a do site).
+      if (/^#acesso-frs/.test(location.hash))
+        document.querySelector('link[rel="manifest"]').href = '/painel.webmanifest'
+    </script>
     <link
       rel="apple-touch-icon"
       href="/icons/apple-touch-icon.png"
@@ -1260,8 +1266,7 @@
           <button
             class="button button--secondary login-install-button"
             type="button"
-            data-install-app
-            hidden
+            data-install-panel
           >
             📲 Instalar o app do painel
           </button>
@@ -2800,7 +2805,7 @@
       class="install-dialog"
       data-install-dialog
     >
-      <h2>Adicionar FRS Personal à tela inicial</h2>
+      <h2 data-install-title>Adicionar FRS Personal à tela inicial</h2>
       <p data-install-instructions></p>
       <button
         type="button"

@@ -75,14 +75,48 @@ export function initPwa() {
   window.addEventListener('pageshow', () => void reloadWhenAppChanged())
 
   const installButtons = [...document.querySelectorAll('[data-install-app]')]
+  const panelButton = document.querySelector('[data-install-panel]')
   const dialog = document.querySelector('[data-install-dialog]')
   const instructions = dialog.querySelector('[data-install-instructions]')
-  const isIos = /iPad|iPhone|iPod/u.test(navigator.userAgent)
+  const dialogTitle = dialog.querySelector('[data-install-title]')
+  const ua = navigator.userAgent
+  const isIos = /iPad|iPhone|iPod/u.test(ua) || (/Macintosh/u.test(ua) && navigator.maxTouchPoints > 1)
   const isStandalone =
     window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true
-  if (isStandalone) return
-
   let installPrompt
+
+  const explain = (panel) => {
+    if (dialogTitle)
+      dialogTitle.textContent = panel
+        ? 'Instalar o app FRS Painel'
+        : 'Adicionar FRS Personal à tela inicial'
+    instructions.textContent = isStandalone
+      ? 'Você está dentro de um app instalado. Abra este endereço no navegador (Chrome ou Safari) e instale por lá: ' +
+        `${location.origin}/#acesso-frs`
+      : isIos
+        ? 'No Safari, toque em Compartilhar (quadrado com a seta) e escolha “Adicionar à Tela de Início”. Depois toque em Adicionar.'
+        : /Android/u.test(ua)
+          ? 'No Chrome, toque no menu ⋮ e escolha “Instalar app” ou “Adicionar à tela inicial”.'
+          : 'No Chrome ou Edge, clique no ícone de instalar na barra de endereço (monitor com seta) ou no menu ⋮ → “Transmitir, salvar e compartilhar” → “Instalar página como app”.'
+    dialog.showModal()
+  }
+
+  // Botão do app do painel (tela de login do personal): sempre visível.
+  panelButton?.addEventListener('click', async () => {
+    if (installPrompt && !isStandalone) {
+      installPrompt.prompt()
+      await installPrompt.userChoice
+      installPrompt = null
+      return
+    }
+    explain(true)
+  })
+
+  if (isStandalone) {
+    dialog.querySelector('[data-close-install]').addEventListener('click', () => dialog.close())
+    return
+  }
+
   const showInstall = (visible) => installButtons.forEach((button) => (button.hidden = !visible))
   if (isIos) showInstall(true)
 
@@ -104,10 +138,7 @@ export function initPwa() {
       showInstall(false)
       return
     }
-    instructions.textContent = isIos
-      ? 'No Safari, toque em Compartilhar e escolha “Adicionar à Tela de Início”. Depois toque em Adicionar.'
-      : 'Abra o menu do navegador e escolha “Instalar aplicativo” ou “Adicionar à tela inicial”.'
-    dialog.showModal()
+    explain(false)
   }
   installButtons.forEach((button) => button.addEventListener('click', onInstallClick))
   dialog.querySelector('[data-close-install]').addEventListener('click', () => dialog.close())
