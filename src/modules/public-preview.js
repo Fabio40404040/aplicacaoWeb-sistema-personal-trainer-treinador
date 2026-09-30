@@ -1,6 +1,7 @@
 // "Ver prévia" do plano Treinos Prontos no site: mostra o treino pronto que o
 // personal marcou como prévia no painel (Treinos Prontos → "Usar como prévia
-// do site"). Sem prévia marcada, o botão fica escondido.
+// do site"). O botão fica sempre visível; sem prévia marcada, avisa que ela
+// estará disponível em breve.
 import { showWorkoutPdfPreview } from './workout-pdf.js'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
@@ -28,18 +29,18 @@ export function initPublicPreview() {
   const button = document.querySelector('[data-ready-preview]')
   if (!button) return
   let program = null
-  loadPreview()
-    .then((result) => {
-      program = result
-      button.hidden = !program
-    })
-    .catch(() => {
-      button.hidden = true
-    })
+  const ready = loadPreview()
+    .then((result) => (program = result))
+    .catch(() => null)
   button.addEventListener('click', async (event) => {
     event.preventDefault()
-    if (!program) return
     const label = button.textContent
+    await ready
+    if (!program) {
+      button.textContent = 'Prévia em breve'
+      window.setTimeout(() => (button.textContent = label), 2500)
+      return
+    }
     button.textContent = 'Abrindo…'
     button.setAttribute('aria-busy', 'true')
     try {
