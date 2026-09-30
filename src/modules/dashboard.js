@@ -1,5 +1,6 @@
 import { getData, updateData } from './state.js'
-import { askConfirm, exerciseGroups, formatDate, initials, showToast } from './utils.js'
+import { paintAvatar } from './profile-kit.js'
+import { askConfirm, exerciseGroups, formatDate, showToast } from './utils.js'
 import {
   deleteMuscleGroup,
   loadExerciseGifFrame,
@@ -80,6 +81,14 @@ async function removeExerciseFolder(name, exercises, owned) {
     parts.push(`${emUso.length} continuam porque estão em uso: ${lista}${emUso.length > 3 ? '…' : ''}`)
   }
   showToast(parts.length ? `${parts.join('. ')}.` : `Pasta ${name} excluída.`)
+}
+
+// Aluno (nome + foto) pelo id ou pelo nome, para mostrar a foto de perfil.
+function studentPhoto(id, name) {
+  const student = (getData().students || []).find(
+    (item) => (id && String(item.id) === String(id)) || item.name === name,
+  )
+  return { name: name || student?.name, avatar: student?.avatar }
 }
 
 function exerciseFolderRemoveButton(name, exercises, owned) {
@@ -172,7 +181,7 @@ function renderStudents() {
     ...filtered.map((student) => {
       const row = cloneTemplate('student-row-template')
       row.dataset.id = student.id
-      row.querySelector('.avatar').textContent = initials(student.name)
+      paintAvatar(row.querySelector('.avatar'), student)
       row.querySelector('.person-cell strong').textContent = student.name
       row.querySelector('.person-cell small').textContent =
         `${student.email} · ${planSummary(student)}`
@@ -217,7 +226,7 @@ function renderRecentStudents() {
     .map((s) => {
       const row = cloneTemplate('recent-row-template')
       row.dataset.id = s.id
-      row.querySelector('.avatar').textContent = initials(s.name)
+      paintAvatar(row.querySelector('.avatar'), s)
       row.querySelector('.person-cell strong').textContent = s.name
       row.querySelector('.person-cell small').textContent = `${s.email} · ${planSummary(s)}`
       row.querySelector('[data-cell="goal"]').textContent = s.goal
@@ -399,7 +408,7 @@ function renderAssessments() {
   document.querySelector('[data-assessments-grid]').replaceChildren(
     ...getData().assessments.map((a) => {
       const card = cloneTemplate('assessment-card-template')
-      card.querySelector('.avatar').textContent = initials(a.student)
+      paintAvatar(card.querySelector('.avatar'), studentPhoto(a.studentId, a.student))
       card.querySelector('h2').textContent = a.student
       card.querySelector('.person-cell p').textContent = a.publishedAt
         ? 'Publicada para o aluno'
@@ -628,7 +637,7 @@ function renderSchedule() {
       }).format(start)
       const avatar = document.createElement('span')
       avatar.className = 'avatar'
-      avatar.textContent = initials(item.student)
+      paintAvatar(avatar, studentPhoto(item.studentId, item.student))
       const details = document.createElement('div')
       const name = document.createElement('strong')
       name.textContent = item.student
@@ -658,7 +667,7 @@ function renderProgress() {
   if (!student) return
   document.querySelector('[data-progress-name]').textContent = student.name
   document.querySelector('[data-progress-goal]').textContent = student.goal
-  document.querySelector('[data-progress-avatar]').textContent = initials(student.name)
+  paintAvatar(document.querySelector('[data-progress-avatar]'), student)
   const assessments = getData()
     .assessments.filter((item) => item.studentId === student.id || item.student === student.name)
     .sort((a, b) => (assessmentDate(a)?.getTime() || 0) - (assessmentDate(b)?.getTime() || 0))
@@ -852,7 +861,7 @@ export function initDashboard() {
     if (!s) return
     document.querySelector('[data-progress-name]').textContent = s.name
     document.querySelector('[data-progress-goal]').textContent = s.goal
-    document.querySelector('[data-progress-avatar]').textContent = initials(s.name)
+    paintAvatar(document.querySelector('[data-progress-avatar]'), s)
     renderProgress()
   })
   document.querySelector('[data-schedule-list]').addEventListener('click', async (event) => {

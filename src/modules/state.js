@@ -183,15 +183,24 @@ export function getData() {
   return data
 }
 
+// Guarda no navegador sem quebrar o painel se o espaço acabar (fotos etc.).
+function persist() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  } catch {
+    // Sem espaço: os dados continuam na memória e voltam do servidor.
+  }
+}
+
 export function updateData(callback) {
   callback(data)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  persist()
   window.dispatchEvent(new CustomEvent('frs:data-changed'))
 }
 
 export function replaceData(nextData) {
   data = nextData
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  persist()
   window.dispatchEvent(new CustomEvent('frs:data-changed'))
 }
 
