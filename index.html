@@ -19,10 +19,6 @@
       content="black-translucent"
     />
     <meta
-      name="apple-mobile-web-app-title"
-      content="FRS Personal"
-    />
-    <meta
       name="description"
       content="FRS Personal — musculação, avaliação física e acompanhamento personalizado."
     />
@@ -31,23 +27,31 @@
       type="image/svg+xml"
       href="/favicon.png"
     />
-    <link
-      rel="manifest"
-      href="/app.webmanifest"
-    />
     <script>
-      // App "FRS Painel": mora no endereço /painel/ (separado do app do site,
-      // para o Chrome deixar instalar os dois). O login do personal sempre
-      // abre por lá, e nesse endereço o navegador lê o manifesto do painel.
-      if (/^#acesso-frs/.test(location.hash) && !location.pathname.startsWith('/painel/'))
-        location.replace('/painel/' + location.hash)
-      if (location.pathname.startsWith('/painel/'))
-        document.querySelector('link[rel="manifest"]').href = '/painel.webmanifest'
+      // Dois apps do mesmo site: "FRS Personal" (site/alunos) e "FRS Painel"
+      // (personal, no endereço /painel/). As marcas do app são escritas já
+      // certas ANTES de a página carregar — o iPhone ("Adicionar à Tela de
+      // Início") lê só o que vem no começo da página, e com isso instalava o
+      // app do site mesmo estando no /painel/.
+      ;(function () {
+        if (/^#acesso-frs/.test(location.hash) && location.pathname.indexOf('/painel/') !== 0) {
+          location.replace('/painel/' + location.hash)
+          return
+        }
+        var painel = location.pathname.indexOf('/painel/') === 0
+        document.write(
+          '<link rel="manifest" href="' +
+            (painel ? '/painel.webmanifest' : '/app.webmanifest') +
+            '">' +
+            '<link rel="apple-touch-icon" href="' +
+            (painel ? '/icons/painel-apple-touch-icon.png' : '/icons/apple-touch-icon.png') +
+            '">' +
+            '<meta name="apple-mobile-web-app-title" content="' +
+            (painel ? 'FRS Painel' : 'FRS Personal') +
+            '">',
+        )
+      })()
     </script>
-    <link
-      rel="apple-touch-icon"
-      href="/icons/apple-touch-icon.png"
-    />
     <link
       rel="stylesheet"
       href="/src/styles/main.css"
