@@ -1,3 +1,15 @@
+// Mesma protecao das outras colunas de migracao (GIF, video): sem a
+// migracao 019 aplicada, o treino pronto segue salvando e aparecendo, só
+// sem a preferência de mídia.
+async function preferredMediaReady(db) {
+  try {
+    await db.query('SELECT preferred_media FROM ready_program_exercises LIMIT 1')
+    return true
+  } catch {
+    return false
+  }
+}
+
 function normalizePrescriptions(body) {
   const items = Array.isArray(body?.exercisePrescriptions) ? body.exercisePrescriptions : []
   return items
@@ -25,31 +37,45 @@ function normalizePrescriptions(body) {
 
 async function saveExercises(db, trainerId, programId, body) {
   const items = normalizePrescriptions(body)
+  const withPreferredMedia = await preferredMediaReady(db)
   const queries = [
     {
       sql: 'DELETE FROM ready_program_exercises WHERE program_id=$1',
       values: [programId],
     },
   ]
-  items.forEach((item) =>
+  items.forEach((item) => {
+    const values = [
+      programId,
+      item.position,
+      item.sessionLabel,
+      item.sets,
+      item.repetitions,
+      item.restSeconds,
+      item.notes,
+    ]
+    if (withPreferredMedia) values.push(item.preferredMedia)
+    values.push(item.exerciseId, trainerId)
+    const columns = `program_id,exercise_id,position,session_label,sets,repetitions,rest_seconds,notes${withPreferredMedia ? ',preferred_media' : ''}`
+    const selectValues = [
+      '$1',
+      'id',
+      '$2',
+      '$3',
+      '$4',
+      '$5',
+      '$6',
+      '$7',
+      ...(withPreferredMedia ? ['$8'] : []),
+    ].join(',')
+    const idPlaceholder = withPreferredMedia ? '$9' : '$8'
+    const trainerPlaceholder = withPreferredMedia ? '$10' : '$9'
     queries.push({
-      sql: `INSERT INTO ready_program_exercises
-        (program_id,exercise_id,position,session_label,sets,repetitions,rest_seconds,notes,preferred_media)
-        SELECT $1,id,$2,$3,$4,$5,$6,$7,$8 FROM exercises WHERE id=$9 AND trainer_id=$10`,
-      values: [
-        programId,
-        item.position,
-        item.sessionLabel,
-        item.sets,
-        item.repetitions,
-        item.restSeconds,
-        item.notes,
-        item.preferredMedia,
-        item.exerciseId,
-        trainerId,
-      ],
-    }),
-  )
+      sql: `INSERT INTO ready_program_exercises (${columns})
+        SELECT ${selectValues} FROM exercises WHERE id=${idPlaceholder} AND trainer_id=${trainerPlaceholder}`,
+      values,
+    })
+  })
   await db.batch(queries)
 }
 

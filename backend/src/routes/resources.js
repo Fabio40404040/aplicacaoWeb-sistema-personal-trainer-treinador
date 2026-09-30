@@ -1,5 +1,17 @@
 import { hashPassword, isStrongPassword } from '../lib/session.js'
 
+// Mesma protecao das outras colunas de migracao (GIF, video): sem a
+// migracao 019 aplicada, a ficha segue salvando e aparecendo, só sem a
+// preferência de mídia.
+async function preferredMediaReady(db, table) {
+  try {
+    await db.query(`SELECT preferred_media FROM ${table} LIMIT 1`)
+    return true
+  } catch {
+    return false
+  }
+}
+
 const configs = {
   students: {
     select: `SELECT id,name,email,goal,status,assessment_date AS "assessmentDate", access_status AS "accessStatus",
@@ -127,39 +139,55 @@ async function saveWorkoutExercises(db, trainerId, workoutId, body) {
           notes: body.exerciseNotes,
         }),
       )
+  const withPreferredMedia = await preferredMediaReady(db, 'workout_exercises')
   const queries = [
     {
       sql: 'DELETE FROM workout_exercises WHERE workout_id=$1',
       values: [workoutId],
     },
   ]
-  prescriptions.forEach((prescription, index) =>
+  prescriptions.forEach((prescription, index) => {
+    const values = [
+      workoutId,
+      index + 1,
+      Math.max(1, Math.min(20, Number(prescription.sets) || 3)),
+      String(prescription.repetitions || '10').slice(0, 40),
+      Math.max(0, Math.min(1800, Number(prescription.restSeconds) || 0)),
+      String(prescription.notes || '')
+        .trim()
+        .slice(0, 500) || null,
+      /^[A-Z]$/u.test(String(prescription.sessionLabel || '').toUpperCase())
+        ? String(prescription.sessionLabel).toUpperCase()
+        : 'A',
+    ]
+    if (withPreferredMedia) values.push(prescription.preferredMedia === 'video' ? 'video' : 'gif')
+    values.push(prescription.exerciseId, trainerId)
+    const columns = `workout_id,exercise_id,position,sets,repetitions,rest_seconds,notes,session_label${withPreferredMedia ? ',preferred_media' : ''}`
+    const selectValues = [
+      '$1',
+      'id',
+      '$2',
+      '$3',
+      '$4',
+      '$5',
+      '$6',
+      '$7',
+      ...(withPreferredMedia ? ['$8'] : []),
+    ].join(',')
+    const idPlaceholder = withPreferredMedia ? '$9' : '$8'
+    const trainerPlaceholder = withPreferredMedia ? '$10' : '$9'
     queries.push({
-      sql: `INSERT INTO workout_exercises (workout_id,exercise_id,position,sets,repetitions,rest_seconds,notes,session_label,preferred_media)
-      SELECT $1,id,$2,$3,$4,$5,$6,$7,$8 FROM exercises WHERE id=$9 AND trainer_id=$10`,
-      values: [
-        workoutId,
-        index + 1,
-        Math.max(1, Math.min(20, Number(prescription.sets) || 3)),
-        String(prescription.repetitions || '10').slice(0, 40),
-        Math.max(0, Math.min(1800, Number(prescription.restSeconds) || 0)),
-        String(prescription.notes || '')
-          .trim()
-          .slice(0, 500) || null,
-        /^[A-Z]$/u.test(String(prescription.sessionLabel || '').toUpperCase())
-          ? String(prescription.sessionLabel).toUpperCase()
-          : 'A',
-        prescription.preferredMedia === 'video' ? 'video' : 'gif',
-        prescription.exerciseId,
-        trainerId,
-      ],
-    }),
-  )
+      sql: `INSERT INTO workout_exercises (${columns})
+      SELECT ${selectValues} FROM exercises WHERE id=${idPlaceholder} AND trainer_id=${trainerPlaceholder}`,
+      values,
+    })
+  })
   await db.batch(queries)
 }
 
 export async function listResource(db, resource, trainerId) {
-  if (resource === 'workouts')
+  if (resource === 'workouts') {
+    const withPreferredMedia = await preferredMediaReady(db, 'workout_exercises')
     return (
       await db.query(
         `SELECT w.id,w.name,s.name AS student,w.goal,w.duration,w.progress,w.published_at AS "publishedAt",
@@ -168,13 +196,14 @@ export async function listResource(db, resource, trainerId) {
       'exerciseId',e.id,'name',e.name,'group',e.muscle_group,'equipment',e.equipment,
       'instructions',e.instructions,'difficulty',e.difficulty,'position',we.position,
       'sets',we.sets,'repetitions',we.repetitions,'restSeconds',we.rest_seconds,'notes',we.notes,
-      'sessionLabel',we.session_label,'preferredMedia',we.preferred_media
+      'sessionLabel',we.session_label${withPreferredMedia ? ",'preferredMedia',we.preferred_media" : ''}
     )) FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id
     WHERE we.workout_id=w.id ORDER BY we.position),'[]') AS "exercisePrescriptionsJson"
     FROM workouts w JOIN students s ON s.id=w.student_id WHERE w.trainer_id=$1 ORDER BY w.created_at DESC`,
         [trainerId],
       )
     ).rows
+  }
   const config = configs[resource]
   return config ? (await db.query(config.select, [trainerId])).rows : null
 }

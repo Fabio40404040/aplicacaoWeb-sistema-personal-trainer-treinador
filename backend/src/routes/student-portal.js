@@ -43,10 +43,18 @@ export async function studentPortal(db, accountId, version) {
   } catch {
     withVideoLink = false
   }
+  // A preferência de mídia por prescrição chegou na migração 019.
+  let withPreferredMedia = true
+  try {
+    await db.query('SELECT preferred_media FROM workout_exercises LIMIT 1')
+  } catch {
+    withPreferredMedia = false
+  }
   const gifJson =
     (withGifs ? "'gifId',e.gif_id," : '') + (withVideoLink ? "'videoId',e.video_id," : '')
   const gifColumn =
     (withGifs ? 'e.gif_id AS "gifId",' : '') + (withVideoLink ? 'e.video_id AS "videoId",' : '')
+  const preferredMediaColumn = withPreferredMedia ? 'we.preferred_media AS "preferredMedia",' : ''
   const account = (
     await db.query(
       `SELECT a.id, a.name, a.email, a.auth_version AS "authVersion",
@@ -115,7 +123,7 @@ export async function studentPortal(db, accountId, version) {
            'instructions',e.instructions,'difficulty',e.difficulty,'mediaType',e.media_type,
            'mediaUrl',e.media_url,'thumbnailUrl',e.thumbnail_url,${gifJson}'position',r.position,
            'sets',r.sets,'repetitions',r.repetitions,'restSeconds',r.rest_seconds,
-           'notes',r.notes,'sessionLabel',r.session_label,'preferredMedia',r.preferred_media
+           'notes',r.notes,'sessionLabel',r.session_label${withPreferredMedia ? ",'preferredMedia',r.preferred_media" : ''}
          )) FROM ready_program_exercises r JOIN exercises e ON e.id=r.exercise_id
          WHERE r.program_id=p.id ORDER BY r.position),'[]') AS "exercisePrescriptionsJson"
          FROM ready_workout_programs p WHERE p.trainer_id=$1 AND p.published=1 ORDER BY p.created_at DESC`,
@@ -157,8 +165,9 @@ export async function studentPortal(db, accountId, version) {
              e.difficulty, e.media_type AS "mediaType", e.media_url AS "mediaUrl",
              e.thumbnail_url AS "thumbnailUrl", e.animation_clip AS "animationClip",
              ${gifColumn}
+             ${preferredMediaColumn}
              we.position, we.sets, we.repetitions, we.rest_seconds AS "restSeconds", we.notes,
-             we.session_label AS "sessionLabel", we.preferred_media AS "preferredMedia"
+             we.session_label AS "sessionLabel"
            FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id
            WHERE we.workout_id=$1 AND e.is_active=1 ORDER BY we.position`,
           [workout.id],

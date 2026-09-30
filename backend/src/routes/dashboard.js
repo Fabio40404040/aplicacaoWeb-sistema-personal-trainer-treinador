@@ -29,16 +29,28 @@ async function videoLinkReady(db) {
   }
 }
 
+// A preferência de mídia por prescrição chegou na migração 019.
+async function preferredMediaReady(db) {
+  try {
+    await db.query('SELECT preferred_media FROM workout_exercises LIMIT 1')
+    return true
+  } catch {
+    return false
+  }
+}
+
 import { trainerProfile } from './profile.js'
 
 export async function dashboard(db, trainerId) {
   const withGifs = await gifSchemaReady(db)
   const withCustomGroups = await customGroupsReady(db)
   const withVideoLink = await videoLinkReady(db)
+  const withPreferredMedia = await preferredMediaReady(db)
   const gifColumn =
     (withGifs ? ',gif_id AS "gifId"' : '') + (withVideoLink ? ',video_id AS "videoId"' : '')
   const gifJson =
     (withGifs ? "'gifId',e.gif_id," : '') + (withVideoLink ? "'videoId',e.video_id," : '')
+  const preferredMediaJson = (column) => (withPreferredMedia ? `,'preferredMedia',${column}` : '')
   const [
     students,
     exercises,
@@ -81,7 +93,7 @@ export async function dashboard(db, trainerId) {
          'instructions',e.instructions,'difficulty',e.difficulty,'mediaType',e.media_type,
          'mediaUrl',e.media_url,'thumbnailUrl',e.thumbnail_url,${gifJson}'position',we.position,
          'sets',we.sets,'repetitions',we.repetitions,'restSeconds',we.rest_seconds,'notes',we.notes,
-         'sessionLabel',we.session_label,'preferredMedia',we.preferred_media
+         'sessionLabel',we.session_label${preferredMediaJson('we.preferred_media')}
        )) FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id
        WHERE we.workout_id=w.id ORDER BY we.position),'[]') AS "exercisePrescriptionsJson"
        FROM workouts w JOIN students s ON s.id=w.student_id WHERE w.trainer_id=$1 ORDER BY w.created_at DESC`,
@@ -129,7 +141,7 @@ export async function dashboard(db, trainerId) {
            'instructions',e.instructions,'difficulty',e.difficulty,'mediaType',e.media_type,
            'mediaUrl',e.media_url,'thumbnailUrl',e.thumbnail_url,${gifJson}'position',r.position,
            'sets',r.sets,'repetitions',r.repetitions,'restSeconds',r.rest_seconds,
-           'notes',r.notes,'sessionLabel',r.session_label,'preferredMedia',r.preferred_media
+           'notes',r.notes,'sessionLabel',r.session_label${preferredMediaJson('r.preferred_media')}
          )) FROM ready_program_exercises r JOIN exercises e ON e.id=r.exercise_id
          WHERE r.program_id=p.id ORDER BY r.position),'[]') AS "exercisePrescriptionsJson"
          FROM ready_workout_programs p WHERE p.trainer_id=$1 ORDER BY p.created_at DESC`,
