@@ -3105,3 +3105,20 @@ video.gif-lightbox-image {
     flex-basis: 100%;
   }
 }
+
+/* Treinos: só três campos, então ficam lado a lado também no tablet. */
+@media (max-width: 900px) {
+  .workout-toolbar .student-search,
+  .workout-toolbar .student-select,
+  .workout-toolbar select:not(.student-select) {
+    flex: 1 1 calc(33.333% - 7px);
+    min-width: 150px;
+  }
+}
+@media (max-width: 560px) {
+  .workout-toolbar .student-search,
+  .workout-toolbar .student-select,
+  .workout-toolbar select:not(.student-select) {
+    flex-basis: 100%;
+  }
+}
