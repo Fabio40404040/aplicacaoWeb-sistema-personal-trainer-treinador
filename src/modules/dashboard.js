@@ -133,12 +133,20 @@ function planBadge(student) {
     : [planLabels[code], period].filter(Boolean).join(' · ')
   return badge
 }
+// Situação do acesso: "Liberado" ou "Liberar". O período (mensal, anual,
+// permanente…) já aparece no selo do plano embaixo do nome; o motivo de
+// ainda não estar liberado fica na dica ao passar o mouse.
 function accessLabel(student) {
+  return student.accessStatus === 'active' && student.paymentStatus === 'paid'
+    ? 'Liberado'
+    : 'Liberar'
+}
+function accessDetail(student) {
   if (student.accessStatus === 'active' && student.paymentStatus === 'paid')
-    return student.accessType === 'permanent' ? 'Permanente' : 'Liberado'
-  if (student.accessStatus === 'paused') return 'Pausado'
-  if (student.accessStatus === 'cancelled') return 'Cancelado'
-  return student.paymentStatus === 'pending' ? 'Pagamento pendente' : 'Aguardando'
+    return 'Acesso liberado'
+  if (student.accessStatus === 'paused') return 'Acesso pausado'
+  if (student.accessStatus === 'cancelled') return 'Acesso cancelado'
+  return student.paymentStatus === 'pending' ? 'Pagamento pendente' : 'Aguardando liberação'
 }
 const numberFrom = (value) => {
   if (value === null || value === undefined || String(value).trim() === '') return null
@@ -207,6 +215,7 @@ function renderStudents() {
       row.querySelector('[data-cell="date"]').textContent = formatDate(student.assessmentDate)
       const status = row.querySelector('.status')
       status.textContent = accessLabel(student)
+      status.title = accessDetail(student)
       status.classList.add(
         student.accessStatus === 'active' && student.paymentStatus === 'paid'
           ? 'status--active'
@@ -253,6 +262,7 @@ function renderRecentStudents() {
       row.querySelector('[data-cell="activity"]').textContent = s.activity || 'Novo cadastro'
       const status = row.querySelector('.status')
       status.textContent = accessLabel(s)
+      status.title = accessDetail(s)
       status.classList.add(s.accessStatus === 'active' ? 'status--active' : 'status--paused')
       const view = row.querySelector('button')
       view.setAttribute('aria-label', `Editar ${s.name}`)
