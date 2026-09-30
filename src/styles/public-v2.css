@@ -1133,3 +1133,30 @@
 .plan-primary-actions:has(> a.plan-preview-link[hidden]) {
   grid-template-columns: 1fr;
 }
+
+/* Botão "Baixar App" (logo do app + texto) no topo do site no celular. */
+.public-install-button {
+  width: auto;
+  height: 46px;
+  gap: 8px;
+  padding: 0 14px 0 8px;
+  border: 1px solid rgba(199, 216, 238, 0.28);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f5f7fb;
+  font-weight: 700;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+.public-install-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.public-install-button img {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  opacity: 1;
+}
+.public-install-button:hover img {
+  opacity: 1;
+}
