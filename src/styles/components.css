@@ -2723,7 +2723,7 @@ video.gif-lightbox-image {
 }
 
 /* Selo do plano do aluno na lista de alunos (cor por plano). */
-.person-cell .plan-badge {
+.person-cell .student-plan-badge {
   display: inline-flex;
   justify-self: start;
   margin-top: 4px;
@@ -2735,27 +2735,27 @@ video.gif-lightbox-image {
   white-space: nowrap;
   border: 1px solid transparent;
 }
-.plan-badge--athlete {
+.student-plan-badge--athlete {
   color: #92400e;
   background: #fef3c7;
   border-color: #fcd34d;
 }
-.plan-badge--premium {
+.student-plan-badge--premium {
   color: #6b21a8;
   background: #f3e8ff;
   border-color: #d8b4fe;
 }
-.plan-badge--basic {
+.student-plan-badge--basic {
   color: #1d4ed8;
   background: #eef4ff;
   border-color: #bfdbfe;
 }
-.plan-badge--ready {
+.student-plan-badge--ready {
   color: #047857;
   background: #ecfdf5;
   border-color: #a7f3d0;
 }
-.plan-badge--none {
+.student-plan-badge--none {
   color: #64748b;
   background: #f1f5f9;
   border-color: #e2e8f0;

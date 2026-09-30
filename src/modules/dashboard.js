@@ -123,7 +123,7 @@ const planLabels = {
 function planBadge(student) {
   const code = planLabels[student.planCode] ? student.planCode : 'none'
   const badge = document.createElement('span')
-  badge.className = `plan-badge plan-badge--${code}`
+  badge.className = `student-plan-badge student-plan-badge--${code}`
   const period =
     student.planCode === 'ready' || student.accessType === 'permanent'
       ? 'permanente'
