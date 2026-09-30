@@ -50,6 +50,7 @@ import {
   listExerciseGifs,
   publicExerciseGifFile,
   publicExerciseGifPage,
+  publicPreviewGifFrame,
   studentExerciseGifFile,
   trainerExerciseGifFile,
   uploadExerciseGif,
@@ -62,6 +63,7 @@ import {
 import {
   createReadyProgram,
   deleteReadyProgram,
+  publicReadyPreview,
   updateReadyProgram,
 } from "./routes/ready-programs.js";
 
@@ -83,8 +85,13 @@ async function handle(request, env) {
     return withDb(env, (db) =>
       segments[3] === "ver"
         ? publicExerciseGifPage(db, segments[2])
-        : publicExerciseGifFile(env, db, segments[2]),
+        : segments[3] === "frame"
+          ? publicPreviewGifFrame(env, db, segments[2])
+          : publicExerciseGifFile(env, db, segments[2]),
     );
+  // Prévia pública do plano Treinos Prontos (botão "Ver prévia" do site).
+  if (request.method === "GET" && route === "public/ready-preview")
+    return withDb(env, (db) => publicReadyPreview(db));
   if (request.method === "POST" && route === "payments/mercadopago/webhook")
     return withDb(env, (db) => mercadoPagoWebhook(request, env, db));
   if (request.method === "POST" && route === "payments/webhook")

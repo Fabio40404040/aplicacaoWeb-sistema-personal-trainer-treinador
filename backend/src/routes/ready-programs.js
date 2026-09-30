@@ -10,6 +10,34 @@ async function preferredMediaReady(db) {
   }
 }
 
+// A marcação "prévia do site" chegou na migração 020.
+export async function previewColumnReady(db) {
+  try {
+    await db.query('SELECT is_preview FROM ready_workout_programs LIMIT 1')
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Marca (ou desmarca) o treino como prévia pública. Só um por personal:
+// marcar este desmarca os outros.
+async function savePreviewFlag(db, trainerId, id, body) {
+  if (body?.isPreview === undefined || !(await previewColumnReady(db))) return
+  const on = body.isPreview ? 1 : 0
+  const queries = []
+  if (on)
+    queries.push({
+      sql: 'UPDATE ready_workout_programs SET is_preview=0 WHERE trainer_id=$1 AND id<>$2',
+      values: [trainerId, id],
+    })
+  queries.push({
+    sql: 'UPDATE ready_workout_programs SET is_preview=$3 WHERE trainer_id=$1 AND id=$2',
+    values: [trainerId, id, on],
+  })
+  await db.batch(queries)
+}
+
 function normalizePrescriptions(body) {
   const items = Array.isArray(body?.exercisePrescriptions) ? body.exercisePrescriptions : []
   return items
@@ -105,6 +133,7 @@ export async function createReadyProgram(db, trainerId, body) {
     )
   ).rows[0]
   await saveExercises(db, trainerId, id, body)
+  await savePreviewFlag(db, trainerId, id, body)
   return row
 }
 
@@ -129,6 +158,7 @@ export async function updateReadyProgram(db, trainerId, id, body) {
   ).rows[0]
   if (!row) return { error: 'Treino pronto não encontrado.', status: 404 }
   await saveExercises(db, trainerId, id, body)
+  await savePreviewFlag(db, trainerId, id, body)
   return row
 }
 
@@ -138,4 +168,33 @@ export async function deleteReadyProgram(db, trainerId, id) {
     [id, trainerId],
   )
   return result.rows[0] || null
+}
+
+// Prévia pública do plano Treinos Prontos (botão "Ver prévia" do site):
+// o treino pronto que o personal marcou como prévia, só com os dados dos
+// exercícios (nada de aluno). Sem prévia marcada, devolve null.
+export async function publicReadyPreview(db) {
+  if (!(await previewColumnReady(db))) return { data: null }
+  let gifJson = ''
+  try {
+    await db.query('SELECT gif_id FROM exercises LIMIT 1')
+    gifJson = "'gifId',e.gif_id,"
+  } catch {
+    gifJson = ''
+  }
+  const row = (
+    await db.query(
+      `SELECT p.id,p.name,p.goal,p.level,p.duration,p.description,p.color_theme AS "colorTheme",
+         COALESCE((SELECT json_group_array(json_object(
+           'exerciseId',e.id,'name',e.name,'group',e.muscle_group,'equipment',e.equipment,
+           'instructions',e.instructions,'difficulty',e.difficulty,${gifJson}'position',r.position,
+           'sets',r.sets,'repetitions',r.repetitions,'restSeconds',r.rest_seconds,
+           'notes',r.notes,'sessionLabel',r.session_label
+         )) FROM ready_program_exercises r JOIN exercises e ON e.id=r.exercise_id
+         WHERE r.program_id=p.id ORDER BY r.position),'[]') AS "exercisePrescriptionsJson"
+       FROM ready_workout_programs p WHERE p.is_preview=1
+       ORDER BY p.updated_at DESC LIMIT 1`,
+    )
+  ).rows[0]
+  return { data: row || null }
 }

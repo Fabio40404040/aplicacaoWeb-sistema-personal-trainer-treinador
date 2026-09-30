@@ -190,6 +190,36 @@ export async function publicExerciseGifFile(env, db, id) {
     : { error: "Arquivo não encontrado.", status: 404 };
 }
 
+// Quadro parado do GIF para o PDF da prévia pública (botão "Ver prévia" do
+// plano Treinos Prontos). Só libera GIFs dos exercícios do treino marcado
+// como prévia pelo personal.
+export async function publicPreviewGifFrame(env, db, id) {
+  if (!env.MEDIA) return storageUnavailable();
+  if (!id || !/^[a-f0-9]{16,40}$/u.test(id))
+    return { error: "GIF não encontrado.", status: 404 };
+  let row;
+  try {
+    row = (
+      await db.query(
+        `SELECT g.frame_key AS "frameKey"
+         FROM exercise_gifs g
+         JOIN exercises e ON e.gif_id=g.id
+         JOIN ready_program_exercises r ON r.exercise_id=e.id
+         JOIN ready_workout_programs p ON p.id=r.program_id AND p.is_preview=1
+         WHERE g.id=$1 LIMIT 1`,
+        [id],
+      )
+    ).rows[0];
+  } catch {
+    row = null;
+  }
+  if (!row?.frameKey) return { error: "Quadro não encontrado.", status: 404 };
+  const object = await env.MEDIA.get(row.frameKey);
+  return object
+    ? mediaResponse(object, "image/jpeg", `${id}.jpg`)
+    : { error: "Arquivo não encontrado.", status: 404 };
+}
+
 export async function studentExerciseGifFile(env, db, accountId, id, kind) {
   if (!env.MEDIA) return storageUnavailable();
   const row = (

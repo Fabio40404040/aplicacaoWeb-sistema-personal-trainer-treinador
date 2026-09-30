@@ -50,12 +50,14 @@ async function studentAvatarReady(db) {
 }
 
 import { trainerProfile } from './profile.js'
+import { previewColumnReady } from './ready-programs.js'
 
 export async function dashboard(db, trainerId) {
   const withGifs = await gifSchemaReady(db)
   const withCustomGroups = await customGroupsReady(db)
   const withVideoLink = await videoLinkReady(db)
   const withPreferredMedia = await preferredMediaReady(db)
+  const withPreviewFlag = await previewColumnReady(db)
   const withStudentAvatar = await studentAvatarReady(db)
   // Foto de perfil que o aluno colocou na área dele (só de quem tem conta).
   const avatarColumn = withStudentAvatar
@@ -150,7 +152,7 @@ export async function dashboard(db, trainerId) {
     ),
     db.query(
       `SELECT p.id,p.name,p.goal,p.level,p.duration,p.description,p.color_theme AS "colorTheme",
-         p.published,p.created_at AS "createdAt",
+         p.published,p.created_at AS "createdAt"${withPreviewFlag ? ',p.is_preview AS "isPreview"' : ''},
          COALESCE((SELECT json_group_array(json_object(
            'exerciseId',e.id,'name',e.name,'group',e.muscle_group,'equipment',e.equipment,
            'instructions',e.instructions,'difficulty',e.difficulty,'mediaType',e.media_type,
