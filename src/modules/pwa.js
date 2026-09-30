@@ -18,26 +18,17 @@ async function reloadWhenAppChanged() {
   }
 }
 
-// Dois apps instaláveis do mesmo site: "FRS Personal" (site/alunos) e
-// "FRS Painel" (só do personal, abre direto no login do painel). Nas telas
-// do personal o navegador enxerga o manifesto do painel; no resto, o do site.
-const PERSONAL_ROUTES = new Set([
-  'acesso-frs',
-  'painel',
-  'alunos',
-  'agenda',
-  'treinos',
-  'exercicios',
-  'avaliacoes',
-  'checkins',
-  'evolucao',
-  'recuperar-senha-personal',
-  'nova-senha-personal',
-  'ativar-personal',
-])
+// Dois apps instaláveis do mesmo site: "FRS Personal" (site/alunos, em /) e
+// "FRS Painel" (só do personal, em /painel/). Endereços separados para o
+// Chrome aceitar os dois instalados. O login do personal sempre vai para
+// /painel/#acesso-frs (inclusive pelo atalho dos 5 toques no logo).
 function syncManifest() {
   const route = location.hash.slice(1).split('?')[0]
-  const personal = PERSONAL_ROUTES.has(route)
+  if (route === 'acesso-frs' && !location.pathname.startsWith('/painel/')) {
+    location.replace(`/painel/${location.hash}`)
+    return
+  }
+  const personal = location.pathname.startsWith('/painel/')
   const link = document.querySelector('link[rel="manifest"]')
   const href = personal ? '/painel.webmanifest' : '/app.webmanifest'
   if (link && link.getAttribute('href') !== href) link.setAttribute('href', href)
@@ -92,7 +83,7 @@ export function initPwa() {
         : 'Adicionar FRS Personal à tela inicial'
     instructions.textContent = isStandalone
       ? 'Você está dentro de um app instalado. Abra este endereço no navegador (Chrome ou Safari) e instale por lá: ' +
-        `${location.origin}/#acesso-frs`
+        `${location.origin}/painel/#acesso-frs`
       : isIos
         ? 'No Safari, toque em Compartilhar (quadrado com a seta) e escolha “Adicionar à Tela de Início”. Depois toque em Adicionar.'
         : /Android/u.test(ua)

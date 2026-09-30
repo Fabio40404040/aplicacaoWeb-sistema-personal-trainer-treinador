@@ -36,9 +36,12 @@
       href="/app.webmanifest"
     />
     <script>
-      // Abriu direto no login do personal: o navegador já lê o manifesto do
-      // app "FRS Painel" (para oferecer a instalação dele, não a do site).
-      if (/^#acesso-frs/.test(location.hash))
+      // App "FRS Painel": mora no endereço /painel/ (separado do app do site,
+      // para o Chrome deixar instalar os dois). O login do personal sempre
+      // abre por lá, e nesse endereço o navegador lê o manifesto do painel.
+      if (/^#acesso-frs/.test(location.hash) && !location.pathname.startsWith('/painel/'))
+        location.replace('/painel/' + location.hash)
+      if (location.pathname.startsWith('/painel/'))
         document.querySelector('link[rel="manifest"]').href = '/painel.webmanifest'
     </script>
     <link
@@ -307,11 +310,6 @@
           <a href="#planos">Planos</a>
           <a href="#aluno">Área do Aluno</a>
           <a href="#contato">Contato</a>
-          <a
-            class="personal-access-link"
-            href="#painel"
-            ><svg aria-hidden="true"><use href="#icon-lock"></use></svg>Área do Personal</a
-          >
         </nav>
         <div class="public-menu-wrap">
           <button
@@ -350,11 +348,6 @@
             <a href="#planos"><span>03</span>Planos</a>
             <a href="#aluno"><span>04</span>Área do Aluno</a>
             <a href="#contato"><span>05</span>Contato</a>
-            <a
-              class="personal-access-link"
-              href="#painel"
-              ><svg aria-hidden="true"><use href="#icon-lock"></use></svg>Área do Personal</a
-            >
           </nav>
         </div>
       </header>

@@ -1,0 +1,4 @@
+# App "FRS Painel" (personal): mesmo site, servido também em /painel/
+/painel /painel/ 301
+/painel/ /index.html 200
+/painel/* /index.html 200
