@@ -341,6 +341,31 @@ function catalogAddButton(groupName) {
   return button
 }
 
+// Marcar um exercício redesenha a lista; sem isto, as barras de rolagem
+// (da lista do grupo e da janela) voltavam para o início a cada clique.
+// Guarda a posição de tudo que estava rolado e devolve depois de redesenhar.
+function keepScrollPosition(root, redraw) {
+  const scope = root.closest('dialog') || root
+  const keyOf = (element) => {
+    const group = element.closest('.ready-exercise-group')?.querySelector('summary strong')
+    const same = [...scope.querySelectorAll(`.${[...element.classList].join('.') || 'x'}`)]
+    return `${element.className}|${group?.textContent || ''}|${same.indexOf(element)}`
+  }
+  const saved = [...scope.querySelectorAll('*')]
+    .filter((element) => element.scrollTop > 0)
+    .map((element) => [keyOf(element), element.scrollTop])
+  const windowY = window.scrollY
+  redraw()
+  const current = new Map(
+    [...scope.querySelectorAll('*')].map((element) => [keyOf(element), element]),
+  )
+  saved.forEach(([key, top]) => {
+    const element = current.get(key)
+    if (element) element.scrollTop = top
+  })
+  window.scrollTo(0, windowY)
+}
+
 function renderWorkoutExerciseCatalog(form) {
   const catalog = form.querySelector('[data-workout-exercise-catalog]')
   const exercises = getData().exercises || []
@@ -402,11 +427,13 @@ function renderWorkoutExerciseCatalog(form) {
           } else if (assignment?.sessionLabel === form.workoutActiveSession) {
             form.workoutPrescriptionMap.delete(exerciseId)
           }
-          renderWorkoutWizard(form)
-          const reopened = [...catalog.querySelectorAll('details')].find(
-            (item) => item.querySelector('summary strong')?.textContent === group.name,
-          )
-          if (reopened) reopened.open = true
+          keepScrollPosition(form, () => {
+            renderWorkoutWizard(form)
+            const reopened = [...catalog.querySelectorAll('details')].find(
+              (item) => item.querySelector('summary strong')?.textContent === group.name,
+            )
+            if (reopened) reopened.open = true
+          })
         })
         options.append(label)
       })
@@ -929,11 +956,13 @@ function renderReadyExerciseCatalog(form) {
           } else if (assignment?.sessionLabel === form.readyActiveSession) {
             form.readyPrescriptionMap.delete(String(exercise.id))
           }
-          renderReadyWizard(form)
-          const reopened = [...catalog.querySelectorAll('details')].find(
-            (item) => item.querySelector('summary strong')?.textContent === group.name,
-          )
-          if (reopened) reopened.open = true
+          keepScrollPosition(form, () => {
+            renderReadyWizard(form)
+            const reopened = [...catalog.querySelectorAll('details')].find(
+              (item) => item.querySelector('summary strong')?.textContent === group.name,
+            )
+            if (reopened) reopened.open = true
+          })
         })
         options.append(label)
       })
