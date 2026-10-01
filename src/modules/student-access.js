@@ -1,7 +1,7 @@
 import { downloadWorkoutPdf } from './workout-pdf.js'
 import { openSecureCardForm } from './mercado-pago-card.js'
 import { createQrCodeImage } from './pix.js'
-import { findExerciseVideo } from '../data/library.js'
+import { findExerciseVideo, legGroupNames } from '../data/library.js'
 import { hideStudentExtras, renderStudentExtras } from './student-extras.js'
 
 const TOKEN_KEY = 'frs-student-token'
@@ -411,7 +411,23 @@ function appendExerciseGroups(parent, exercises, uploadedVideos = []) {
     .forEach(([session, items]) => {
       // Pastas começam fechadas e só uma fica aberta por vez.
       const section = element('details', 'student-muscle-group')
-      const groups = [...new Set(items.map((exercise) => exercise.group).filter(Boolean))]
+      // Um exercício pode ter mais de um grupo ("Glúteos, Quadríceps"): separa,
+      // tira os repetidos e junta as partes das pernas num nome só.
+      const names = [
+        ...new Set(
+          items.flatMap((exercise) =>
+            String(exercise.group || '')
+              .split(',')
+              .map((name) => name.trim())
+              .filter(Boolean),
+          ),
+        ),
+      ]
+      const legs = names.filter((name) => legGroupNames.includes(name))
+      const groups =
+        legs.length > 1
+          ? ['Pernas', ...names.filter((name) => !legGroupNames.includes(name))]
+          : names
       const summary = element('summary', '')
       summary.append(
         element('span', 'student-group-title', `Treino ${session} — ${groups.join(' / ')}`),
