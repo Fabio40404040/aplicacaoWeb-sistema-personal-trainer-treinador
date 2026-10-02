@@ -6,8 +6,8 @@
   --site-text: #f5f7fb;
   --site-muted: #aebbd0;
   --site-line: rgba(189, 211, 240, 0.14);
-  --site-blue: #3d8bfd;
-  --site-blue-light: #77b5ff;
+  --site-blue: #2dd4a0;
+  --site-blue-light: #d9f99d;
   min-height: 100vh;
   overflow: clip;
   color: var(--site-text);
@@ -131,7 +131,7 @@
 }
 .public-menu-toggle:hover {
   border-color: rgba(119, 181, 255, 0.6);
-  background: rgba(61, 139, 253, 0.13);
+  background: rgba(45, 212, 160, 0.13);
 }
 .public-menu {
   position: absolute;
@@ -165,7 +165,7 @@
   letter-spacing: 0.08em;
 }
 .public-menu a:hover {
-  background: rgba(61, 139, 253, 0.14);
+  background: rgba(45, 212, 160, 0.14);
 }
 
 .public-main {
@@ -246,7 +246,7 @@
   aspect-ratio: 1.42;
   margin: 0;
   overflow: hidden;
-  border: 1px solid rgba(151, 199, 255, 0.48);
+  border: 1px solid rgba(190, 242, 100, 0.48);
   border-radius: 15px;
   background: #111b27;
   box-shadow:
@@ -352,7 +352,7 @@
   border: 1px solid #68aaff;
   border-radius: 11px;
   color: #fff;
-  background: linear-gradient(135deg, #1c67db, #3d8bfd);
+  background: linear-gradient(135deg, #0f9a8c, #a3e635);
   box-shadow: 0 15px 36px rgba(24, 99, 215, 0.32);
   font-weight: 800;
   text-decoration: none;
@@ -426,7 +426,7 @@
   border: 0;
   border-radius: 9px;
   color: #fff;
-  background: #1c67db;
+  background: #0f9a8c;
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -516,7 +516,7 @@
   background: var(--site-card-hover);
   box-shadow:
     0 24px 56px rgba(4, 10, 18, 0.3),
-    0 0 0 1px rgba(61, 139, 253, 0.12);
+    0 0 0 1px rgba(45, 212, 160, 0.12);
 }
 .public-info-card {
   min-height: 280px;
@@ -541,7 +541,7 @@
   border: 1px solid rgba(113, 176, 255, 0.28);
   border-radius: 14px;
   color: var(--site-blue-light);
-  background: rgba(61, 139, 253, 0.1);
+  background: rgba(45, 212, 160, 0.1);
 }
 .card-icon svg,
 .student-login-icon svg {
@@ -581,7 +581,7 @@
   padding: 6px 9px;
   border-radius: 20px;
   color: #ddecff;
-  background: rgba(61, 139, 253, 0.22);
+  background: rgba(45, 212, 160, 0.22);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -640,7 +640,7 @@
   border: 1px solid rgba(123, 183, 255, 0.5);
   border-radius: 10px;
   color: #e9f3ff;
-  background: rgba(61, 139, 253, 0.08);
+  background: rgba(45, 212, 160, 0.08);
   font-weight: 800;
   text-decoration: none;
 }
@@ -777,7 +777,7 @@
   place-items: center;
   border-radius: 8px;
   color: var(--site-blue-light);
-  background: rgba(61, 139, 253, 0.12);
+  background: rgba(45, 212, 160, 0.12);
   font-size: 1.25rem;
 }
 .faq-list details[open] summary::after {
@@ -854,7 +854,7 @@
 .contact-links a:hover {
   transform: translateY(-4px);
   border-color: var(--site-blue-light);
-  background: rgba(61, 139, 253, 0.15);
+  background: rgba(45, 212, 160, 0.15);
 }
 .contact-links svg {
   width: 25px;
@@ -1155,4 +1155,73 @@
   width: 20px;
   height: 20px;
   flex: none;
+}
+
+/* ---------- Tema verde + lima do site público ---------- */
+/* A cor entra como "iluminação" da academia: a foto continua nítida e o
+   personal fica com a cor natural (a camada colorida fica atrás dele). */
+.public-screen .public-cta,
+.public-screen .public-cta:hover {
+  color: #062a12;
+  font-weight: 700;
+}
+.public-brand .brand-mark {
+  color: #062a12;
+  background: linear-gradient(135deg, #0f9a8c, #a3e635);
+}
+.public-hero::before {
+  z-index: 0;
+  background:
+    linear-gradient(180deg, rgba(8, 12, 18, 0.5), rgba(8, 12, 18, 0.38)),
+    linear-gradient(115deg, #00a88f 0%, #a3e635 100%);
+  background-blend-mode: normal;
+  mix-blend-mode: color;
+  opacity: 0.78;
+}
+.public-hero::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(8, 12, 18, 0.46) 0%, rgba(8, 12, 18, 0.3) 60%, transparent 100%),
+    radial-gradient(60% 70% at 100% 0%, rgba(163, 230, 53, 0.13), transparent 70%),
+    radial-gradient(55% 65% at 0% 100%, rgba(0, 168, 143, 0.17), transparent 70%);
+}
+.public-hero-athlete {
+  filter: saturate(1.1) contrast(1.05);
+}
+.public-hero-overlay {
+  background: linear-gradient(180deg, transparent 0%, transparent 60%, #18212d 100%);
+}
+.public-hero-copy {
+  border-color: rgba(217, 249, 157, 0.28);
+  background: rgba(8, 12, 18, 0.52);
+}
+@media (max-width: 860px) {
+  .public-hero::after {
+    display: none;
+  }
+  .public-hero-athlete {
+    background-image:
+      url('../assets/img/coach-cutout.png'),
+      linear-gradient(rgba(8, 12, 18, 0.42), rgba(8, 12, 18, 0.42)),
+      linear-gradient(115deg, #00a88f, #a3e635), url('../assets/img/gym-hero-wide.png');
+    background-size:
+      auto 100%,
+      cover,
+      cover,
+      cover;
+    background-position:
+      center bottom,
+      center,
+      center,
+      center bottom;
+    background-blend-mode: normal, normal, color, normal;
+  }
+  .public-hero-copy {
+    border: 0;
+    background: transparent;
+  }
 }

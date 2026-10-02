@@ -13,6 +13,8 @@
   .public-hero-athlete {
     background-position:
       calc(50% - 14vw) bottom,
+      center,
+      center,
       center bottom;
   }
 }

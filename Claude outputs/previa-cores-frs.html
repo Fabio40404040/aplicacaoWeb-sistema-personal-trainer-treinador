@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prévia de cores — FRS</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;padding:20px 16px 40px;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#eef1f6;color:#14213d}
+  h1{font-size:1.3rem;margin:0 0 4px}
+  .lead{margin:0 0 22px;color:#56617a;font-size:.95rem}
+  .opt{max-width:980px;margin:0 auto 28px;border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 10px 30px rgba(20,33,61,.10)}
+  .tag{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #e6eaf1}
+  .tag strong{font-size:1.02rem}
+  .tag span{color:#56617a;font-size:.86rem}
+  .sw{display:flex;gap:6px;margin-left:auto}
+  .sw i{width:26px;height:26px;border-radius:8px;border:1px solid rgba(0,0,0,.08)}
+  .hero{position:relative;padding:44px 28px 52px;color:#fff;background:var(--bg);overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-90px;top:-90px;width:340px;height:340px;border-radius:50%;background:var(--glow);filter:blur(10px);opacity:.55}
+  .nav{position:relative;display:flex;align-items:center;gap:14px;margin-bottom:38px;font-size:.86rem}
+  .logo{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:var(--btn);color:var(--btnText);font-weight:800;font-size:.8rem}
+  .nav b{margin-right:auto}
+  .nav a{color:rgba(255,255,255,.82);text-decoration:none}
+  .eyebrow{position:relative;display:inline-block;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.14);font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+  .hero h2{position:relative;margin:14px 0 10px;font-size:clamp(1.7rem,5vw,2.7rem);line-height:1.08;letter-spacing:-.02em;max-width:15ch}
+  .hero h2 em{font-style:normal;color:var(--accent)}
+  .hero p{position:relative;margin:0 0 22px;max-width:46ch;color:rgba(255,255,255,.85);line-height:1.5}
+  .btns{position:relative;display:flex;flex-wrap:wrap;gap:10px}
+  .b1,.b2{padding:12px 20px;border-radius:12px;font-weight:700;font-size:.92rem;border:0}
+  .b1{background:var(--btn);color:var(--btnText);box-shadow:0 10px 24px rgba(0,0,0,.25)}
+  .b2{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;padding:20px 18px 22px;background:var(--soft)}
+  .card{padding:16px;border-radius:14px;background:#fff;border:1px solid #e6eaf1}
+  .card small{color:var(--main);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:.7rem}
+  .card h3{margin:6px 0 4px;font-size:1.02rem}
+  .card p{margin:0 0 12px;color:#56617a;font-size:.86rem;line-height:1.45}
+  .card button{width:100%;padding:10px;border-radius:10px;border:0;background:var(--main);color:#fff;font-weight:700}
+  .card.dest{border:2px solid var(--main)}
+  .o1{--bg:linear-gradient(135deg,#0b1f4d 0%,#1764ff 55%,#19c2d1 100%);--glow:#22d3ee;--accent:#7ef0e0;--btn:#19e0c6;--btnText:#052a3a;--main:#1257e6;--soft:#f1f6ff}
+  .o2{--bg:linear-gradient(135deg,#0c0f1a 0%,#1d2233 55%,#3a2410 100%);--glow:#ff7a18;--accent:#ffa24d;--btn:#ff7a18;--btnText:#1a0d00;--main:#e8650a;--soft:#fff6ee}
+  .o3{--bg:linear-gradient(135deg,#062a2a 0%,#0f766e 55%,#84cc16 100%);--glow:#bef264;--accent:#d9f99d;--btn:#d9f99d;--btnText:#0b2b12;--main:#0f766e;--soft:#f0fbf7}
+</style>
+</head>
+<body>
+<h1>3 variações de cores para o FRS</h1>
+<p class="lead">Mesmo layout, só trocando as cores: fundo do topo (hero) em degradê de duas cores, botões e cartões de plano.</p>
+
+<section class="opt o1">
+  <div class="tag"><strong>1 · Azul + Turquesa</strong><span>Mantém a identidade atual, mais moderna e "tecnológica".</span>
+    <div class="sw"><i style="background:#0b1f4d"></i><i style="background:#1764ff"></i><i style="background:#19c2d1"></i><i style="background:#19e0c6"></i></div></div>
+  <div class="hero">
+    <div class="nav"><span class="logo">FRS</span><b>FRS Personal Trainer</b><a>Consultoria</a><a>Planos</a><a>Área do aluno</a></div>
+    <span class="eyebrow">Consultoria online e presencial</span>
+    <h2>Treino certo, <em>resultado real</em>.</h2>
+    <p>Ficha personalizada, avaliação física e acompanhamento semanal direto no seu celular.</p>
+    <div class="btns"><button class="b1">Escolher plano</button><button class="b2">Baixar App</button></div>
+  </div>
+  <div class="cards">
+    <div class="card"><small>Básico</small><h3>Consultoria Básica</h3><p>Ficha personalizada e check-in semanal.</p><button>Escolher plano</button></div>
+    <div class="card dest"><small>Mais escolhido</small><h3>Consultoria Premium</h3><p>Avaliação, ajustes e consulta por vídeo.</p><button>Escolher plano</button></div>
+    <div class="card"><small>Atleta</small><h3>Performance Atleta</h3><p>Planejamento completo de alto rendimento.</p><button>Escolher plano</button></div>
+  </div>
+</section>
+
+<section class="opt o2">
+  <div class="tag"><strong>2 · Grafite + Laranja</strong><span>Visual de academia: forte, energia, chama atenção nos botões.</span>
+    <div class="sw"><i style="background:#0c0f1a"></i><i style="background:#1d2233"></i><i style="background:#ff7a18"></i><i style="background:#ffa24d"></i></div></div>
+  <div class="hero">
+    <div class="nav"><span class="logo">FRS</span><b>FRS Personal Trainer</b><a>Consultoria</a><a>Planos</a><a>Área do aluno</a></div>
+    <span class="eyebrow">Consultoria online e presencial</span>
+    <h2>Treino certo, <em>resultado real</em>.</h2>
+    <p>Ficha personalizada, avaliação física e acompanhamento semanal direto no seu celular.</p>
+    <div class="btns"><button class="b1">Escolher plano</button><button class="b2">Baixar App</button></div>
+  </div>
+  <div class="cards">
+    <div class="card"><small>Básico</small><h3>Consultoria Básica</h3><p>Ficha personalizada e check-in semanal.</p><button>Escolher plano</button></div>
+    <div class="card dest"><small>Mais escolhido</small><h3>Consultoria Premium</h3><p>Avaliação, ajustes e consulta por vídeo.</p><button>Escolher plano</button></div>
+    <div class="card"><small>Atleta</small><h3>Performance Atleta</h3><p>Planejamento completo de alto rendimento.</p><button>Escolher plano</button></div>
+  </div>
+</section>
+
+<section class="opt o3">
+  <div class="tag"><strong>3 · Verde-petróleo + Lima</strong><span>Passa saúde e bem-estar; diferente da maioria dos apps de treino.</span>
+    <div class="sw"><i style="background:#062a2a"></i><i style="background:#0f766e"></i><i style="background:#84cc16"></i><i style="background:#d9f99d"></i></div></div>
+  <div class="hero">
+    <div class="nav"><span class="logo">FRS</span><b>FRS Personal Trainer</b><a>Consultoria</a><a>Planos</a><a>Área do aluno</a></div>
+    <span class="eyebrow">Consultoria online e presencial</span>
+    <h2>Treino certo, <em>resultado real</em>.</h2>
+    <p>Ficha personalizada, avaliação física e acompanhamento semanal direto no seu celular.</p>
+    <div class="btns"><button class="b1">Escolher plano</button><button class="b2">Baixar App</button></div>
+  </div>
+  <div class="cards">
+    <div class="card"><small>Básico</small><h3>Consultoria Básica</h3><p>Ficha personalizada e check-in semanal.</p><button>Escolher plano</button></div>
+    <div class="card dest"><small>Mais escolhido</small><h3>Consultoria Premium</h3><p>Avaliação, ajustes e consulta por vídeo.</p><button>Escolher plano</button></div>
+    <div class="card"><small>Atleta</small><h3>Performance Atleta</h3><p>Planejamento completo de alto rendimento.</p><button>Escolher plano</button></div>
+  </div>
+</section>
+</body>
+</html>
