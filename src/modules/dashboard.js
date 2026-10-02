@@ -396,6 +396,17 @@ function renderWorkouts() {
       back.addEventListener('click', () => selectStudent(''))
       head.append(back)
     }
+    // Com "Todos os alunos" aparece só a lista de nomes (fechada); as fichas
+    // abrem ao clicar no aluno ou escolher o nome no filtro.
+    if (!chosen) {
+      section.classList.add('is-closed')
+      const hint = document.createElement('span')
+      hint.className = 'workout-group-open'
+      hint.textContent = 'Ver fichas ›'
+      who.append(hint)
+      section.append(head)
+      return section
+    }
     const cards = document.createElement('div')
     cards.className = 'cards-grid'
     cards.append(...group.items.map(workoutCard))
