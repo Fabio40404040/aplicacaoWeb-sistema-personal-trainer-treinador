@@ -142,6 +142,17 @@ export function askText({
 export function showToast(message) {
   const toast = document.querySelector('[data-toast]')
   toast.querySelector('span').textContent = message
+  // Janela aberta (ex.: cadastro de aluno): o aviso precisa ficar DENTRO dela,
+  // senão fica escondido atrás e parece que o botão não fez nada.
+  const dialogs = [...document.querySelectorAll('dialog[open]')].filter((d) => d.matches(':modal'))
+  const host = dialogs[dialogs.length - 1] || document.body
+  if (toast.parentElement !== host) host.append(toast)
+  if (host !== document.body)
+    host.addEventListener(
+      'close',
+      () => toast.parentElement === host && document.body.append(toast),
+      { once: true },
+    )
   toast.classList.add('is-visible')
   window.clearTimeout(showToast.timer)
   showToast.timer = window.setTimeout(() => toast.classList.remove('is-visible'), 2600)
