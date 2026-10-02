@@ -5,7 +5,16 @@ const SESSION_KEY = 'frs-coach-session-v2'
 // para entrar, use o endereço direto (salve nos favoritos): seu-site/#acesso-frs
 export const PERSONAL_LOGIN_ROUTE = 'acesso-frs'
 
+// Tema roxo do painel do personal (o site e a área do aluno seguem azuis).
+function painelTheme(on) {
+  document.documentElement.classList.toggle('painel-theme', on)
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', on ? '#6d28d9' : '#18212d')
+}
+
 function showApp() {
+  painelTheme(true)
   document.querySelector('[data-public-screen]').hidden = true
   document.querySelector('[data-login-screen]').hidden = true
   document.querySelector('[data-app-shell]').hidden = false
@@ -13,6 +22,7 @@ function showApp() {
 }
 
 function showLogin() {
+  painelTheme(true)
   document.querySelector('[data-public-screen]').hidden = true
   document.querySelector('[data-login-screen]').hidden = false
   document.querySelector('[data-app-shell]').hidden = true
@@ -21,6 +31,7 @@ function showLogin() {
 }
 
 function showPublic() {
+  painelTheme(false)
   document.querySelector('[data-public-screen]').hidden = false
   document.querySelector('[data-login-screen]').hidden = true
   document.querySelector('[data-app-shell]').hidden = true
@@ -56,6 +67,7 @@ function handleLocation() {
     document.querySelector('[data-login-screen]').hidden = true
     document.querySelector('[data-app-shell]').hidden = true
     document.querySelector(`[data-student-screen="${studentRoute}"]`).hidden = false
+    painelTheme(false)
     document.title = 'FRS Personal Trainer'
     return
   }
@@ -66,6 +78,7 @@ function handleLocation() {
     document.querySelector('[data-login-screen]').hidden = true
     document.querySelector('[data-app-shell]').hidden = true
     document.querySelector(`[data-personal-screen="${studentRoute}"]`).hidden = false
+    painelTheme(true)
     document.title = 'FRS Personal Trainer'
     return
   }
