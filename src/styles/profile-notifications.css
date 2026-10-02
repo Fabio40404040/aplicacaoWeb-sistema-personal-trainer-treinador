@@ -286,3 +286,36 @@
     height: 72px;
   }
 }
+
+/* Apagar notificações (uma por uma no × ou todas de uma vez). */
+.notification-panel header strong {
+  margin-right: auto;
+}
+.notification-clear {
+  color: var(--red-600);
+}
+.notification-item {
+  position: relative;
+}
+.notification-item > a,
+.notification-item > div {
+  padding-right: 40px;
+}
+.notification-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ink-500);
+  background: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.notification-remove:hover {
+  color: var(--red-600);
+  background: var(--red-100);
+}

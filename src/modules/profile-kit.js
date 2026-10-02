@@ -165,6 +165,10 @@ function writeSeen(key, ids) {
 export function createNotificationCenter({ button, storageKey, title = 'Notificações' }) {
   let items = []
   let seen = readSeen(storageKey)
+  // Notificações apagadas pelo usuário (somem da lista neste aparelho).
+  const dismissedKey = `${storageKey}-apagadas`
+  let dismissed = readSeen(dismissedKey)
+  let all = []
   const dot = button.querySelector('span') || button.appendChild(document.createElement('span'))
   dot.classList.add('notification-count')
   button.setAttribute('aria-haspopup', 'dialog')
@@ -175,7 +179,7 @@ export function createNotificationCenter({ button, storageKey, title = 'Notifica
   panel.hidden = true
   panel.setAttribute('role', 'dialog')
   panel.setAttribute('aria-label', title)
-  panel.innerHTML = `<header><strong>${title}</strong><button type="button" class="notification-mark" data-mark-all>Marcar todas como lidas</button></header><ol data-list></ol>`
+  panel.innerHTML = `<header><strong>${title}</strong><button type="button" class="notification-mark" data-mark-all>Marcar como lidas</button><button type="button" class="notification-mark notification-clear" data-clear-all>Apagar todas</button></header><ol data-list></ol>`
   document.body.append(panel)
   const list = panel.querySelector('[data-list]')
 
@@ -225,7 +229,17 @@ export function createNotificationCenter({ button, storageKey, title = 'Notifica
           body.append(small)
         }
         link.append(icon, body)
-        li.append(link)
+        const remove = document.createElement('button')
+        remove.type = 'button'
+        remove.className = 'notification-remove'
+        remove.textContent = '×'
+        remove.title = 'Apagar notificação'
+        remove.setAttribute('aria-label', `Apagar notificação: ${item.title}`)
+        remove.addEventListener('click', (event) => {
+          event.stopPropagation()
+          dismiss([item.id])
+        })
+        li.append(link, remove)
         return li
       }),
     )
@@ -237,6 +251,18 @@ export function createNotificationCenter({ button, storageKey, title = 'Notifica
     panel.style.width = `${width}px`
     panel.style.top = `${rect.bottom + 8}px`
     panel.style.left = `${Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8))}px`
+  }
+
+  function dismiss(ids) {
+    ids.forEach((id) => {
+      dismissed.add(id)
+      seen.add(id)
+    })
+    writeSeen(dismissedKey, dismissed)
+    writeSeen(storageKey, seen)
+    items = all.filter((item) => !dismissed.has(item.id))
+    paintBadge()
+    paintList()
   }
 
   function markAllSeen() {
@@ -268,6 +294,9 @@ export function createNotificationCenter({ button, storageKey, title = 'Notifica
     markAllSeen()
     paintList()
   })
+  panel.querySelector('[data-clear-all]').addEventListener('click', () => {
+    dismiss(items.map((item) => item.id))
+  })
   document.addEventListener('click', (event) => {
     if (!panel.hidden && !panel.contains(event.target) && !button.contains(event.target)) close()
   })
@@ -279,12 +308,17 @@ export function createNotificationCenter({ button, storageKey, title = 'Notifica
 
   return {
     update(next) {
-      items = next
+      all = next
+      items = all.filter((item) => !dismissed.has(item.id))
       // Esquece ids antigos que não existem mais, para não crescer à toa.
-      const alive = new Set(items.map((item) => item.id))
+      const alive = new Set(all.map((item) => item.id))
       if ([...seen].some((id) => !alive.has(id)) && seen.size > 200) {
         seen = new Set([...seen].filter((id) => alive.has(id)))
         writeSeen(storageKey, seen)
+      }
+      if ([...dismissed].some((id) => !alive.has(id)) && dismissed.size > 200) {
+        dismissed = new Set([...dismissed].filter((id) => alive.has(id)))
+        writeSeen(dismissedKey, dismissed)
       }
       paintBadge()
       if (!panel.hidden) paintList()
