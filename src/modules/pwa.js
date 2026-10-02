@@ -37,7 +37,7 @@ function syncManifest() {
   if (touch)
     touch.setAttribute(
       'href',
-      personal ? '/icons/painel-v2-apple-touch-icon.png' : '/icons/apple-touch-icon.png',
+      personal ? '/icons/painel-v2-apple-touch-icon.png' : '/icons/aluno-v2-apple-touch-icon.png',
     )
   const title = document.querySelector('meta[name="apple-mobile-web-app-title"]')
   if (title) title.setAttribute('content', personal ? 'FRS Painel' : 'FRS - Aluno')
