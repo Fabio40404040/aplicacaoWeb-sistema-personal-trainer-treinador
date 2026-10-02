@@ -27,7 +27,18 @@ function showPublic() {
   document.title = 'FRS Personal Trainer'
 }
 
+// App "FRS Painel" (endereço /painel/): é só do personal. O iPhone pode abrir
+// o app sem o "#acesso-frs" no endereço — aí, em vez do site público, vai
+// direto para o login (ou para o painel, se já estiver logado).
+const PUBLIC_ROUTES = ['inicio', 'consultoria', 'planos', 'aluno', 'faq', 'contato', 'login']
+function inPainelApp() {
+  return location.pathname.startsWith('/painel/')
+}
+
 function handleLocation() {
+  if (inPainelApp() && (!location.hash || PUBLIC_ROUTES.includes(location.hash.slice(1)))) {
+    history.replaceState(null, '', `${location.pathname}#${PERSONAL_LOGIN_ROUTE}`)
+  }
   const route = location.hash.slice(1)
   document.querySelectorAll('[data-student-screen]').forEach((screen) => {
     screen.hidden = true
@@ -69,11 +80,11 @@ function handleLocation() {
   }
   if (route === PERSONAL_LOGIN_ROUTE) {
     // Já logado (ex.: abriu o app "FRS Painel"): vai direto para o painel.
-    if (sessionStorage.getItem(SESSION_KEY)) showApp()
+    if (localStorage.getItem(SESSION_KEY)) showApp()
     else showLogin()
     return
   }
-  if (sessionStorage.getItem(SESSION_KEY)) showApp()
+  if (localStorage.getItem(SESSION_KEY)) showApp()
   else showLogin()
 }
 
@@ -129,12 +140,12 @@ export function initAuth() {
       await syncRemoteData()
       if (controller.signal.aborted || location.hash !== `#${PERSONAL_LOGIN_ROUTE}`) return
       pendingLogin = null
-      sessionStorage.setItem(SESSION_KEY, 'active')
+      localStorage.setItem(SESSION_KEY, 'active')
       status.textContent = ''
       showApp()
     } catch (error) {
       if (controller.signal.aborted) return
-      sessionStorage.removeItem(SESSION_KEY)
+      localStorage.removeItem(SESSION_KEY)
       clearApiSession()
       status.textContent = error.message
     } finally {
@@ -146,15 +157,15 @@ export function initAuth() {
   // Login vencido (a API respondeu 401): volta para a tela de entrada com um
   // aviso, em vez de deixar o painel aberto tentando carregar tudo sem acesso.
   window.addEventListener('frs:session-expired', () => {
-    if (!sessionStorage.getItem(SESSION_KEY)) return
-    sessionStorage.removeItem(SESSION_KEY)
+    if (!localStorage.getItem(SESSION_KEY)) return
+    localStorage.removeItem(SESSION_KEY)
     document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close())
     showLogin()
     status.textContent = 'Sua sessão expirou. Entre de novo para continuar.'
   })
 
   document.querySelector('[data-logout]').addEventListener('click', () => {
-    sessionStorage.removeItem(SESSION_KEY)
+    localStorage.removeItem(SESSION_KEY)
     clearApiSession()
     location.hash = '#inicio'
     showPublic()

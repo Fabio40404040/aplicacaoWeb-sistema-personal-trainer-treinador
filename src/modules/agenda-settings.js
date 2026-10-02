@@ -591,7 +591,7 @@ export function initAgendaSettings() {
   )
   // Carrega a configuração quando o painel já tem sessão.
   const tryLoad = () => {
-    if (!config && sessionStorage.getItem('frs-coach-api-token')) void loadBookingConfig()
+    if (!config && localStorage.getItem('frs-coach-api-token')) void loadBookingConfig()
   }
   window.addEventListener('frs:data-changed', tryLoad)
   tryLoad()

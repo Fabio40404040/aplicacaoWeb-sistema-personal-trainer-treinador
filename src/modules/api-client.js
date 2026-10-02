@@ -7,15 +7,15 @@ const TOKEN_KEY = "frs-coach-api-token";
 // centenas de GIFs (e encher o terminal de "401 Unauthorized"), apagamos o
 // token uma vez só, paramos de pedir arquivos e avisamos a tela de login.
 function handleUnauthorized(status) {
-  if (status !== 401 || !sessionStorage.getItem(TOKEN_KEY)) return;
-  sessionStorage.removeItem(TOKEN_KEY);
+  if (status !== 401 || !localStorage.getItem(TOKEN_KEY)) return;
+  localStorage.removeItem(TOKEN_KEY);
   window.dispatchEvent(new CustomEvent("frs:session-expired"));
 }
 const sessionExpiredError = () =>
   new Error("Sua sessão expirou. Entre de novo para continuar.");
 
 async function request(path, options = {}) {
-  const token = sessionStorage.getItem(TOKEN_KEY);
+  const token = localStorage.getItem(TOKEN_KEY);
   const { timeoutMs = 12000, ...fetchOptions } = options;
   const controller = new AbortController();
   const cancelRequest = () => controller.abort();
@@ -72,11 +72,11 @@ export async function login(credentials, signal) {
   if (signal?.aborted) throw new Error("Entrada cancelada.");
   if (!result?.token)
     throw new Error("O servidor não retornou uma sessão válida.");
-  sessionStorage.setItem(TOKEN_KEY, result.token);
+  localStorage.setItem(TOKEN_KEY, result.token);
   return result;
 }
 export function clearApiSession() {
-  sessionStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_KEY);
 }
 // Agenda online/presencial: horários, tipos de atendimento e cota por plano.
 export function fetchBookingConfig() {
@@ -122,7 +122,7 @@ export function updateReadyWorkout(id, published) {
   });
 }
 export async function downloadReadyWorkout(id, filename) {
-  const token = sessionStorage.getItem(TOKEN_KEY);
+  const token = localStorage.getItem(TOKEN_KEY);
   if (!token) throw sessionExpiredError();
   const response = await fetch(`${API_URL}/api/ready-workouts/${id}/file`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -150,7 +150,7 @@ export function deleteExerciseVideo(id) {
   return request(`/exercise-videos/${id}`, { method: "DELETE" });
 }
 export async function loadExerciseVideo(id) {
-  const token = sessionStorage.getItem(TOKEN_KEY);
+  const token = localStorage.getItem(TOKEN_KEY);
   if (!token) throw sessionExpiredError();
   const response = await fetch(`${API_URL}/api/exercise-videos/${id}/file`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -180,7 +180,7 @@ export function loadExerciseGif(id, kind = "file") {
   const cacheKey = `${id}:${kind}`;
   if (exerciseGifUrls.has(cacheKey)) return exerciseGifUrls.get(cacheKey);
   const pending = (async () => {
-    const token = sessionStorage.getItem(TOKEN_KEY);
+    const token = localStorage.getItem(TOKEN_KEY);
     // Sem login não adianta pedir: a API só devolveria 401.
     if (!token) throw sessionExpiredError();
     const response = await fetch(`${API_URL}/api/exercise-gifs/${id}/${kind}`, {
@@ -199,7 +199,7 @@ export function loadExerciseGif(id, kind = "file") {
 }
 // Quadro parado do GIF, em bytes, para embutir no PDF da ficha.
 export async function loadExerciseGifFrame(id) {
-  const token = sessionStorage.getItem(TOKEN_KEY);
+  const token = localStorage.getItem(TOKEN_KEY);
   if (!token) return null;
   const response = await fetch(`${API_URL}/api/exercise-gifs/${id}/frame`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -227,7 +227,7 @@ export function forgetExerciseGif(id) {
   });
 }
 export async function syncRemoteData() {
-  if (!sessionStorage.getItem(TOKEN_KEY)) return;
+  if (!localStorage.getItem(TOKEN_KEY)) return;
   try {
     const remote = await request("/dashboard");
     replaceData({ ...getData(), ...remote });
