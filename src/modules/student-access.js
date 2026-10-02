@@ -3,6 +3,9 @@ import { openSecureCardForm } from './mercado-pago-card.js'
 import { createQrCodeImage } from './pix.js'
 import { findExerciseVideo, legGroupNames } from '../data/library.js'
 import { hideStudentExtras, renderStudentExtras } from './student-extras.js'
+import { renderStudentAgenda } from './student-agenda.js'
+
+let reloadStudentPanel = async () => {}
 
 const TOKEN_KEY = 'frs-student-token'
 const API_URL = import.meta.env.VITE_API_URL || ''
@@ -502,6 +505,13 @@ function renderPortal(container, data) {
   )
   plan.append(facts)
   container.replaceChildren(plan)
+  // "Minha agenda": atendimentos online/presenciais e agendamento pelo app.
+  const agenda = element('article')
+  container.append(agenda)
+  void renderStudentAgenda(agenda, {
+    request: studentRequest,
+    reload: () => reloadStudentPanel(),
+  })
   renderReadyWorkoutLibrary(container, data)
   if (data.access.planCode !== 'ready') {
     const workouts = article('Minha ficha personalizada')
@@ -663,6 +673,7 @@ export function initStudentAccess() {
       ),
     )
   }
+  reloadStudentPanel = () => loadPanel()
   async function loadPanel() {
     applyPlanFromHash()
     const current = ++generation

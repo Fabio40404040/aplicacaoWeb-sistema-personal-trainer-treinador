@@ -105,13 +105,28 @@ export async function studentPortal(db, accountId, version) {
 
   // Próximos atendimentos (usados nas notificações do aluno).
   response.appointments = (
-    await db.query(
-      `SELECT id, starts_at AS "startsAt", ends_at AS "endsAt", service, location, status
-       FROM appointments
-       WHERE student_id=$1 AND status='scheduled' AND ends_at >= datetime('now','-1 day')
-       ORDER BY starts_at LIMIT 10`,
-      [account.studentId],
-    )
+    await db
+      .query(
+        `SELECT id, starts_at AS "startsAt", ends_at AS "endsAt", service, location, status,
+           modality, meeting_url AS "meetingUrl", cancelled_by AS "cancelledBy", updated_at AS "updatedAt"
+         FROM appointments
+         WHERE student_id=$1 AND (
+           (status IN ('scheduled','pending') AND ends_at >= datetime('now','-1 day'))
+           OR (status='cancelled' AND cancelled_by='trainer' AND starts_at >= datetime('now')
+               AND updated_at >= datetime('now','-7 day')))
+         ORDER BY starts_at LIMIT 15`,
+        [account.studentId],
+      )
+      .catch(() =>
+        // Sem a migração 021: consulta antiga, sem derrubar a área do aluno.
+        db.query(
+          `SELECT id, starts_at AS "startsAt", ends_at AS "endsAt", service, location, status
+           FROM appointments
+           WHERE student_id=$1 AND status='scheduled' AND ends_at >= datetime('now','-1 day')
+           ORDER BY starts_at LIMIT 10`,
+          [account.studentId],
+        ),
+      )
   ).rows
 
   if (account.planCode === 'ready') {

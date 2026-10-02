@@ -974,6 +974,7 @@ function renderStudentOptions() {
       ...available.map((s) => {
         const o = document.createElement('option')
         o.value = s.name
+        o.dataset.studentId = s.id
         o.textContent = select.closest('[data-form="workout"]')
           ? `${s.name} — ${s.planCode === 'athlete' ? 'Performance Atleta' : s.planCode === 'premium' ? 'Consultoria Premium' : 'Consultoria Básica'}`
           : s.name
@@ -1162,7 +1163,7 @@ function renderSchedule() {
   if (!appointments.length) {
     const empty = document.createElement('p')
     empty.className = 'schedule-empty'
-    empty.textContent = 'Use “Novo atendimento” para organizar sua agenda presencial.'
+    empty.textContent = 'Use “Novo atendimento” ou deixe seus alunos agendarem pelo app (Agenda → Configurar agenda).'
     list.replaceChildren(empty, fullAgenda)
     return
   }
@@ -1189,12 +1190,18 @@ function renderSchedule() {
       const name = document.createElement('strong')
       name.textContent = item.student
       const service = document.createElement('small')
-      service.textContent = `${today.length ? '' : `${shortDate(start)} · `}${item.service}${item.location ? ` · ${item.location}` : ''}`
+      service.textContent = `${today.length ? '' : `${shortDate(start)} · `}${item.service}${item.modality === 'online' ? ' · 💻 Online' : item.location ? ` · ${item.location}` : ''}`
       details.append(name, service)
       const status = document.createElement('span')
-      status.className = `status ${item.status === 'completed' ? 'status--success' : current ? 'status--now' : ''}`
+      status.className = `status ${item.status === 'completed' ? 'status--success' : current ? 'status--now' : item.status === 'pending' ? 'status--warning' : ''}`
       status.textContent =
-        item.status === 'completed' ? 'Concluído' : current ? 'Agora' : 'Agendado'
+        item.status === 'completed'
+          ? 'Concluído'
+          : current
+            ? 'Agora'
+            : item.status === 'pending'
+              ? 'Confirmar'
+              : 'Confirmado'
       row.append(time, avatar, details, status, actions)
       return row
     }),

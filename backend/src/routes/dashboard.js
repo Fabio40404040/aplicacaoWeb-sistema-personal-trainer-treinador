@@ -139,10 +139,20 @@ export async function dashboard(db, trainerId) {
     ),
     db.query(
       `SELECT ap.id,ap.student_id AS "studentId",s.name AS student,ap.starts_at AS "startsAt",
-       ap.ends_at AS "endsAt",ap.service,ap.location,ap.notes,ap.status
+       ap.ends_at AS "endsAt",ap.service,ap.location,ap.notes,ap.status,ap.modality,
+       ap.meeting_url AS "meetingUrl",ap.service_id AS "serviceId",ap.source
        FROM appointments ap JOIN students s ON s.id=ap.student_id
        WHERE ap.trainer_id=$1 ORDER BY ap.starts_at`,
       [trainerId],
+    ).catch(() =>
+      // Sem a migração 021: consulta antiga, sem derrubar o painel.
+      db.query(
+        `SELECT ap.id,ap.student_id AS "studentId",s.name AS student,ap.starts_at AS "startsAt",
+         ap.ends_at AS "endsAt",ap.service,ap.location,ap.notes,ap.status
+         FROM appointments ap JOIN students s ON s.id=ap.student_id
+         WHERE ap.trainer_id=$1 ORDER BY ap.starts_at`,
+        [trainerId],
+      ),
     ),
     db.query(
       `SELECT id,name,goal,level,duration,muscle_groups AS "muscleGroups",description,

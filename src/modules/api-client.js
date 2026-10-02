@@ -78,6 +78,13 @@ export async function login(credentials, signal) {
 export function clearApiSession() {
   sessionStorage.removeItem(TOKEN_KEY);
 }
+// Agenda online/presencial: horários, tipos de atendimento e cota por plano.
+export function fetchBookingConfig() {
+  return request('/booking/config')
+}
+export function saveBookingConfig(config) {
+  return request('/booking/config', { method: 'PUT', body: JSON.stringify(config) })
+}
 export function persistRecord(collection, record, editingId = null) {
   return request(`/${collection}${editingId ? `/${editingId}` : ""}`, {
     method: editingId ? "PUT" : "POST",

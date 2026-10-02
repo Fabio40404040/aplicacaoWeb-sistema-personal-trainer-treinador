@@ -232,7 +232,12 @@ function handleAppointment(form) {
     startsAt: start.toISOString(),
     endsAt: end.toISOString(),
     service: value(form, 'service'),
-    location: value(form, 'location'),
+    studentId: form.elements.student?.selectedOptions?.[0]?.dataset.studentId || null,
+    modality: value(form, 'modality') === 'online' ? 'online' : 'presencial',
+    location: value(form, 'modality') === 'online' ? '' : value(form, 'location'),
+    meetingUrl: value(form, 'modality') === 'online' ? value(form, 'meetingUrl') : '',
+    serviceId:
+      form.querySelector('[data-appointment-services]')?.selectedOptions[0]?.dataset.serviceId || null,
     notes: value(form, 'notes'),
     status: value(form, 'status'),
   }
@@ -288,6 +293,8 @@ function fillForm(type, id) {
     form.elements.date.value = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`
     form.elements.time.value = `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`
     form.elements.duration.value = String(Math.max(30, Math.round((end - start) / 60_000)))
+    if (form.elements.modality) form.elements.modality.value = record.modality || 'presencial'
+    window.dispatchEvent(new CustomEvent('frs:appointment-form-filled', { detail: record }))
   }
   if (form.elements.published) form.elements.published.checked = Boolean(record.publishedAt)
   if (type === 'exercise') setExerciseGifField(form, record.gifId)
